@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: rastreio-facil
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:/var/data/production.db
+      - key: SESSION_SECRET
+        generateValue: true   # Render gera automaticamente um valor seguro
+    disk:
+      name: rastreio-db
+      mountPath: /var/data
+      sizeGB: 1
