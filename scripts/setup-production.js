@@ -1,13 +1,13 @@
 /**
- * Script de inicialização do banco de dados em produção.
- * Executar uma vez após o deploy: node scripts/setup-production.js
+ * Script de inicializacao do banco de dados em producao.
+ * Executar uma vez apos o deploy: node scripts/setup-production.js
  */
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 
-// Usa o caminho de produção (Render) ou local
+// Usa o caminho de producao (Render) ou local
 const dbPath = process.env.DATABASE_URL
   ? process.env.DATABASE_URL.replace('file:', '')
   : path.join(__dirname, '..', 'prisma', 'dev.db');
@@ -55,7 +55,12 @@ db.exec(`
   );
 `);
 
-// Cria admin se não existirif (!existing) {
+// Cria admin se nao existir
+const existing = db.prepare('SELECT id FROM Admin WHERE username = ?').get(
+  process.env.ADMIN_USERNAME || 'foster'
+);
+
+if (!existing) {
   const hash = bcrypt.hashSync(process.env.ADMIN_PASSWORD || '3411', 12);
   const id = require('crypto').randomBytes(12).toString('hex');
   db.prepare('INSERT INTO Admin (id, username, password) VALUES (?, ?, ?)').run(
@@ -65,8 +70,8 @@ db.exec(`
   );
   console.log('Admin criado:', process.env.ADMIN_USERNAME || 'foster');
 } else {
-  console.log('Admin já existe.');
+  console.log('Admin ja existe.');
 }
 
 db.close();
-console.log('Setup concluído!');
+console.log('Setup concluido!');
