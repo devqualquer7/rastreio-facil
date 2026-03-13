@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Client {
+  id            String         @id @default(cuid())
+  name          String
+  email         String?
+  phone         String?
+  trackingCodes TrackingCode[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model TrackingCode {
+  id        String          @id @default(cuid())
+  code      String          @unique
+  clientId  String?
+  client    Client?         @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  events    TrackingEvent[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model TrackingEvent {
+  id             String       @id @default(cuid())
+  status         String
+  location       String?
+  date           DateTime     @default(now())
+  trackingCodeId String
+  trackingCode   TrackingCode @relation(fields: [trackingCodeId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
