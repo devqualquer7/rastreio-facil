@@ -1,9 +1,19 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Search, Package, MapPin, Clock, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { Plus, Trash2, Search, Package, MapPin, Clock, ChevronDown, ChevronUp, X, User } from 'lucide-react'
 
 interface TrackingEvent { id: string; status: string; location: string | null; date: string }
-interface TrackingCode { id: string; code: string; description: string | null; createdAt: string; events: TrackingEvent[] }
+interface TrackingCode {
+  id: string; code: string; description: string | null
+  events: TrackingEvent[]; createdAt: string
+}
+
+function genCode() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let r = 'RF'
+  for (let i = 0; i < 8; i++) r += chars[Math.floor(Math.random() * chars.length)]
+  return r
+}
 
 export default function DashboardPage() {
   const [codes, setCodes] = useState<TrackingCode[]>([])
@@ -11,206 +21,155 @@ export default function DashboardPage() {
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ code: '', description: '' })
-  const [eventForm, setEventForm] = useState({ trackingCodeId: '', status: '', location: '', date: '' })
-  const [showEventForm, setShowEventForm] = useState<string | null>(null)
+  const [clientName, setClientName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  const load = () => {
-    setLoading(true)
-    fetch('/api/user/tracking-codes').then(r => r.json()).then(d => {
-      setCodes(Array.isArray(d) ? d : []); setLoading(false)
-    }).catch(() => setLoading(false))
+  const load = async () => {
+    try {
+      const r = await fetch('/api/user/tracking-codes')
+      const d = await r.json()
+      if (d.error) setError(d.error)
+      else setCodes(d.codes || d || [])
+    } catch { setError('Erro ao carregar rastreios.') }
+    finally { setLoading(false) }
+  }
+  useEffect(() => { load() }, [])
+
+  const handleCreate = async () => {
+    if (!clientName.trim()) return
+    setSubmitting(true); setError('')
+    try {
+      const code = genCode()
+      const r = await fetch('/api/user/tracking-codes', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, description: clientName.trim() })
+      })
+      const d = await r.json()
+      if (!r.ok) { setError(d.error || 'Erro ao criar rastreio.'); return }
+      setClientName(''); setShowForm(false); load()
+    } finally { setSubmitting(false) }
   }
 
-  useEffect(load, [])
-
-  const filtered = codes.filter(c =>
-    c.code.includes(search.toUpperCase()) ||
-    (c.description || '').toLowerCase().includes(search.toLowerCase())
-  )
-
-  const createCode = async (e: React.FormEvent) => {
-    e.preventDefault(); setSubmitting(true); setError('')
-    const res = await fetch('/api/user/tracking-codes', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: form.code, description: form.description || null }),
-    })
-    const data = await res.json()
-    if (!res.ok) { setError(data.error); setSubmitting(false); return }
-    setForm({ code: '', description: '' }); setShowForm(false); setSubmitting(false); load()
-  }
-
-  const deleteCode = async (id: string) => {
-    if (!confirm('Excluir este rastreio?')) return
+  const handleDelete = async (id: string) => {
+    if (!confirm('Remover este rastreio?')) return
     await fetch(`/api/user/tracking-codes/${id}`, { method: 'DELETE' })
     load()
   }
 
-  const addEvent = async (e: React.FormEvent) => {
-    e.preventDefault(); setSubmitting(true)
-    const res = await fetch('/api/user/tracking-events', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(eventForm),
-    })
-    if (res.ok) { setEventForm({ trackingCodeId: '', status: '', location: '', date: '' }); setShowEventForm(null); load() }
-    setSubmitting(false)
-  }
+  const filtered = codes.filter(c =>
+    c.code.toLowerCase().includes(search.toLowerCase()) ||
+    (c.description || '').toLowerCase().includes(search.toLowerCase())
+  )
 
-  const deleteEvent = async (id: string) => {
-    if (!confirm('Excluir este evento?')) return
-    await fetch(`/api/user/tracking-events/${id}`, { method: 'DELETE' })
-    load()
+  const inp: React.CSSProperties = {
+    background: 'rgba(15,15,30,0.6)', border: '1px solid rgba(99,102,241,0.2)',
+    borderRadius: '0.625rem', padding: '0.6875rem 1rem', color: '#f1f5f9',
+    fontSize: '0.9375rem', outline: 'none', width: '100%', boxSizing: 'border-box'
   }
-
-  const inputStyle = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(99,102,241,0.2)', color: '#f1f5f9' }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.75rem', gap: '1rem', flexWrap: 'wrap' }}>
         <div>
-          <h1 className="text-2xl font-black text-white">Meus Rastreios</h1>
-          <p className="text-sm mt-0.5" style={{ color: '#64748b' }}>{codes.length} rastreio{codes.length !== 1 ? 's' : ''} cadastrado{codes.length !== 1 ? 's' : ''}</p>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#f1f5f9', margin: '0 0 0.25rem' }}>Meus Rastreios</h1>
+          <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>{codes.length} rastreio{codes.length !== 1 ? 's' : ''} cadastrado{codes.length !== 1 ? 's' : ''}</p>
         </div>
-        <button onClick={() => { setShowForm(p => !p); setError('') }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold text-sm transition-all"
-          style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', boxShadow: '0 0 20px rgba(79,70,229,0.3)' }}>
-          <Plus className="w-4 h-4" /> Novo rastreio
+        <button onClick={() => { setShowForm(v => !v); setError('') }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.625rem 1.25rem', fontWeight: 700, fontSize: '0.9375rem', cursor: 'pointer', flexShrink: 0 }}>
+          {showForm ? <X size={16} /> : <Plus size={16} />} {showForm ? 'Cancelar' : 'Novo rastreio'}
         </button>
       </div>
 
-      {/* Form novo rastreio */}
+      {/* Create form */}
       {showForm && (
-        <div className="mb-6 p-6 rounded-2xl" style={{ background: '#0d0d18', border: '1px solid rgba(99,102,241,0.25)' }}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-white">Adicionar rastreio</h3>
-            <button onClick={() => { setShowForm(false); setError('') }} style={{ color: '#64748b' }}><X className="w-4 h-4" /></button>
+        <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '1rem', padding: '1.5rem', marginBottom: '1.75rem' }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#f1f5f9', margin: '0 0 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <User size={16} color="#818cf8" /> Adicionar rastreio
+          </h2>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+              Nome do cliente *
+            </label>
+            <input value={clientName} onChange={e => setClientName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleCreate()}
+              placeholder="Ex: João Silva" autoFocus style={inp} />
+            <p style={{ fontSize: '0.75rem', color: '#475569', marginTop: '0.375rem', marginBottom: 0 }}>
+              Um código de rastreamento único será gerado automaticamente
+            </p>
           </div>
-          {error && <p className="mb-3 text-sm font-medium px-3 py-2 rounded-lg" style={{ background: 'rgba(239,68,68,0.1)', color: '#fca5a5' }}>{error}</p>}
-          <form onSubmit={createCode} className="space-y-3">
-            <div className="grid sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: '#94a3b8' }}>Código *</label>
-                <input required value={form.code} onChange={e => setForm(p => ({ ...p, code: e.target.value.toUpperCase() }))}
-                  placeholder="AA123456789BR"
-                  className="w-full px-4 py-2.5 rounded-xl text-sm font-mono font-medium focus:outline-none tracking-widest" style={inputStyle} />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: '#94a3b8' }}>Descrição</label>
-                <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-                  placeholder="Ex: Pedido cliente João"
-                  className="w-full px-4 py-2.5 rounded-xl text-sm font-medium focus:outline-none" style={inputStyle} />
-              </div>
-            </div>
-            <button type="submit" disabled={submitting}
-              className="px-6 py-2.5 rounded-xl text-white font-semibold text-sm disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)' }}>
-              {submitting ? 'Salvando...' : 'Adicionar'}
-            </button>
-          </form>
+          {error && <p style={{ color: '#f87171', fontSize: '0.875rem', marginBottom: '0.75rem' }}>{error}</p>}
+          <button onClick={handleCreate} disabled={submitting || !clientName.trim()}
+            style={{ background: submitting || !clientName.trim() ? 'rgba(79,70,229,0.4)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.625rem', padding: '0.625rem 1.5rem', fontWeight: 700, fontSize: '0.9375rem', cursor: submitting || !clientName.trim() ? 'not-allowed' : 'pointer' }}>
+            {submitting ? 'Adicionando...' : 'Adicionar'}
+          </button>
         </div>
       )}
 
-      {/* Busca */}
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#6366f1' }} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por código ou descrição..."
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none"
-          style={inputStyle} />
+      {/* Search */}
+      <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
+        <Search size={15} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por código ou cliente..."
+          style={{ ...inp, paddingLeft: '2.375rem' }} />
       </div>
 
-      {/* Lista */}
+      {/* List */}
       {loading ? (
-        <div className="text-center py-16" style={{ color: '#475569' }}>
-          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm">Carregando...</p>
-        </div>
+        <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>Carregando...</div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 rounded-2xl" style={{ background: '#0d0d18', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <Package className="w-12 h-12 mx-auto mb-3 opacity-20" />
-          <p className="font-semibold text-white">{search ? 'Nenhum resultado' : 'Nenhum rastreio ainda'}</p>
-          <p className="text-sm mt-1" style={{ color: '#475569' }}>{search ? 'Tente outro termo' : 'Clique em "Novo rastreio" para começar'}</p>
+        <div style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '1rem', padding: '3rem', textAlign: 'center' }}>
+          <Package size={40} style={{ color: '#334155', margin: '0 auto 1rem', display: 'block' }} />
+          <p style={{ fontWeight: 700, color: '#f1f5f9', margin: '0 0 0.375rem' }}>Nenhum rastreio ainda</p>
+          <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>Clique em "Novo rastreio" para começar</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
           {filtered.map(tc => (
-            <div key={tc.id} className="rounded-2xl overflow-hidden" style={{ background: '#0d0d18', border: '1px solid rgba(99,102,241,0.15)' }}>
-              {/* Row */}
-              <div className="flex items-center gap-3 p-4">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.2)' }}>
-                  <Package className="w-4 h-4" style={{ color: '#818cf8' }} />
+            <div key={tc.id} style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '0.875rem', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.125rem' }}>
+                <div style={{ width: '2.25rem', height: '2.25rem', borderRadius: '0.625rem', background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Package size={15} color="#818cf8" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-mono font-bold text-white tracking-widest text-sm">{tc.code}</p>
-                  {tc.description && <p className="text-xs mt-0.5 truncate" style={{ color: '#64748b' }}>{tc.description}</p>}
-                  <p className="text-xs mt-0.5" style={{ color: '#475569' }}>{tc.events.length} evento{tc.events.length !== 1 ? 's' : ''}</p>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {tc.description && <p style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.9375rem', margin: '0 0 0.125rem' }}>{tc.description}</p>}
+                  <p style={{ color: '#64748b', fontSize: '0.8125rem', margin: 0, fontFamily: 'monospace', letterSpacing: '0.05em' }}>{tc.code}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => { setShowEventForm(tc.id); setEventForm(p => ({ ...p, trackingCodeId: tc.id })); setExpanded(tc.id) }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                    style={{ background: 'rgba(99,102,241,0.1)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.2)' }}>
-                    + Evento
-                  </button>
-                  <button onClick={() => setExpanded(p => p === tc.id ? null : tc.id)} style={{ color: '#64748b' }}>
-                    {expanded === tc.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  </button>
-                  <button onClick={() => deleteCode(tc.id)} style={{ color: '#64748b' }}
-                    onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
-                    onMouseLeave={e => (e.currentTarget.style.color = '#64748b')}>
-                    <Trash2 className="w-4 h-4" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                  <span style={{ fontSize: '0.75rem', padding: '0.25rem 0.625rem', borderRadius: '999px', background: tc.events.length > 0 ? 'rgba(99,102,241,0.15)' : 'rgba(51,65,85,0.5)', color: tc.events.length > 0 ? '#a5b4fc' : '#475569', fontWeight: 600 }}>
+                    {tc.events.length} evento{tc.events.length !== 1 ? 's' : ''}
+                  </span>
+                  {tc.events.length > 0 && (
+                    <button onClick={() => setExpanded(expanded === tc.id ? null : tc.id)} style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '0.5rem', color: '#818cf8', cursor: 'pointer', padding: '0.3125rem', display: 'flex' }}>
+                      {expanded === tc.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </button>
+                  )}
+                  <button onClick={() => handleDelete(tc.id)} style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: '0.5rem', color: '#f87171', cursor: 'pointer', padding: '0.3125rem', display: 'flex' }}>
+                    <Trash2 size={14} />
                   </button>
                 </div>
               </div>
-
-              {/* Expanded */}
-              {expanded === tc.id && (
-                <div className="border-t px-4 pb-4 pt-3" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-                  {/* Add event form */}
-                  {showEventForm === tc.id && (
-                    <form onSubmit={addEvent} className="mb-4 p-4 rounded-xl space-y-3" style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)' }}>
-                      <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#818cf8' }}>Adicionar evento</p>
-                      <div className="grid sm:grid-cols-2 gap-2">
-                        <input required value={eventForm.status} onChange={e => setEventForm(p => ({ ...p, status: e.target.value }))}
-                          placeholder="Status (ex: Pedido coletado)" className="px-3 py-2 rounded-lg text-xs focus:outline-none" style={inputStyle} />
-                        <input value={eventForm.location} onChange={e => setEventForm(p => ({ ...p, location: e.target.value }))}
-                          placeholder="Local (ex: São Paulo-SP)" className="px-3 py-2 rounded-lg text-xs focus:outline-none" style={inputStyle} />
-                        <input type="datetime-local" value={eventForm.date} onChange={e => setEventForm(p => ({ ...p, date: e.target.value }))}
-                          className="px-3 py-2 rounded-lg text-xs focus:outline-none" style={inputStyle} />
-                      </div>
-                      <div className="flex gap-2">
-                        <button type="submit" disabled={submitting} className="px-4 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
-                          style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)' }}>Salvar</button>
-                        <button type="button" onClick={() => setShowEventForm(null)} className="px-4 py-1.5 rounded-lg text-xs font-semibold" style={{ color: '#64748b' }}>Cancelar</button>
-                      </div>
-                    </form>
-                  )}
-
-                  {/* Events list */}
-                  {tc.events.length === 0 ? (
-                    <p className="text-sm text-center py-4" style={{ color: '#475569' }}>Nenhum evento. Clique em "+ Evento" para adicionar.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {tc.events.map((ev, i) => (
-                        <div key={ev.id} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: i === 0 ? 'rgba(99,102,241,0.06)' : 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold" style={{ color: i === 0 ? '#f1f5f9' : '#94a3b8' }}>{ev.status}</p>
-                            <div className="flex flex-wrap gap-3 mt-1 text-xs" style={{ color: '#64748b' }}>
-                              <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(ev.date).toLocaleString('pt-BR')}</span>
-                              {ev.location && <span className="flex items-center gap-1" style={{ color: '#818cf8' }}><MapPin className="w-3 h-3" />{ev.location}</span>}
-                            </div>
-                          </div>
-                          <button onClick={() => deleteEvent(ev.id)} className="flex-shrink-0" style={{ color: '#475569' }}
-                            onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
-                            onMouseLeave={e => (e.currentTarget.style.color = '#475569')}>
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+              {expanded === tc.id && tc.events.length > 0 && (
+                <div style={{ borderTop: '1px solid rgba(99,102,241,0.1)', padding: '0.875rem 1.125rem 0.875rem 4.375rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                    {tc.events.map((ev, i) => (
+                      <div key={ev.id} style={{ display: 'flex', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '0.625rem', flexShrink: 0 }}>
+                          <div style={{ width: '0.5rem', height: '0.5rem', borderRadius: '50%', background: i === 0 ? '#818cf8' : '#334155', flexShrink: 0, marginTop: '0.25rem' }} />
+                          {i < tc.events.length - 1 && <div style={{ width: '1px', flex: 1, minHeight: '1rem', background: 'rgba(99,102,241,0.15)' }} />}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        <div style={{ paddingBottom: i < tc.events.length - 1 ? '0.625rem' : 0 }}>
+                          <p style={{ fontWeight: 600, fontSize: '0.875rem', color: i === 0 ? '#a5b4fc' : '#94a3b8', margin: 0 }}>{ev.status}</p>
+                          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
+                            {ev.location && <span style={{ color: '#475569', fontSize: '0.75rem' }}>📍 {ev.location}</span>}
+                            <span style={{ color: '#475569', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <Clock size={10} />{new Date(ev.date).toLocaleString('pt-BR')}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
