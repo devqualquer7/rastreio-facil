@@ -1,31 +1,90 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Package, Plus, Trash2, Loader2, MapPin, X, ChevronDown, ChevronUp, Clock } from 'lucide-react'
-interface TrackingEvent { id: string; status: string; description?: string; location?: string; date: string }
-interface TrackingCode { id: string; code: string; description?: string; client?: { id: string; name: string } | null; events: TrackingEvent[]; createdAt: string }
+import { Package, Plus, Trash2, Loader2, MapPin, X, ChevronDown, ChevronUp, Clock, Calendar } from 'lucide-react'
+
+interface TrackingEvent { id: string; status: string; location?: string; date: string }
+interface Client { id: string; name: string }
+interface TrackingCode {
+  id: string; code: string; clientId?: string; client?: { id: string; name: string } | null
+  events: TrackingEvent[]; createdAt: string
+}
+
+function genCode() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let r = 'RF'
+  for (let i = 0; i < 8; i++) r += chars[Math.floor(Math.random() * chars.length)]
+  return r
+}
+
 export default function TrackingCodesPage() {
   const [codes, setCodes] = useState<TrackingCode[]>([])
+  const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [code, setCode] = useState('')
-  const [description, setDescription] = useState('')
+  const [clientId, setClientId] = useState('')
+  const [deliveryDate, setDeliveryDate] = useState('')
   const [saving, setSaving] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
+
   const load = async () => {
     setLoading(true)
-    try { const r = await fetch('/api/tracking-codes'); const d = await r.json(); setCodes(Array.isArray(d) ? d : (d.codes || [])) }
-    finally { setLoading(false) }
-  }
-  useEffect(() => { load() }, [])
-  const create = async () => {
-    if (!code.trim()) return; setSaving(true)
     try {
-      await fetch('/api/tracking-codes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: code.trim(), description: description.trim() || undefined }) })
-      setCode(''); setDescription(''); setShowForm(false); load()
+      const [rc, rclients] = await Promise.all([
+        fetch('/api/tracking-codes'),
+        fetch('/api/clients')
+      ])
+      const dc = await rc.json()
+      const dclients = await rclients.json()
+      setCodes(Array.isArray(dc) ? dc : (dc.codes || []))
+      setClients(Array.isArray(dclients) ? dclients : (dclients.clients || []))
+    } finally { setLoading(false) }
+  }
+
+  useEffect(() => { load() }, [])
+
+  const create = async () => {
+    setSaving(true)
+    try {
+      const code = genCode()
+      const r = await fetch('/api/tracking-codes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, clientId: clientId || undefined })
+      })
+      const d = await r.json()
+      if (!r.ok) { alert(d.error || 'Erro ao criar rastreio'); return }
+
+      // Create initial event with delivery estimate if provided
+      if (deliveryDate && d.id) {
+        const dateFormatted = new Date(deliveryDate).toLocaleDateString('pt-BR')
+        await fetch('/api/tracking-events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            trackingCodeId: d.id,
+            status: `Previsão de entrega: ${dateFormatted}`,
+            date: new Date(deliveryDate).toISOString()
+          })
+        })
+      }
+
+      setClientId(''); setDeliveryDate(''); setShowForm(false); load()
     } finally { setSaving(false) }
   }
-  const remove = async (id: string) => { if (!confirm('Remover este rastreio e todos os seus eventos?')) return; await fetch(`/api/tracking-codes/${id}`, { method: 'DELETE' }); load() }
-  const inp: React.CSSProperties = { background: 'rgba(15,15,30,0.6)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '0.5rem', padding: '0.5625rem 0.75rem', color: '#f1f5f9', fontSize: '0.875rem', outline: 'none', width: '100%', boxSizing: 'border-box' }
+
+  const remove = async (id: string) => {
+    if (!confirm('Remover este rastreio e todos os seus eventos?')) return
+    await fetch(`/api/tracking-codes/${id}`, { method: 'DELETE' })
+    load()
+  }
+
+  const inp: React.CSSProperties = {
+    background: 'rgba(15,15,30,0.6)', border: '1px solid rgba(99,102,241,0.2)',
+    borderRadius: '0.5rem', padding: '0.5625rem 0.75rem', color: '#f1f5f9',
+    fontSize: '0.875rem', outline: 'none', width: '100%', boxSizing: 'border-box'
+  }
+  const sel: React.CSSProperties = { ...inp, cursor: 'pointer' }
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
@@ -42,17 +101,33 @@ export default function TrackingCodesPage() {
           {showForm ? <X size={14} /> : <Plus size={14} />} {showForm ? 'Cancelar' : 'Novo rastreio'}
         </button>
       </div>
+
       {showForm && (
         <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)', borderRadius: '0.875rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-            <input value={code} onChange={e => setCode(e.target.value)} placeholder="Código de rastreamento *" style={inp} />
-            <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Descrição (opcional)" style={inp} />
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Cliente (opcional)
+              </label>
+              <select value={clientId} onChange={e => setClientId(e.target.value)} style={sel}>
+                <option value="">— Sem cliente vinculado —</option>
+                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Calendar size={11} /> Previsão de entrega</span>
+              </label>
+              <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} style={inp} />
+            </div>
           </div>
-          <button onClick={create} disabled={saving || !code.trim()} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: saving || !code.trim() ? 'rgba(79,70,229,0.4)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: 600, fontSize: '0.875rem', cursor: saving || !code.trim() ? 'not-allowed' : 'pointer' }}>
-            {saving ? <Loader2 size={14} /> : <Plus size={14} />} Salvar
+          <p style={{ fontSize: '0.75rem', color: '#475569', margin: '0 0 0.75rem' }}>O código de rastreamento será gerado automaticamente.</p>
+          <button onClick={create} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: saving ? 'rgba(79,70,229,0.4)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: 600, fontSize: '0.875rem', cursor: saving ? 'not-allowed' : 'pointer' }}>
+            {saving ? <Loader2 size={14} /> : <Plus size={14} />} Criar rastreio
           </button>
         </div>
       )}
+
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem', color: '#64748b' }}><Loader2 size={24} /></div>
       ) : codes.length === 0 ? (
@@ -70,8 +145,8 @@ export default function TrackingCodesPage() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.9375rem', margin: 0, fontFamily: 'monospace' }}>{tc.code}</p>
-                  {tc.description && <p style={{ color: '#64748b', fontSize: '0.8125rem', margin: '0.125rem 0 0' }}>{tc.description}</p>}
                   {tc.client && <p style={{ color: '#64748b', fontSize: '0.8125rem', margin: '0.125rem 0 0' }}>Cliente: {tc.client.name}</p>}
+                  {tc.events[0] && <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '0.125rem 0 0' }}>{tc.events[0].status}</p>}
                 </div>
                 <span style={{ fontSize: '0.75rem', color: '#475569', flexShrink: 0 }}>{tc.events.length} evento{tc.events.length !== 1 ? 's' : ''}</span>
                 {tc.events.length > 0 && (
@@ -88,7 +163,6 @@ export default function TrackingCodesPage() {
                   {tc.events.map(ev => (
                     <div key={ev.id} style={{ fontSize: '0.8125rem', display: 'flex', gap: '0.5rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
                       <span style={{ fontWeight: 600, color: '#94a3b8' }}>{ev.status}</span>
-                      {ev.description && <span style={{ color: '#64748b' }}>— {ev.description}</span>}
                       {ev.location && <span style={{ color: '#475569' }}>📍 {ev.location}</span>}
                       <span style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Clock size={10} />{new Date(ev.date).toLocaleString('pt-BR')}</span>
                     </div>

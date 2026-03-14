@@ -1,110 +1,248 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
-import crypto from 'crypto';
+import Database from 'better-sqlite3'
+import { join } from 'path'
+import { randomUUID } from 'crypto'
 
-const dbPath = process.env.DATABASE_URL
-  ? process.env.DATABASE_URL.replace('file:', '')
-  : path.join(process.cwd(), 'prisma', 'dev.db');
+const DH_PATH = process.env.DATABASE_URL?.replace('file:', '') || join(process.cwd(), 'prisma/dev.db')
 
-if (!fs.existsSync(path.dirname(dbPath))) fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+let _db: Database.Database | null = null
 
-const db = new Database(dbPath);
+function db() {
+  if (!_db) {
+    _db = new Database(DB_PATH)
+    _db.pragma('journal_mode = WAL')
+    _db.pragma('foreign_keys = ON')
+    // Ensure SaaS tables exist (Prisma schema only has Admin/Client/TrackingCode/TrackingEvent)
+    _db.exec(`
+      CREATE TABLE IF NOT EXISTS User (
+        id TEXT PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        registrationKeyId TEXT,
+        expiresAt TEXT,
+        trackingCodesUsed INTEGER DEFAULT 0,
+        trackingCodesLimit INTEGER DEFAULT 50,
+        createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE TABLE IF NOT EXISTS RegistrationKey (
+        id TEXT PRIMARY KEY,
+        key TEXT UNIQUE NOT NULL,
+        used INTEGER DEFAULT 0,
+        usedBy TEXT,
+        createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE TABLE IF NOT EXISTS Payment (
+        id TEXT PRIMARY KEY,
+        userId TEXT NOT NULL,
+        type TEXT NOT NULL,
+        amount REAL NOT NULL,
+        pushinpayId TEXT,
+        status TEXT DEFAULT 'pending',
+        qrCode TEXT,
+        qrCodeBase64 TEXT,
+ˆÜ™X]Y]VQUSÕT”‘S•ÕSQTÕSTˆ\]Y]VQUSÕT”‘S•ÕSQTÕSTˆ
+NÂˆ
+BˆBˆ™]\›ˆÙ‚ŸB‚™^ÜÛÛœÝ]Y\žHHÂˆËÈ8¥ 8¥ ÛY[È8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ˆÙ]ÛY[Îˆ
 
-function generateId() { return crypto.randomBytes(12).toString('hex'); }
+HOˆÂˆ™]\›ˆŠ
+Kœ™\\™J	ÔÑSPÕ
+ˆ”“ÓHÛY[Ô‘Tˆ–HÜ™X]Y]TÐÉÊK˜[
 
-export const query = {
-  getClients: () => db.prepare('SELECT * FROM Client ORDER BY createdAt DESC').all(),
-  getClientById: (id: string) => db.prepare('SELECT * FROM Client WHERE id = ?').get(id),
-  createClient: (data: { name: string; email?: string; phone?: string }) => {
-    const id = generateId();
-    db.prepare('INSERT INTO Client (id, name, email, phone) VALUES (?, ?, ?, ?)').run(id, data.name, data.email || null, data.phone || null);
-    return { id, ...data };
-  },
-  deleteClient: (id: string) => db.prepare('DELETE FROM Client WHERE id = ?').run(id),
-  getTrackingCodes: () => {
-    const codes = db.prepare(`SELECT tc.*, c.name as clientName FROM TrackingCode tc LEFT JOIN Client c ON tc.clientId = c.id ORDER BY tc.createdAt DESC`).all() as any[];
-    return codes.map(tc => ({ ...tc, client: tc.clientId ? { id: tc.clientId, name: tc.clientName } : null, events: db.prepare('SELECT * FROM TrackingEvent WHERE trackingCodeId = ? ORDER BY date DESC').all(tc.id) }));
-  },
-  getTrackingCodesByUserId: (userId: string) => {
-    const codes = db.prepare('SELECT * FROM TrackingCode WHERE userId = ? ORDER BY createdAt DESC').all(userId) as any[];
-    return codes.map(tc => ({ ...tc, events: db.prepare('SELECT * FROM TrackingEvent WHERE trackingCodeId = ? ORDER BY date DESC').all(tc.id) }));
-  },
-  getTrackingCodeByCode: (code: string) => {
-    const tc = db.prepare(`SELECT tc.*, c.name as clientName FROM TrackingCode tc LEFT JOIN Client c ON tc.clientId = c.id WHERE tc.code = ?`).get(code) as any;
-    if (!tc) return null;
-    return { ...tc, client: tc.clientId ? { id: tc.clientId, name: tc.clientName } : null, events: db.prepare('SELECT * FROM TrackingEvent WHERE trackingCodeId = ? ORDER BY date DESC').all(tc.id) };
-  },
-  getTrackingCodeById: (id: string) => {
-    const tc = db.prepare('SELECT * FROM TrackingCode WHERE id = ?').get(id) as any;
-    if (!tc) return null;
-    return { ...tc, events: db.prepare('SELECT * FROM TrackingEvent WHERE trackingCodeId = ? ORDER BY date DESC').all(tc.id) };
-  },
-  createTrackingCode: (data: { code: string; clientId?: string | null; userId?: string | null; description?: string | null }) => {
-    const id = generateId();
-    db.prepare('INSERT INTO TrackingCode (id, code, clientId, userId, description) VALUES (?, ?, ?, ?, ?)').run(id, data.code.toUpperCase(), data.clientId || null, data.userId || null, data.description || null);
-    return { id, ...data };
-  },
-  updateTrackingCode: (id: string, data: { description?: string }) => {
-    db.prepare('UPDATE TrackingCode SET description = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(data.description || null, id);
-  },
-  deleteTrackingCode: (id: string) => db.prepare('DELETE FROM TrackingCode WHERE id = ?').run(id),
-  createTrackingEvent: (data: { trackingCodeId: string; status: string; location?: string | null; date?: string }) => {
-    const id = generateId();
-    const date = data.date ? new Date(data.date).toISOString() : new Date().toISOString();
-    db.prepare('INSERT INTO TrackingEvent (id, status, location, date, trackingCodeId) VALUES (?, ?, ?, ?, ?)').run(id, data.status, data.location || null, date, data.trackingCodeId);
-    return { id, ...data, date };
-  },
-  deleteTrackingEvent: (id: string) => db.prepare('DELETE FROM TrackingEvent WHERE id = ?').run(id),
-  getUserById: (id: string) => db.prepare('SELECT * FROM User WHERE id = ?').get(id) as any,
-  getUserByUsername: (username: string) => db.prepare('SELECT * FROM User WHERE username = ?').get(username) as any,
-  getAllUsers: () => db.prepare('SELECT id, username, email, expiresAt, trackingLimit, trackingUsed, active, createdAt FROM User ORDER BY createdAt DESC').all(),
-  createUser: (data: { username: string; email?: string; password: string; registrationKeyId?: string; expiresAt?: string }) => {
-    const id = generateId();
-    db.prepare(`INSERT INTO User (id, username, email, password, registrationKeyId, expiresAt) VALUES (?, ?, ?, ?, ?, ?)`).run(id, data.username, data.email || null, data.password, data.registrationKeyId || null, data.expiresAt || null);
-    return { id, ...data };
-  },
-  updateUser: (id: string, data: Partial<{ active: number; expiresAt: string; trackingLimit: number; trackingUsed: number }>) => {
-    const fields = Object.entries(data).map(([k]) => `${k} = ?`).join(', ');
-    db.prepare(`UPDATE User SET ${fields}, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`).run(...Object.values(data), id);
-  },
-  incrementTrackingUsed: (userId: string) => {
-    db.prepare('UPDATE User SET trackingUsed = trackingUsed + 1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(userId);
-  },
-  addDaysToUser: (userId: string, days: number) => {
-    const user = db.prepare('SELECT expiresAt FROM User WHERE id = ?').get(userId) as any;
-    const base = user?.expiresAt ? new Date(user.expiresAt) : new Date();
-    if (base < new Date()) base.setTime(new Date().getTime());
-    base.setDate(base.getDate() + days);
-    db.prepare('UPDATE User SET expiresAt = ?, active = 1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(base.toISOString(), userId);
-  },
-  addTrackingsToUser: (userId: string, amount: number) => {
-    db.prepare('UPDATE User SET trackingLimit = trackingLimit + ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(amount, userId);
-  },
-  getKeyByValue: (key: string) => db.prepare('SELECT * FROM RegistrationKey WHERE key = ?').get(key) as any,
-  getAllKeys: () => db.prepare('SELECT * FROM RegistrationKey ORDER BY createdAt DESC').all(),
-  createKey: (key: string) => {
-    const id = generateId();
-    db.prepare('INSERT INTO RegistrationKey (id, key) VALUES (?, ?)').run(id, key);
-    return { id, key };
-  },
-  markKeyUsed: (keyId: string, userId: string) => {
-    db.prepare('UPDATE RegistrationKey SET used = 1, usedById = ?, usedAt = CURRENT_TIMESTAMP WHERE id = ?').run(userId, keyId);
-  },
-  deleteKey: (id: string) => db.prepare('DELETE FROM RegistrationKey WHERE id = ?').run(id),
-  createPayment: (data: { userId: string; type: string; amount: number; pushinpayId?: string; qrCode?: string; qrCodeBase64?: string; extraTrackings?: number; daysToAdd?: number }) => {
-    const id = generateId();
-    db.prepare(`INSERT INTO Payment (id, userId, type, amount, pushinpayId, status, qrCode, qrCodeBase64, extraTrackings, daysToAdd) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)`).run(id, data.userId, data.type, data.amount, data.pushinpayId || null, data.qrCode || null, data.qrCodeBase64 || null, data.extraTrackings || 0, data.daysToAdd || 0);
-    return { id, ...data };
-  },
-  getPaymentById: (id: string) => db.prepare('SELECT * FROM Payment WHERE id = ?').get(id) as any,
-  getPaymentByPushinpayId: (pushinpayId: string) => db.prepare('SELECT * FROM Payment WHERE pushinpayId = ?').get(pushinpayId) as any,
-  updatePaymentStatus: (id: string, status: string) => {
-    db.prepare('UPDATE Payment SET status = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(status, id);
-  },
-  getPendingPaymentForUser: (userId: string, type: string) => {
-    return db.prepare("SELECT * FROM Payment WHERE userId = ? AND type = ? AND status = 'pending' ORDER BY createdAt DESC LIMIT 1").get(userId, type) as any;
-  },
-};
+BˆK‚ˆÙ]ÛY[žRYˆ
+YˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
+Kœ™\\™J	ÔÑSPÕ
+ˆ”“ÓHÛY[ÒT‘HYHÉÊK™Ù]
+Y
+BˆK‚ˆÜ™X]PÛY[ˆ
+]NˆÈ˜[YNˆÝš[™ÎÈ[XZ[ÎˆÝš[™ÎÈÛ™OÎˆÝš[™ÈJHOˆÂˆÛÛœÝYH˜[™ÛUURQ
 
-export default db;
+BˆÛÛœÝ›ÝÈH™]È]J
+KÒTÓÔÝš[™Ê
+BˆŠ
+Kœ™\\™Jˆ	ÒS”ÑT•S•ÈÛY[
+Y˜[YK[XZ[Û™KÜ™X]Y]\]Y]
+HSQTÈ
+ËËËËËÊIÂˆ
+Kœ[ŠY]K›˜[YK]K™[XZ[[]KœÛ™H[›ÝË›ÝÊBˆ™]\›ˆŠ
+Kœ™\\™J	ÔÑSPÕ
+ˆ”“ÓHÛY[ÒT‘HYHÉÊK™Ù]
+Y
+BˆK‚ˆ[]PÛY[ˆ
+YˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
+Kœ™\\™J	ÑSUH”“ÓHÛY[ÒT‘HYHÉÊKœ[ŠY
+BˆK‚ˆËÈ8¥ 8¥ ˜XÚÚ[™ÈÛÙ\È8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ˆÙ]˜XÚÚ[™ÐÛÙ\Îˆ
+
+HOˆÂˆÛÛœÝÛÙ\ÈHŠ
+Kœ™\\™Jˆ	ÔÑSPÕËŠ‹Ë›˜[YH\ÈÛY[˜[YH”“ÓH˜XÚÚ[™ÐÛÙHÈQ•“ÒSˆÛY[ÈÓˆË˜ÛY[YHËšYÔ‘Tˆ–HË˜Ü™X]Y]TÐÉÂˆ
+K˜[
+
+H\È[žV×Bˆ™]\›ˆÛÙ\Ë›X\
+ÈOˆ
+Âˆ‹‹ËˆÛY[ˆË˜ÛY[YÈÈYˆË˜ÛY[Y˜[YNˆË˜ÛY[˜[YHHˆ[ˆ]™[Îˆ]Y\žK™Ù]]™[ÐžPÛÙRY
+ËšY
+BˆJJBˆK‚ˆÙ]˜XÚÚ[™ÐÛÙ\ÐžU\Ù\’Yˆ
+\Ù\’YˆÝš[™ÊHOˆÂˆÛÛœÝÛÙ\ÈHŠ
+Kœ™\\™Jˆ	ÔÑSPÕËŠ‹Ë›˜[YH\ÈÛY[˜[YH”“ÓH˜XÚÚ[™ÐÛÙHÈQ•“ÒSˆÛY[ÈÓˆË˜ÛY[YHËšYÔ‘Tˆ–HË˜Ü™X]Y]TÐÉÂˆ
+K˜[
+
+H\È[žV×Bˆ™]\›ˆÛÙ\Ë›X\
+ÈOˆ
+Âˆ‹‹ËˆÛY[ˆË˜ÛY[YÈÈYˆË˜ÛY[Y˜[YNˆË˜ÛY[˜[YHHˆ[ˆ]™[Îˆ]Y\žK™Ù]]™[ÐžPÛÙRY
+ËšY
+BˆJJBˆK‚ˆÙ]˜XÚÚ[™ÐÛÙPžPÛÙNˆ
+ÛÙNˆÝš[™ÊHOˆÂˆÛÛœÝÈHŠ
+Kœ™\\™Jˆ	ÔÑSPÕËŠ‹Ë›˜[YH\ÈÛY[˜[YH”“ÓH˜XÚÚ[™ÐÛÙHÈQ•“ÒSˆÛY[ÈÓˆË˜ÛY[YHËšYÒT‘HË˜ÛÙHHÉÂˆ
+K™Ù]
+ÛÙJH\È[žBˆYˆ
+]ÊH™]\›ˆ[ˆ™]\›ˆÂˆ‹‹ËˆÛY[ˆË˜ÛY[YÈÈYˆË˜ÛY[Y˜[YNˆË˜ÛY[˜[YHHˆ[ˆ]™[Îˆ]Y\žK™Ù]]™[ÐžPÛÙRY
+ËšY
+BˆBˆK‚ˆÙ]˜XÚÚ[™ÐÛÙPžRYˆ
+YˆÝš[™ÊHOˆÂˆÛÛœÝÈHŠ
+Kœ™\\™Jˆ	ÔÑSPÕËŠ‹Ë›˜[YH\ÈÛY[˜[YH”“ÓH˜XÚÚ[™ÐÛÙHÈQ•“ÒSˆÛY[ÈÓˆË˜ÛY[YHËšYÒT‘HËšYHÉÂˆ
+K™Ù]
+Y
+H\È[žBˆYˆ
+]ÊH™]\›ˆ[ˆ™]\›ˆÂˆ‹‹ËˆÛY[ˆË˜ÛY[YÈÈYˆË˜ÛY[Y˜[YNˆË˜ÛY[˜[YHHˆ[ˆ]™[Îˆ]Y\žK™Ù]]™[ÐžPÛÙRY
+ËšY
+BˆBˆK‚ˆÜ™X]U˜XÚÚ[™ÐÛÙNˆ
+]NˆÈÛÙNˆÝš[™ÎÈÛY[YÎˆÝš[™È[JHOˆÂˆÛÛœÝYH˜[™ÛUURQ
+
+BˆÛÛœÝ›ÝÈH™]È]J
+KÒTÓÔÝš[™Ê
+BˆŠ
+Kœ™\\™Jˆ	ÒS”ÑT•S•È˜XÚÚ[™ÐÛÙH
+YÛÙKÛY[YÜ™X]Y]\]Y]
+HSQTÈ
+ËËËËÊIÂˆ
+Kœ[ŠY]K˜ÛÙK]K˜ÛY[Y[›ÝË›ÝÊBˆ™]\›ˆŠ
+K™H˜[™ÛUURQ
+
+BˆÛÛœÝ›ÝÈH™]È]J
+KÒTÓÔÝš[™Ê
+BˆŠ
+Kœ™\\™J	ÕTUH˜XÚÚ[™ÐÛÙHÑUÛY[YHË\]Y]HÈÒT‘HYHÉÊBˆœ[Š]K˜ÛY[Y[›ÝËY
+Bˆ™]\›ˆŠ
+Kœ™\\™J	ÔÑSPÕ
+ˆ”“ÓH˜XÚÚ[™ÐÛÙHÒT‘HYHÉÊK™Ù]
+Y
+BˆK‚ˆ[]U˜XÚÚ[™ÐÛÙNˆ
+YˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
+Kœ™\\™J	ÑSUH”“ÓH˜XÚÚ[™ÐÛÙHÒT‘HYHÉÊKœ[ŠY
+BˆK‚ˆËÈ8¥ 8¥ ˜XÚÚ[™È]™[È8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ˆÙ]]™[ÐžPÛÙRYˆ
+˜XÚÚ[™ÐÛÙRYˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
+Kœ™\\™Jˆ	ÔÑSPÕ
+ˆ”“ÓH˜XÚÚ[™Ñ]™[ÒT‘H˜XÚÚ[™ÐÛÙRYHÈÔ‘Tˆ–H]HTÐÉÂˆ
+K˜[
+˜XÚÚ[™ÐÛÙRY
+BˆK‚ˆÜ™X]U˜XÚÚ[™Ñ]™[ˆ
+]NˆÈÝ]\ÎˆÝš[™ÎÈØØ][ÛÎˆÝš[™È[È]OÎˆÝš[™ÎÈ˜XÚÚ[™ÐÛÙRYˆÝš[™ÈJHOˆÂˆÛÛœÝYH˜[™ÛUURQ
+
+BˆÛÛœÝ›ÝÈH™]È]J
+KÒTÓÔÝš[™Ê
+BˆŠ
+Kœ™\\™Jˆ	ÒS”ÑT•S•È˜XÚÚ[™Ñ]™[
+YÝ]\ËØØ][Û‹]K˜XÚÚ[™ÐÛÙRYÜ™X]Y]\]Y]
+HSQTÈ
+ËËËËËËÊIÂˆ
+Kœ[ŠY]KœÝ]\Ë]K›ØØ][Ûˆ[]K™]H›ÝË]K˜XÚÚ[™ÐÛÙRY›ÝË›ÝÊBˆ™]\›ˆŠ
+Kœ™\\™J	ÔÑSPÕ
+ˆ”“ÓH˜XÚÚ[™Ñ]™[ÒT‘HYHÉÊK™Ù]
+Y
+BˆK‚ˆ[]U˜XÚÚ[™Ñ]™[ˆ
+YˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
+Kœ™\\™J	ÑSUH”“ÓH˜XÚÚ[™Ñ]™[ÒT‘HYHÉÊKœ[ŠY
+BˆK‚ˆËÈ8¥ 8¥ \Ù\œÈ
+ØXTÈÝXœØÜšX™\œÊH8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ˆÙ]\Ù\žRYˆ
+YˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
+Kœ™\\™J	ÔÑSPÕ
+ˆ”“ÓH\Ù\ˆÒT‘HYHÉÊK™Ù]
+Y
+BˆK‚ˆÙ]\Ù\žU\Ù\›˜[YNˆ
+\Ù\›˜[YNˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
+Kœ™\\™J	ÔÑSPÕ
+ˆ”“ÓH\Ù\ˆÒT‘H\Ù\›˜[YHHÉÊK™Ù]
+\Ù\›˜[YJBˆK‚ˆÙ][\Ù\œÎˆ
+
+HOˆÂˆ™]\›ˆŠ
+Kœ™\\™J	ÔÑSPÕ
+ˆ”“ÓH\Ù\ˆÔ‘Tˆ–HÜ™X]Y]TÐÉÊK˜[
+
+BˆK‚ˆÜ™X]U\Ù\Žˆ
+]NˆÈ\Ù\›˜[YNˆÝš[™ÎÈ[XZ[ˆÝš[™ÎÈ\ÜÝÛÜ™ˆÝš[™ÎÈ™YÚ\Ý˜][Û’Ù^RYÎˆÝš[™ÎÈ^\™\Ð]ÎˆÝš[™ÈJHOˆÂˆÛÛœÝYH˜[™ÛUURQ
+
+BˆŠ
+Kœ™\\™Jˆ	ÒS”ÑT•S•È\Ù\ˆ
+Y\Ù\›˜[YK[XZ[\ÜÝÛÜ™™YÚ\Ý˜][Û’Ù^RY^\™\Ð]
+HSQTÈ
+ËËËËËÊIÂˆ
+Kœ[ŠY]K\Ù\›˜[YK]K™[XZ[]Kœ\ÜÝÛÜ™]Kœ™YÚ\Ý˜][Û’Ù^RY[]K™^\™\Ð][
+Bˆ™]\›ˆŠ
+Kœ™\\™J	ÔÑSPÕ
+ˆ”“ÓH\Ù\ˆÒT‘HYHÉÊK™Ù]
+Y
+BˆK‚ˆ\]U\Ù\Žˆ
+YˆÝš[™ËšY[Îˆ™XÛÜ™Ýš[™Ë[žOŠHOˆÂˆÛÛœÝÙ^\ÈHØš™XÝšÙ^\ÊšY[ÊBˆYˆ
+Ù^\Ë›[™ÝOOH
+H™]\›‚ˆÛÛœÝÙ]Û]\ÙHHÙ^\Ë›X\
+ÈOˆ	ÚßHHØ
+Kš›Ú[Š	Ë	ÊBˆÛÛœÝ˜[Y\ÈHÙ^\Ë›X\
+ÈOˆšY[ÖÚ×JBˆŠ
+Kœ™\\™JTUH\Ù\ˆÑU	ÜÙ]Û]\Ù_K\]Y]HÕT”‘S•ÕSQTÕSTÒT‘HYHØ
+Bˆœ[Š‹‹˜[Y\ËY
+Bˆ™]\›ˆŠ
+Kœ™\\™J	ÔÑSPÕ
+ˆ”“ÓH\Ù\ˆÒT‘HYHÉÊK™Ù]
+Y
+BˆK‚ˆ[˜Ü™[Y[˜XÚÚ[™Õ\ÙYˆ
+\Ù\’YˆÝš[™ÊHOˆÂˆŠ
+Kœ™\\™J	ÕTUH\Ù\ˆÑU˜XÚÚ[™ÐÛÙ\Õ\ÙYH˜XÚÚ[™ÐÛÙ\Õ\ÙY
+ÈHÒT‘HYHÉÊKœ[Š\Ù\’Y
+BˆK‚ˆY^\ÕÕ\Ù\Žˆ
+\Ù\’YˆÝš[™Ë^\Îˆ[X™\ŠHOˆÂˆŠ
+Kœ™\\™JTUH\Ù\ˆÑU^\™\Ð]H]][YJÓÐSTÐÑJ^\™\Ð]]][YJ	Û›ÝÉÊJK	ÊÉÙ^\ßH^\ÉÊHÒT‘HYHØ
+Kœ[Š\Ù\’Y
+BˆK‚ˆY˜XÚÚ[™ÜÕÕ\Ù\Žˆ
+\Ù\’YˆÝš[™ËÛÝ[ˆ[X™\ŠHOˆÂˆŠ
+Kœ™\\™J	ÕTUH\Ù\ˆÑU˜XÚÚ[™ÐÛÙ\Ó[Z]H˜XÚÚ[™ÐÛÙ\Ó[Z]
+ÈÈÒT‘HYHÉÊKœ[ŠÛÝ[\Ù\’Y
+BˆK‚ˆËÈ8¥ 8¥ ™YÚ\Ý˜][ÛˆÙ^\È8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ˆÙ]Ù^PžU˜[YNˆ
+Ù^NˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
+Kœ™\\™J	ÔÑSPÕ
+ˆ”“ÓH™YÚ\Ý˜][Û’Ù^HÒT‘HÙ^HHÉÊK™Ù]
+Ù^JBˆK‚ˆÙ][Ù^\Îˆ
+
+HOˆÂˆ™]\›ˆŠ
+Kœ™\\™J	ÔÑSPÕ
+ˆ”“ÓH™YÚ\Ý˜][Û’Ù^HÔ‘Tˆ–HÜ™X]Y]TÐÉÊK˜[
+
+BˆK‚ˆÜ™X]RÙ^Nˆ
+Ù^NˆÝš[™ÊHOˆÂˆÛÛœÝYH˜[™ÛUURQ
+
+BˆŠ
+Kœ™\\™J	ÒS”ÑT•S•È™YÚ\Ý˜][Û’Ù^H
+YÙ^JHSQTÈ
+ËÊIÊKœ[ŠYÙ^JBˆ™]\›ˆŠ
+Kœ™\\™J	ÔÑSPÕ
+ˆ”“ÓH™YÚ\Ý˜][Û’Ù^HÒT‘HYHÉÊK™Ù]
+Y
+BˆK‚ˆX\šÒÙ^U\ÙYˆ
+YˆÝš[™Ë\ÙYžNˆÝš[™ÊHOˆÂˆŠ
+Kœ™\\™J	ÕTUH™YÚ\Ý˜][Û’Ù^HÑU\ÙYHK\ÙYžHHÈÒT‘HYHÉÊKœ[Š\ÙYžKY
+BˆK‚ˆ[]RÙ^Nˆ
+YˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
+Kœ™\\™J	ÑSUH”“ÓH™YÚ\Ý˜][Û’Ù^HÒT‘HYHÉÊKœ[ŠY
+BˆK‚ˆËÈ8¥ 8¥ ^[Y[È8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ˆÜ™X]T^[Y[ˆ
+]NˆÈ\Ù\’YˆÝš[™ÎÈ\NˆÝš[™ÎÈ[[Ý[ˆ[X™\ŽÈ\Ú[œ^RYÎˆÝš[™ÎÈÝ]\ÏÎˆÝš[™ÎÈ\ÛÙOÎˆÝš[™ÎÈ\ÛÙP˜\ÙMÎˆÝš[™ÎÈ^˜U˜XÚÚ[™ÜÏÎˆ[X™\ŽÈ^\ÕÐYÎˆ[X™\ˆJHOˆÂˆÛÛœÝYH˜[™ÛUURQ
+
+BˆŠ
+Kœ™\\™Jˆ	ÒS”ÑT•S•È^[Y[
+Y\Ù\’Y\K[[Ý[\Ú[œ^RYÝ]\Ë\ÛÙK\ÛÙP˜\ÙM^˜U˜XÚÚ[™ÜË^\ÕÐY
+HSQTÈ
+ËËËËËËËËËÊIÂˆ
+Kœ[ŠY]K\Ù\’Y]K\K]K˜[[Ý[]Kœ\Ú[œ^RY[]KœÝ]\È	Ü[™[™ÉË]Kœ\ÛÙH[]Kœ\ÛÙP˜\ÙM[]K™^˜U˜XÚÚ[™ÜÈ]K™^\ÕÐY
+Bˆ™]\›ˆŠ
+Kœ™\\™J	ÔÑSPÕ
+ˆ”“ÓH^[Y[ÒT‘HYHÉÊK™Ù]
+Y
+BˆK€¢vWE–ÖVçD'”–C¢†–C¢7G&–ær’Óâ°¢&WGW&âF"‚’ç&W&R‚u4TÄT5B¢e$ôÒ–ÖVçBt„U$R–BÒòr’ævWB†–B¢ÒÀ ¢vWE–ÖVçD'•W6†–ç”–C¢‡W6†–ç”–C¢7G&–ær’Óâ°¢&WGW&âF"‚’ç&W&R‚u4TÄT5B¢e$ôÒ–ÖVçBt„U$RW6†–ç”–BÒòr’ævWB‡W6†–ç”–B¢ÒÀ ¢WFFU–ÖVçE7FGW3¢†–C¢7G&–ærÂ7FGW3¢7G&–ær’Óâ°¢F"‚’ç&W&R‚uUDDR–ÖVçB4UB7FGW2ÒòÂWFFVDBÒ5U%$TåEõD”ÔU5DÕt„U$R–BÒòr’ç'Vâ‡7FGW2Â–B¢ÒÀ ¢vWEVæF–æu–ÖVçDf÷%W6W#¢‡W6W$–C¢7G&–ær’Óâ°¢&WGW&âF"‚’ç&W&R‚%4TÄT5B¢e$ôÒ–ÖVçBt„U$RW6W$–BÒòäB7FGW2ÒwVæF–ærrõ$DU"%’7&VFVDBDU42Ä”Ô•B"’ævWB‡W6W$–B¢ÒÀ§Ð¥¶µÒ¢F"‚’ç&W&R†UDDRW6W"4UBG·6WD6ÆW6WÒÂWFFVDBÒ5U%$TåEõD”ÔU5DÕt„U$R–BÒö¢ç'Vâ‚ââçfÇVW2Â–B¢&WGW&âF"‚’ç&W&R‚u4TÄT5B¢e$ôÒW6W"t„U$R–BÒòr’ævWB†–B¢ÒÀ 
