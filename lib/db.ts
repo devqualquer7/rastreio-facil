@@ -1,0 +1,1 @@
+fontction db() { return {} }

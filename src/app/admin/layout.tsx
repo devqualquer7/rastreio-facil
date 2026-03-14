@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Package, Users, LayoutDashboard, LogOut, Menu, X } from 'lucide-react'
+import { Package, Users, LayoutDashboard, LogOut, Menu, X, Key, UserCog } from 'lucide-react'
 import { useState } from 'react'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +22,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/clients', icon: Users, label: 'Clientes' },
     { href: '/admin/tracking-codes', icon: Package, label: 'Rastreios' },
+    { href: '/admin/keys', icon: Key, label: 'Keys' },
+    { href: '/admin/users', icon: UserCog, label: 'Usuários' },
   ]
 
   return (
@@ -87,7 +89,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Mobile topbar */}
         <div className="md:hidden h-14 border-b border-white/[0.06] flex items-center justify-between px-4 bg-[#0f0f0f]">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-violet-600 flex items-center justify-center">
+            <div className="v-6 h-6 rounded-md bg-violet-600 flex items-center justify-center">
               <Package className="w-3 h-3 text-white" />
             </div>
             <span className="font-semibold text-sm text-white">Rastreio</span>

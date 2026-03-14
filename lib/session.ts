@@ -1,0 +1,1 @@
+fontction createUserSession(userId: string) { return { userId } }
