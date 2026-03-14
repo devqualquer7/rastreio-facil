@@ -60,7 +60,7 @@ export default function TrackingCodesPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             trackingCodeId: d.id,
-            status: `Previsão de entrega: ${dateFormatted}`,
+            status: `PrevisÃ£o de entrega: ${dateFormatted}`,
             date: new Date(deliveryDate).toISOString()
           })
         })
@@ -119,7 +119,7 @@ export default function TrackingCodesPage() {
           </div>
           <div>
             <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f1f5f9', margin: 0 }}>Rastreios</h1>
-            <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: 0 }}>{codes.length} código{codes.length !== 1 ? 's' : ''}</p>
+            <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: 0 }}>{codes.length} cÃ³digo{codes.length !== 1 ? 's' : ''}</p>
           </div>
         </div>
         <button onClick={() => setShowForm(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.625rem', padding: '0.5rem 1rem', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
@@ -136,20 +136,20 @@ export default function TrackingCodesPage() {
                 Cliente (opcional)
               </label>
               <select value={clientId} onChange={e => setClientId(e.target.value)} style={sel}>
-                <option value="">— Sem cliente vinculado —</option>
+                <option value="">â Sem cliente vinculado â</option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Calendar size={11} /> Previsão de entrega</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Calendar size={11} /> PrevisÃ£o de entrega</span>
               </label>
               <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} style={inp} />
             </div>
           </div>
           <div style={{ marginBottom: '0.75rem' }}>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Código personalizado (opcional)
+              CÃ³digo personalizado (opcional)
             </label>
             <input
               type="text"
@@ -160,7 +160,7 @@ export default function TrackingCodesPage() {
             />
           </div>
           <p style={{ fontSize: '0.75rem', color: '#475569', margin: '0 0 0.75rem' }}>
-            {customCode.trim() ? `Código: ${customCode.trim().toUpperCase()}` : 'O código será gerado automaticamente no formato LT...BR.'}
+            {customCode.trim() ? `CÃ³digo: ${customCode.trim().toUpperCase()}` : 'O cÃ³digo serÃ¡ gerado automaticamente no formato LT...BR.'}
           </p>
           <button onClick={create} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: saving ? 'rgba(79,70,229,0.4)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: 600, fontSize: '0.875rem', cursor: saving ? 'not-allowed' : 'pointer' }}>
             {saving ? <Loader2 size={14} /> : <Plus size={14} />}
@@ -191,12 +191,12 @@ export default function TrackingCodesPage() {
                       <div>
                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Cliente</label>
                         <select value={editClientId} onChange={e => setEditClientId(e.target.value)} style={sel}>
-                          <option value="">— Sem cliente —</option>
+                          <option value="">â Sem cliente â</option>
                           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Previsão de entrega</label>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>PrevisÃ£o de entrega</label>
                         <input type="date" value={editDeliveryDate} onChange={e => setEditDeliveryDate(e.target.value)} style={inp} />
                       </div>
                     </div>
@@ -217,7 +217,7 @@ export default function TrackingCodesPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.9375rem', margin: 0, fontFamily: 'monospace' }}>{tc.code}</p>
                       {tc.client && <p style={{ color: '#64748b', fontSize: '0.8125rem', margin: '0.125rem 0 0' }}>Cliente: {tc.client.name}</p>}
-                      {previsaoEvt && <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '0.125rem 0 0' }}>{privisaoEvt.status}</p>}
+                      {previsaoEvt && <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '0.125rem 0 0' }}>{previsaoEvt.status}</p>}
                     </div>
                     <span style={{ fontSize: '0.75rem', color: '#475569', flexShrink: 0 }}>{realEvents.length} evento{realEvents.length !== 1 ? 's' : ''}</span>
                     {realEvents.length > 0 && (
@@ -238,7 +238,7 @@ export default function TrackingCodesPage() {
                     {realEvents.map(ev => (
                       <div key={ev.id} style={{ fontSize: '0.8125rem', display: 'flex', gap: '0.5rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
                         <span style={{ fontWeight: 600, color: '#94a3b8' }}>{ev.status}</span>
-                        {ev.location && <span style={{ color: '#475569' }}>📍 {ev.location}</span>}
+                        {ev.location && <span style={{ color: '#475569' }}>ð {ev.location}</span>}
                         <span style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Clock size={10} />{new Date(ev.date).toLocaleString('pt-BR')}</span>
                       </div>
                     ))}
