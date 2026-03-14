@@ -1,5 +1,5 @@
 'use client'
 
-default function TrackingCodesPage() {
+export default function TrackingCodesPage() {
   return <div>Tracking Codes</div>
 }

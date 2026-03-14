@@ -1,5 +1,5 @@
 'use client'
 
-default function ClientsPage() {
+export default function ClientsPage() {
   return <div>Clients</div>
 }
