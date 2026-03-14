@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Package, Plus, Trash2, Loader2, MapPin, X, ChevronDown, ChevronUp, Clock, Calendar } from 'lucide-react'
+import { Package, Plus, Trash2, Loader2, MapPin, X, ChevronDown, ChevronUp, Clock, Calendar, Pencil, Check } from 'lucide-react'
 
 interface TrackingEvent { id: string; status: string; location?: string; date: string }
 interface Client { id: string; name: string }
@@ -9,22 +9,20 @@ interface TrackingCode {
   events: TrackingEvent[]; createdAt: string
 }
 
-function genCode() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  let r = 'RF'
-  for (let i = 0; i < 8; i++) r += chars[Math.floor(Math.random() * chars.length)]
-  return r
-}
-
 export default function TrackingCodesPage() {
   const [codes, setCodes] = useState<TrackingCode[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [customCode, setCustomCode] = useState('')
   const [clientId, setClientId] = useState('')
   const [deliveryDate, setDeliveryDate] = useState('')
   const [saving, setSaving] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editClientId, setEditClientId] = useState('')
+  const [editDeliveryDate, setEditDeliveryDate] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -37,7 +35,9 @@ export default function TrackingCodesPage() {
       const dclients = await rclients.json()
       setCodes(Array.isArray(dc) ? dc : (dc.codes || []))
       setClients(Array.isArray(dclients) ? dclients : (dclients.clients || []))
-    } finally { setLoading(false) }
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { load() }, [])
@@ -45,16 +45,14 @@ export default function TrackingCodesPage() {
   const create = async () => {
     setSaving(true)
     try {
-      const code = genCode()
+      const finalCode = customCode.trim().toUpperCase() || undefined
       const r = await fetch('/api/tracking-codes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, clientId: clientId || undefined })
+        body: JSON.stringify({ code: finalCode, clientId: clientId || undefined })
       })
       const d = await r.json()
       if (!r.ok) { alert(d.error || 'Erro ao criar rastreio'); return }
-
-      // Create initial event with delivery estimate if provided
       if (deliveryDate && d.id) {
         const dateFormatted = new Date(deliveryDate).toLocaleDateString('pt-BR')
         await fetch('/api/tracking-events', {
@@ -67,9 +65,36 @@ export default function TrackingCodesPage() {
           })
         })
       }
-
-      setClientId(''); setDeliveryDate(''); setShowForm(false); load()
+      setCustomCode(''); setClientId(''); setDeliveryDate(''); setShowForm(false); load()
     } finally { setSaving(false) }
+  }
+
+  const startEdit = (tc: TrackingCode) => {
+    setEditingId(tc.id)
+    setEditClientId(tc.clientId || '')
+    const previsaoEvt = tc.events.find(e => e.status.toLowerCase().startsWith('previs'))
+    if (previsaoEvt) {
+      const d = new Date(previsaoEvt.date)
+      const yyyy = d.getFullYear()
+      const mm = String(d.getMonth() + 1).padStart(2, '0')
+      const dd = String(d.getDate()).padStart(2, '0')
+      setEditDeliveryDate(`${yyyy}-${mm}-${dd}`)
+    } else {
+      setEditDeliveryDate('')
+    }
+  }
+
+  const saveEdit = async (id: string) => {
+    setEditSaving(true)
+    try {
+      const r = await fetch(`/api/tracking-codes/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: editClientId || null, deliveryDate: editDeliveryDate || null })
+      })
+      if (!r.ok) { const d = await r.json(); alert(d.error || 'Erro ao editar'); return }
+      setEditingId(null); load()
+    } finally { setEditSaving(false) }
   }
 
   const remove = async (id: string) => {
@@ -98,7 +123,8 @@ export default function TrackingCodesPage() {
           </div>
         </div>
         <button onClick={() => setShowForm(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.625rem', padding: '0.5rem 1rem', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
-          {showForm ? <X size={14} /> : <Plus size={14} />} {showForm ? 'Cancelar' : 'Novo rastreio'}
+          {showForm ? <X size={14} /> : <Plus size={14} />}
+          {showForm ? 'Cancelar' : 'Novo rastreio'}
         </button>
       </div>
 
@@ -121,9 +147,24 @@ export default function TrackingCodesPage() {
               <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} style={inp} />
             </div>
           </div>
-          <p style={{ fontSize: '0.75rem', color: '#475569', margin: '0 0 0.75rem' }}>O código de rastreamento será gerado automaticamente.</p>
+          <div style={{ marginBottom: '0.75rem' }}>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Código personalizado (opcional)
+            </label>
+            <input
+              type="text"
+              value={customCode}
+              onChange={e => setCustomCode(e.target.value.toUpperCase())}
+              placeholder="Deixe em branco para gerar automaticamente (LT...BR)"
+              style={inp}
+            />
+          </div>
+          <p style={{ fontSize: '0.75rem', color: '#475569', margin: '0 0 0.75rem' }}>
+            {customCode.trim() ? `Código: ${customCode.trim().toUpperCase()}` : 'O código será gerado automaticamente no formato LT...BR.'}
+          </p>
           <button onClick={create} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: saving ? 'rgba(79,70,229,0.4)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: 600, fontSize: '0.875rem', cursor: saving ? 'not-allowed' : 'pointer' }}>
-            {saving ? <Loader2 size={14} /> : <Plus size={14} />} Criar rastreio
+            {saving ? <Loader2 size={14} /> : <Plus size={14} />}
+            Criar rastreio
           </button>
         </div>
       )}
@@ -137,40 +178,66 @@ export default function TrackingCodesPage() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {codes.map(tc => (
-            <div key={tc.id} style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '0.75rem', overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', padding: '0.875rem 1rem' }}>
-                <div style={{ width: '2rem', height: '2rem', borderRadius: '0.5rem', background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <MapPin size={13} color="#818cf8" />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.9375rem', margin: 0, fontFamily: 'monospace' }}>{tc.code}</p>
-                  {tc.client && <p style={{ color: '#64748b', fontSize: '0.8125rem', margin: '0.125rem 0 0' }}>Cliente: {tc.client.name}</p>}
-                  {tc.events[0] && <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '0.125rem 0 0' }}>{tc.events[0].status}</p>}
-                </div>
-                <span style={{ fontSize: '0.75rem', color: '#475569', flexShrink: 0 }}>{tc.events.length} evento{tc.events.length !== 1 ? 's' : ''}</span>
-                {tc.events.length > 0 && (
-                  <button onClick={() => setExpanded(expanded === tc.id ? null : tc.id)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '0.25rem', display: 'flex' }}>
-                    {expanded === tc.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                  </button>
-                )}
-                <button onClick={() => remove(tc.id)} style={{ width: '1.875rem', height: '1.875rem', borderRadius: '0.5rem', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Trash2 size={13} />
-                </button>
-              </div>
-              {expanded === tc.id && tc.events.length > 0 && (
-                <div style={{ borderTop: '1px solid rgba(99,102,241,0.1)', padding: '0.75rem 1rem 0.75rem 3.875rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {tc.events.map(ev => (
-                    <div key={ev.id} style={{ fontSize: '0.8125rem', display: 'flex', gap: '0.5rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 600, color: '#94a3b8' }}>{ev.status}</span>
-                      {ev.location && <span style={{ color: '#475569' }}>📍 {ev.location}</span>}
-                      <span style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Clock size={10} />{new Date(ev.date).toLocaleString('pt-BR')}</span>
+          {codes.map(tc => {
+            const isEditing = editingId === tc.id
+            const previsaoEvt = tc.events.find(e => e.status.toLowerCase().startsWith('previs'))
+            const realEvents = tc.events.filter(e => !e.status.toLowerCase().startsWith('previs'))
+            return (iente —</option>
+                          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Previsão de entrega</label>
+                        <input type="date" value={editDeliveryDate} onChange={e => setEditDeliveryDate(e.target.value)} style={inp} />
+                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button onClick={() => saveEdit(tc.id)} disabled={editSaving} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontWeight: 600, fontSize: '0.8125rem', cursor: editSaving ? 'not-allowed' : 'pointer' }}>
+                        {editSaving ? <Loader2 size={12} /> : <Check size={12} />} Salvar
+                      </button>
+                      <button onClick={() => setEditingId(null)} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'rgba(100,116,139,0.15)', color: '#94a3b8', border: '1px solid rgba(100,116,139,0.2)', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontWeight: 600, fontSize: '0.8125rem', cursor: 'pointer' }}>
+                        <X size={12} /> Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', padding: '0.875rem 1rem' }}>
+                    <div style={{ width: '2rem', height: '2rem', borderRadius: '0.5rem', background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <MapPin size={13} color="#818cf8" />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.9375rem', margin: 0, fontFamily: 'monospace' }}>{tc.code}</p>
+                      {tc.client && <p style={{ color: '#64748b', fontSize: '0.8125rem', margin: '0.125rem 0 0' }}>Cliente: {tc.client.name}</p>}
+                      {previsaoEvt && <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '0.125rem 0 0' }}>{previsaoEvt.status}</p>}
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#475569', flexShrink: 0 }}>{realEvents.length} evento{realEvents.length !== 1 ? 's' : ''}</span>
+                    {realEvents.length > 0 && (
+                      <button onClick={() => setExpanded(expanded === tc.id ? null : tc.id)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '0.25rem', display: 'flex' }}>
+                        {expanded === tc.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </button>
+                    )}
+                    <button onClick={() => startEdit(tc)} style={{ width: '1.875rem', height: '1.875rem', borderRadius: '0.5rem', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', color: '#818cf8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Pencil size={13} />
+                    </button>
+                    <button onClick={() => remove(tc.id)} style={{ width: '1.875rem', height: '1.875rem', borderRadius: '0.5rem', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                )}
+                {!isEditing && expanded === tc.id && realEvents.length > 0 && (
+                  <div style={{ borderTop: '1px solid rgba(99,102,241,0.1)', padding: '0.75rem 1rem 0.75rem 3.875rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {realEvents.map(ev => (
+                      <div key={ev.id} style={{ fontSize: '0.8125rem', display: 'flex', gap: '0.5rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 600, color: '#94a3b8' }}>{ev.status}</span>
+                        {ev.location && <span style={{ color: '#475569' }}>📍 {ev.location}</span>}
+                        <span style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Clock size={10} />{new Date(ev.date).toLocaleString('pt-BR')}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

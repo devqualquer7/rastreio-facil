@@ -162,7 +162,10 @@ export default function Home() {
     finally { setLoading(false) }
   }
 
-  const currentStep = result?.events.length ? getStepFromStatus(result.events[0].status) : 'coletado'
+  const realEvs = result?.events.filter((e: any) => !e.status.toLowerCase().startsWith('previs')) ?? []
+  const previsEv = result?.events.find((e: any) => e.status.toLowerCase().startsWith('previs'))
+  const deliveryDate = previsEv ? previsEv.status.replace(/^Previs[a\u00e3]o de entrega:\s*/i, '') : null
+  const currentStep = realEvs.length ? getStepFromStatus(realEvs[0].status) : 'coletado'
   const currentIdx  = STEP_ORDER.indexOf(currentStep)
 
   return (
@@ -295,7 +298,7 @@ export default function Home() {
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#6366f1' }}>Código de Rastreio</p>
                   <p className="text-2xl md:text-3xl font-black tracking-widest font-mono text-white">{result.code}</p>
-                  {result.client?.name && <p className="text-sm mt-1" style={{ color: '#64748b' }}>Cliente: <span style={{ color: '#94a3b8' }}>{result.client.name}</span></p>}
+                  {deliveryDate && <p className="text-sm mt-1" style={{ color: '#64748b' }}>Previsão de entrega: <span style={{ color: '#94a3b8' }}>{deliveryDate}</span></p>}
                 </div>
                 {result.events.length > 0 && (() => {
                   const cfg = getStatusConfig(result.events[0].status)
@@ -403,7 +406,7 @@ export default function Home() {
               ) : (
                 <div className="relative space-y-3">
                   <div className="absolute left-5 top-5 bottom-5 w-px" style={{ background: 'linear-gradient(to bottom, rgba(99,102,241,0.3), rgba(99,102,241,0.05))' }} />
-                  {result.events.map((ev, i) => {
+                  {result.events.filter((e: any) => !e.status.toLowerCase().startsWith('previs')).map((ev, i) => {
                     const { Icon, bg, glow } = getEventDot(ev.status, i === 0)
                     const cfg     = getStatusConfig(ev.status)
                     const dateObj = new Date(ev.date)
