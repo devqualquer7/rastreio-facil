@@ -182,7 +182,16 @@ export default function TrackingCodesPage() {
             const isEditing = editingId === tc.id
             const previsaoEvt = tc.events.find(e => e.status.toLowerCase().startsWith('previs'))
             const realEvents = tc.events.filter(e => !e.status.toLowerCase().startsWith('previs'))
-            return (iente —</option>
+            return (
+              <div key={tc.id} style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '0.75rem', overflow: 'hidden' }}>
+                {isEditing ? (
+                  <div style={{ padding: '0.875rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <p style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.9375rem', margin: 0, fontFamily: 'monospace' }}>{tc.code}</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Cliente</label>
+                        <select value={editClientId} onChange={e => setEditClientId(e.target.value)} style={sel}>
+                          <option value="">— Sem cliente —</option>
                           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                       </div>
@@ -208,7 +217,7 @@ export default function TrackingCodesPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.9375rem', margin: 0, fontFamily: 'monospace' }}>{tc.code}</p>
                       {tc.client && <p style={{ color: '#64748b', fontSize: '0.8125rem', margin: '0.125rem 0 0' }}>Cliente: {tc.client.name}</p>}
-                      {previsaoEvt && <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '0.125rem 0 0' }}>{previsaoEvt.status}</p>}
+                      {previsaoEvt && <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '0.125rem 0 0' }}>{privisaoEvt.status}</p>}
                     </div>
                     <span style={{ fontSize: '0.75rem', color: '#475569', flexShrink: 0 }}>{realEvents.length} evento{realEvents.length !== 1 ? 's' : ''}</span>
                     {realEvents.length > 0 && (
