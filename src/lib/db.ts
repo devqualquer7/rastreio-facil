@@ -12,8 +12,34 @@ function db(): any {
     _db = new Database(DB_PATH)
     _db.pragma('journal_mode = WAL')
     _db.pragma('foreign_keys = ON')
-    // Ensure SaaS tables exist (Prisma schema only has Admin/Client/TrackingCode/TrackingEvent)
+    // Ensure all tables exist
     _db.exec(`
+      CREATE TABLE IF NOT EXISTS Client (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT,
+        phone TEXT,
+        createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE TABLE IF NOT EXISTS TrackingCode (
+        id TEXT PRIMARY KEY,
+        code TEXT UNIQUE NOT NULL,
+        clientId TEXT,
+        createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (clientId) REFERENCES Client(id) ON DELETE SET NULL
+      );
+      CREATE TABLE IF NOT EXISTS TrackingEvent (
+        id TEXT PRIMARY KEY,
+        status TEXT NOT NULL,
+        location TEXT,
+        date TEXT DEFAULT CURRENT_TIMESTAMP,
+        trackingCodeId TEXT NOT NULL,
+        createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (trackingCodeId) REFERENCES TrackingCode(id) ON DELETE CASCADE
+      );
       CREATE TABLE IF NOT EXISTS User (
         id TEXT PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
