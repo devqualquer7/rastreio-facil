@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { query } from 'A/lib/db'
-import { createUserSession } from 'A/lib/session'
+import { query } from '@/lib/db'
+import { createUserSession } from '@/lib/session'
 
 export async function POST(request: NextRequest) {
   try {

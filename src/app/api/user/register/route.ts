@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { query } from 'A/lib/db'
-import { createUserSession } from 'A/lib/session'
+import { query } from '@/lib/db'
+import { createUserSession } from '@/lib/session'
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +17,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Senha deve ter ao menos 6 caracteres' }, { status: 400 })
     }
 
-    // Valida key
     const regKey = query.getKeyByValue(key.trim().toUpperCase())
     if (!regKey) {
       return NextResponse.json({ error: 'Key inválida. Verifique e tente novamente.' }, { status: 400 })
@@ -26,13 +25,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Esta key já foi utilizada.' }, { status: 400 })
     }
 
-    // Verifica username único
     const existingUser = query.getUserByUsername(username.trim().toLowerCase())
     if (existingUser) {
       return NextResponse.json({ error: 'Este username já está em uso.' }, { status: 400 })
     }
 
-    // Cria conta com 30 dias de acesso
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + 30)
 
@@ -45,10 +42,7 @@ export async function POST(request: NextRequest) {
       expiresAt: expiresAt.toISOString(),
     })
 
-    // Marca key como usada
     query.markKeyUsed(regKey.id, user.id)
-
-    // Cria sessão
     await createUserSession(user.id)
 
     return NextResponse.json({ success: true })

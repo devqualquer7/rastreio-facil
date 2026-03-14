@@ -74,7 +74,7 @@ export default function AdminUsersPage() {
 
                   {/* User info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items center gap-2 flex-wrap">
                       <p className="font-bold text-white">{u.username}</p>
                       {!u.active && <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: 'rgba(239,68,68,0.15)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.25)' }}>Inativo</span>}
                       {isExpired && u.active ? <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: 'rgba(239,68,68,0.15)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.25)' }}>Expirado</span> : null}
@@ -164,10 +164,10 @@ export default function AdminUsersPage() {
                   </div>
                 )}
               </div>
-            ª          )
+            )
           })}
         </div>
-      )
+      )}
     </div>
   )
 }

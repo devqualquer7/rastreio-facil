@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { query } from 'A/lib/db'
+import { query } from '@/lib/db'
 import crypto from 'crypto'
 
 function generateKey() {
