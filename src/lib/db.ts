@@ -252,3 +252,5 @@ export const query = {
     return db().prepare("SELECT * FROM Payment WHERE userId = ? AND status = 'pending' ORDER BY createdAt DESC LIMIT 1").get(userId)
   },
 }
+
+export default query
