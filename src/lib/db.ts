@@ -2,7 +2,7 @@ import Database from 'better-sqlite3'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
 
-const DH_PATH = process.env.DATABASE_URL?.replace('file:', '') || join(process.cwd(), 'prisma/dev.db')
+const DB_PATH = process.env.DATABASE_URL?.replace('file:', '') || join(process.cwd(), 'prisma/dev.db')
 
 let _db: Database.Database | null = null
 
@@ -41,208 +41,214 @@ function db() {
         status TEXT DEFAULT 'pending',
         qrCode TEXT,
         qrCodeBase64 TEXT,
-ˆÜ™X]Y]VQUSÕT”‘S•ÕSQTÕSTˆ\]Y]VQUSÕT”‘S•ÕSQTÕSTˆ
-NÂˆ
-BˆBˆ™]\›ˆÙ‚ŸB‚™^ÜÛÛœÝ]Y\žHHÂˆËÈ8¥ 8¥ ÛY[È8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ˆÙ]ÛY[Îˆ
+        extraTrackings INTEGER DEFAULT 0,
+        daysToAdd INTEGER DEFAULT 0,
+        createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+      );
+    `)
+  }
+  return _db
+}
 
-HOˆÂˆ™]\›ˆŠ
-Kœ™\\™J	ÔÑSPÕ
-ˆ”“ÓHÛY[Ô‘Tˆ–HÜ™X]Y]TÐÉÊK˜[
+export const query = {
+  // â”€â”€ Clients â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  getClients: () => {
+    return db().prepare('SELECT * FROM Client ORDER BY createdAt DESC').all()
+  },
 
-BˆK‚ˆÙ]ÛY[žRYˆ
-YˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
-Kœ™\\™J	ÔÑSPÕ
-ˆ”“ÓHÛY[ÒT‘HYHÉÊK™Ù]
-Y
-BˆK‚ˆÜ™X]PÛY[ˆ
-]NˆÈ˜[YNˆÝš[™ÎÈ[XZ[ÎˆÝš[™ÎÈÛ™OÎˆÝš[™ÈJHOˆÂˆÛÛœÝYH˜[™ÛUURQ
+  getClientById: (id: string) => {
+    return db().prepare('SELECT * FROM Client WHERE id = ?').get(id)
+  },
 
-BˆÛÛœÝ›ÝÈH™]È]J
-KÒTÓÔÝš[™Ê
-BˆŠ
-Kœ™\\™Jˆ	ÒS”ÑT•S•ÈÛY[
-Y˜[YK[XZ[Û™KÜ™X]Y]\]Y]
-HSQTÈ
-ËËËËËÊIÂˆ
-Kœ[ŠY]K›˜[YK]K™[XZ[[]KœÛ™H[›ÝË›ÝÊBˆ™]\›ˆŠ
-Kœ™\\™J	ÔÑSPÕ
-ˆ”“ÓHÛY[ÒT‘HYHÉÊK™Ù]
-Y
-BˆK‚ˆ[]PÛY[ˆ
-YˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
-Kœ™\\™J	ÑSUH”“ÓHÛY[ÒT‘HYHÉÊKœ[ŠY
-BˆK‚ˆËÈ8¥ 8¥ ˜XÚÚ[™ÈÛÙ\È8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ˆÙ]˜XÚÚ[™ÐÛÙ\Îˆ
+  createClient: (data: { name: string; email?: string; phone?: string }) => {
+    const id = randomUUID()
+    const now = new Date().toISOString()
+    db().prepare(
+      'INSERT INTO Client (id, name, email, phone, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(id, data.name, data.email || null, data.phone || null, now, now)
+    return db().prepare('SELECT * FROM Client WHERE id = ?').get(id)
+  },
 
-HOˆÂˆÛÛœÝÛÙ\ÈHŠ
-Kœ™\\™Jˆ	ÔÑSPÕËŠ‹Ë›˜[YH\ÈÛY[˜[YH”“ÓH˜XÚÚ[™ÐÛÙHÈQ•“ÒSˆÛY[ÈÓˆË˜ÛY[YHËšYÔ‘Tˆ–HË˜Ü™X]Y]TÐÉÂˆ
-K˜[
+  deleteClient: (id: string) => {
+    return db().prepare('DELETE FROM Client WHERE id = ?').run(id)
+  },
 
-H\È[žV×Bˆ™]\›ˆÛÙ\Ë›X\
-ÈOˆ
-Âˆ‹‹ËˆÛY[ˆË˜ÛY[YÈÈYˆË˜ÛY[Y˜[YNˆË˜ÛY[˜[YHHˆ[ˆ]™[Îˆ]Y\žK™Ù]]™[ÐžPÛÙRY
-ËšY
-BˆJJBˆK‚ˆÙ]˜XÚÚ[™ÐÛÙ\ÐžU\Ù\’Yˆ
-\Ù\’YˆÝš[™ÊHOˆÂˆÛÛœÝÛÙ\ÈHŠ
-Kœ™\\™Jˆ	ÔÑSPÕËŠ‹Ë›˜[YH\ÈÛY[˜[YH”“ÓH˜XÚÚ[™ÐÛÙHÈQ•“ÒSˆÛY[ÈÓˆË˜ÛY[YHËšYÔ‘Tˆ–HË˜Ü™X]Y]TÐÉÂˆ
-K˜[
+  // â”€â”€ Tracking Codes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  getTrackingCodes: () => {
+    const codes = db().prepare(
+      'SELECT tc.*, c.name as clientName FROM TrackingCode tc LEFT JOIN Client c ON tc.clientId = c.id ORDER BY tc.createdAt DESC'
+    ).all() as any[]
+    return codes.map(tc => ({
+      ...tc,
+      client: tc.clientId ? { id: tc.clientId, name: tc.clientName } : null,
+      events: query.getEventsByCodeId(tc.id)
+    }))
+  },
 
-H\È[žV×Bˆ™]\›ˆÛÙ\Ë›X\
-ÈOˆ
-Âˆ‹‹ËˆÛY[ˆË˜ÛY[YÈÈYˆË˜ÛY[Y˜[YNˆË˜ÛY[˜[YHHˆ[ˆ]™[Îˆ]Y\žK™Ù]]™[ÐžPÛÙRY
-ËšY
-BˆJJBˆK‚ˆÙ]˜XÚÚ[™ÐÛÙPžPÛÙNˆ
-ÛÙNˆÝš[™ÊHOˆÂˆÛÛœÝÈHŠ
-Kœ™\\™Jˆ	ÔÑSPÕËŠ‹Ë›˜[YH\ÈÛY[˜[YH”“ÓH˜XÚÚ[™ÐÛÙHÈQ•“ÒSˆÛY[ÈÓˆË˜ÛY[YHËšYÒT‘HË˜ÛÙHHÉÂˆ
-K™Ù]
-ÛÙJH\È[žBˆYˆ
-]ÊH™]\›ˆ[ˆ™]\›ˆÂˆ‹‹ËˆÛY[ˆË˜ÛY[YÈÈYˆË˜ÛY[Y˜[YNˆË˜ÛY[˜[YHHˆ[ˆ]™[Îˆ]Y\žK™Ù]]™[ÐžPÛÙRY
-ËšY
-BˆBˆK‚ˆÙ]˜XÚÚ[™ÐÛÙPžRYˆ
-YˆÝš[™ÊHOˆÂˆÛÛœÝÈHŠ
-Kœ™\\™Jˆ	ÔÑSPÕËŠ‹Ë›˜[YH\ÈÛY[˜[YH”“ÓH˜XÚÚ[™ÐÛÙHÈQ•“ÒSˆÛY[ÈÓˆË˜ÛY[YHËšYÒT‘HËšYHÉÂˆ
-K™Ù]
-Y
-H\È[žBˆYˆ
-]ÊH™]\›ˆ[ˆ™]\›ˆÂˆ‹‹ËˆÛY[ˆË˜ÛY[YÈÈYˆË˜ÛY[Y˜[YNˆË˜ÛY[˜[YHHˆ[ˆ]™[Îˆ]Y\žK™Ù]]™[ÐžPÛÙRY
-ËšY
-BˆBˆK‚ˆÜ™X]U˜XÚÚ[™ÐÛÙNˆ
-]NˆÈÛÙNˆÝš[™ÎÈÛY[YÎˆÝš[™È[JHOˆÂˆÛÛœÝYH˜[™ÛUURQ
+  getTrackingCodesByUserId: (userId: string) => {
+    const codes = db().prepare(
+      'SELECT tc.*, c.name as clientName FROM TrackingCode tc LEFT JOIN Client c ON tc.clientId = c.id ORDER BY tc.createdAt DESC'
+    ).all() as any[]
+    return codes.map(tc => ({
+      ...tc,
+      client: tc.clientId ? { id: tc.clientId, name: tc.clientName } : null,
+      events: query.getEventsByCodeId(tc.id)
+    }))
+  },
 
-BˆÛÛœÝ›ÝÈH™]È]J
-KÒTÓÔÝš[™Ê
-BˆŠ
-Kœ™\\™Jˆ	ÒS”ÑT•S•È˜XÚÚ[™ÐÛÙH
-YÛÙKÛY[YÜ™X]Y]\]Y]
-HSQTÈ
-ËËËËÊIÂˆ
-Kœ[ŠY]K˜ÛÙK]K˜ÛY[Y[›ÝË›ÝÊBˆ™]\›ˆŠ
-K™H˜[™ÛUURQ
+  getTrackingCodeByCode: (code: string) => {
+    const tc = db().prepare(
+      'SELECT tc.*, c.name as clientName FROM TrackingCode tc LEFT JOIN Client c ON tc.clientId = c.id WHERE tc.code = ?'
+    ).get(code) as any
+    if (!tc) return null
+    return {
+      ...tc,
+      client: tc.clientId ? { id: tc.clientId, name: tc.clientName } : null,
+      events: query.getEventsByCodeId(tc.id)
+    }
+  },
 
-BˆÛÛœÝ›ÝÈH™]È]J
-KÒTÓÔÝš[™Ê
-BˆŠ
-Kœ™\\™J	ÕTUH˜XÚÚ[™ÐÛÙHÑUÛY[YHË\]Y]HÈÒT‘HYHÉÊBˆœ[Š]K˜ÛY[Y[›ÝËY
-Bˆ™]\›ˆŠ
-Kœ™\\™J	ÔÑSPÕ
-ˆ”“ÓH˜XÚÚ[™ÐÛÙHÒT‘HYHÉÊK™Ù]
-Y
-BˆK‚ˆ[]U˜XÚÚ[™ÐÛÙNˆ
-YˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
-Kœ™\\™J	ÑSUH”“ÓH˜XÚÚ[™ÐÛÙHÒT‘HYHÉÊKœ[ŠY
-BˆK‚ˆËÈ8¥ 8¥ ˜XÚÚ[™È]™[È8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ˆÙ]]™[ÐžPÛÙRYˆ
-˜XÚÚ[™ÐÛÙRYˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
-Kœ™\\™Jˆ	ÔÑSPÕ
-ˆ”“ÓH˜XÚÚ[™Ñ]™[ÒT‘H˜XÚÚ[™ÐÛÙRYHÈÔ‘Tˆ–H]HTÐÉÂˆ
-K˜[
-˜XÚÚ[™ÐÛÙRY
-BˆK‚ˆÜ™X]U˜XÚÚ[™Ñ]™[ˆ
-]NˆÈÝ]\ÎˆÝš[™ÎÈØØ][ÛÎˆÝš[™È[È]OÎˆÝš[™ÎÈ˜XÚÚ[™ÐÛÙRYˆÝš[™ÈJHOˆÂˆÛÛœÝYH˜[™ÛUURQ
+  getTrackingCodeById: (id: string) => {
+    const tc = db().prepare(
+      'SELECT tc.*, c.name as clientName FROM TrackingCode tc LEFT JOIN Client c ON tc.clientId = c.id WHERE tc.id = ?'
+    ).get(id) as any
+    if (!tc) return null
+    return {
+      ...tc,
+      client: tc.clientId ? { id: tc.clientId, name: tc.clientName } : null,
+      events: query.getEventsByCodeId(tc.id)
+    }
+  },
 
-BˆÛÛœÝ›ÝÈH™]È]J
-KÒTÓÔÝš[™Ê
-BˆŠ
-Kœ™\\™Jˆ	ÒS”ÑT•S•È˜XÚÚ[™Ñ]™[
-YÝ]\ËØØ][Û‹]K˜XÚÚ[™ÐÛÙRYÜ™X]Y]\]Y]
-HSQTÈ
-ËËËËËËÊIÂˆ
-Kœ[ŠY]KœÝ]\Ë]K›ØØ][Ûˆ[]K™]H›ÝË]K˜XÚÚ[™ÐÛÙRY›ÝË›ÝÊBˆ™]\›ˆŠ
-Kœ™\\™J	ÔÑSPÕ
-ˆ”“ÓH˜XÚÚ[™Ñ]™[ÒT‘HYHÉÊK™Ù]
-Y
-BˆK‚ˆ[]U˜XÚÚ[™Ñ]™[ˆ
-YˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
-Kœ™\\™J	ÑSUH”“ÓH˜XÚÚ[™Ñ]™[ÒT‘HYHÉÊKœ[ŠY
-BˆK‚ˆËÈ8¥ 8¥ \Ù\œÈ
-ØXTÈÝXœØÜšX™\œÊH8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ˆÙ]\Ù\žRYˆ
-YˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
-Kœ™\\™J	ÔÑSPÕ
-ˆ”“ÓH\Ù\ˆÒT‘HYHÉÊK™Ù]
-Y
-BˆK‚ˆÙ]\Ù\žU\Ù\›˜[YNˆ
-\Ù\›˜[YNˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
-Kœ™\\™J	ÔÑSPÕ
-ˆ”“ÓH\Ù\ˆÒT‘H\Ù\›˜[YHHÉÊK™Ù]
-\Ù\›˜[YJBˆK‚ˆÙ][\Ù\œÎˆ
+  createTrackingCode: (data: { code: string; clientId?: string | null }) => {
+    const id = randomUUID()
+    const now = new Date().toISOString()
+    db().prepare(
+      'INSERT INTO TrackingCode (id, code, clientId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)'
+    ).run(id, data.code, data.clientId || null, now, now)
+    return db().prepare('SELECT * FROM TrackingCode WHERE id = ?').get(id)
+  },
 
-HOˆÂˆ™]\›ˆŠ
-Kœ™\\™J	ÔÑSPÕ
-ˆ”“ÓH\Ù\ˆÔ‘Tˆ–HÜ™X]Y]TÐÉÊK˜[
+  updateTrackingCode: (id: string, data: { clientId?: string | null }) => {
+    const now = new Date().toISOString()
+    db().prepare('UPDATE TrackingCode SET clientId = ?, updatedAt = ? WHERE id = ?')
+      .run(data.clientId || null, now, id)
+    return db().prepare('SELECT * FROM TrackingCode WHERE id = ?').get(id)
+  },
 
-BˆK‚ˆÜ™X]U\Ù\Žˆ
-]NˆÈ\Ù\›˜[YNˆÝš[™ÎÈ[XZ[ˆÝš[™ÎÈ\ÜÝÛÜ™ˆÝš[™ÎÈ™YÚ\Ý˜][Û’Ù^RYÎˆÝš[™ÎÈ^\™\Ð]ÎˆÝš[™ÈJHOˆÂˆÛÛœÝYH˜[™ÛUURQ
+  deleteTrackingCode: (id: string) => {
+    return db().prepare('DELETE FROM TrackingCode WHERE id = ?').run(id)
+  },
 
-BˆŠ
-Kœ™\\™Jˆ	ÒS”ÑT•S•È\Ù\ˆ
-Y\Ù\›˜[YK[XZ[\ÜÝÛÜ™™YÚ\Ý˜][Û’Ù^RY^\™\Ð]
-HSQTÈ
-ËËËËËÊIÂˆ
-Kœ[ŠY]K\Ù\›˜[YK]K™[XZ[]Kœ\ÜÝÛÜ™]Kœ™YÚ\Ý˜][Û’Ù^RY[]K™^\™\Ð][
-Bˆ™]\›ˆŠ
-Kœ™\\™J	ÔÑSPÕ
-ˆ”“ÓH\Ù\ˆÒT‘HYHÉÊK™Ù]
-Y
-BˆK‚ˆ\]U\Ù\Žˆ
-YˆÝš[™ËšY[Îˆ™XÛÜ™Ýš[™Ë[žOŠHOˆÂˆÛÛœÝÙ^\ÈHØš™XÝšÙ^\ÊšY[ÊBˆYˆ
-Ù^\Ë›[™ÝOOH
-H™]\›‚ˆÛÛœÝÙ]Û]\ÙHHÙ^\Ë›X\
-ÈOˆ	ÚßHHØ
-Kš›Ú[Š	Ë	ÊBˆÛÛœÝ˜[Y\ÈHÙ^\Ë›X\
-ÈOˆšY[ÖÚ×JBˆŠ
-Kœ™\\™JTUH\Ù\ˆÑU	ÜÙ]Û]\Ù_K\]Y]HÕT”‘S•ÕSQTÕSTÒT‘HYHØ
-Bˆœ[Š‹‹˜[Y\ËY
-Bˆ™]\›ˆŠ
-Kœ™\\™J	ÔÑSPÕ
-ˆ”“ÓH\Ù\ˆÒT‘HYHÉÊK™Ù]
-Y
-BˆK‚ˆ[˜Ü™[Y[˜XÚÚ[™Õ\ÙYˆ
-\Ù\’YˆÝš[™ÊHOˆÂˆŠ
-Kœ™\\™J	ÕTUH\Ù\ˆÑU˜XÚÚ[™ÐÛÙ\Õ\ÙYH˜XÚÚ[™ÐÛÙ\Õ\ÙY
-ÈHÒT‘HYHÉÊKœ[Š\Ù\’Y
-BˆK‚ˆY^\ÕÕ\Ù\Žˆ
-\Ù\’YˆÝš[™Ë^\Îˆ[X™\ŠHOˆÂˆŠ
-Kœ™\\™JTUH\Ù\ˆÑU^\™\Ð]H]][YJÓÐSTÐÑJ^\™\Ð]]][YJ	Û›ÝÉÊJK	ÊÉÙ^\ßH^\ÉÊHÒT‘HYHØ
-Kœ[Š\Ù\’Y
-BˆK‚ˆY˜XÚÚ[™ÜÕÕ\Ù\Žˆ
-\Ù\’YˆÝš[™ËÛÝ[ˆ[X™\ŠHOˆÂˆŠ
-Kœ™\\™J	ÕTUH\Ù\ˆÑU˜XÚÚ[™ÐÛÙ\Ó[Z]H˜XÚÚ[™ÐÛÙ\Ó[Z]
-ÈÈÒT‘HYHÉÊKœ[ŠÛÝ[\Ù\’Y
-BˆK‚ˆËÈ8¥ 8¥ ™YÚ\Ý˜][ÛˆÙ^\È8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ˆÙ]Ù^PžU˜[YNˆ
-Ù^NˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
-Kœ™\\™J	ÔÑSPÕ
-ˆ”“ÓH™YÚ\Ý˜][Û’Ù^HÒT‘HÙ^HHÉÊK™Ù]
-Ù^JBˆK‚ˆÙ][Ù^\Îˆ
+  // â”€â”€ Tracking Events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  getEventsByCodeId: (trackingCodeId: string) => {
+    return db().prepare(
+      'SELECT * FROM TrackingEvent WHERE trackingCodeId = ? ORDER BY date DESC'
+    ).all(trackingCodeId)
+  },
 
-HOˆÂˆ™]\›ˆŠ
-Kœ™\\™J	ÔÑSPÕ
-ˆ”“ÓH™YÚ\Ý˜][Û’Ù^HÔ‘Tˆ–HÜ™X]Y]TÐÉÊK˜[
+  createTrackingEvent: (data: { status: string; location?: string | null; date?: string; trackingCodeId: string }) => {
+    const id = randomUUID()
+    const now = new Date().toISOString()
+    db().prepare(
+      'INSERT INTO TrackingEvent (id, status, location, date, trackingCodeId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(id, data.status, data.location || null, data.date || now, data.trackingCodeId, now, now)
+    return db().prepare('SELECT * FROM TrackingEvent WHERE id = ?').get(id)
+  },
 
-BˆK‚ˆÜ™X]RÙ^Nˆ
-Ù^NˆÝš[™ÊHOˆÂˆÛÛœÝYH˜[™ÛUURQ
+  deleteTrackingEvent: (id: string) => {
+    return db().prepare('DELETE FROM TrackingEvent WHERE id = ?').run(id)
+  },
 
-BˆŠ
-Kœ™\\™J	ÒS”ÑT•S•È™YÚ\Ý˜][Û’Ù^H
-YÙ^JHSQTÈ
-ËÊIÊKœ[ŠYÙ^JBˆ™]\›ˆŠ
-Kœ™\\™J	ÔÑSPÕ
-ˆ”“ÓH™YÚ\Ý˜][Û’Ù^HÒT‘HYHÉÊK™Ù]
-Y
-BˆK‚ˆX\šÒÙ^U\ÙYˆ
-YˆÝš[™Ë\ÙYžNˆÝš[™ÊHOˆÂˆŠ
-Kœ™\\™J	ÕTUH™YÚ\Ý˜][Û’Ù^HÑU\ÙYHK\ÙYžHHÈÒT‘HYHÉÊKœ[Š\ÙYžKY
-BˆK‚ˆ[]RÙ^Nˆ
-YˆÝš[™ÊHOˆÂˆ™]\›ˆŠ
-Kœ™\\™J	ÑSUH”“ÓH™YÚ\Ý˜][Û’Ù^HÒT‘HYHÉÊKœ[ŠY
-BˆK‚ˆËÈ8¥ 8¥ ^[Y[È8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ˆÜ™X]T^[Y[ˆ
-]NˆÈ\Ù\’YˆÝš[™ÎÈ\NˆÝš[™ÎÈ[[Ý[ˆ[X™\ŽÈ\Ú[œ^RYÎˆÝš[™ÎÈÝ]\ÏÎˆÝš[™ÎÈ\ÛÙOÎˆÝš[™ÎÈ\ÛÙP˜\ÙMÎˆÝš[™ÎÈ^˜U˜XÚÚ[™ÜÏÎˆ[X™\ŽÈ^\ÕÐYÎˆ[X™\ˆJHOˆÂˆÛÛœÝYH˜[™ÛUURQ
+  // â”€â”€ Users (SaaS subscribers) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  getUserById: (id: string) => {
+    return db().prepare('SELECT * FROM User WHERE id = ?').get(id)
+  },
 
-BˆŠ
-Kœ™\\™Jˆ	ÒS”ÑT•S•È^[Y[
-Y\Ù\’Y\K[[Ý[\Ú[œ^RYÝ]\Ë\ÛÙK\ÛÙP˜\ÙM^˜U˜XÚÚ[™ÜË^\ÕÐY
-HSQTÈ
-ËËËËËËËËËÊIÂˆ
-Kœ[ŠY]K\Ù\’Y]K\K]K˜[[Ý[]Kœ\Ú[œ^RY[]KœÝ]\È	Ü[™[™ÉË]Kœ\ÛÙH[]Kœ\ÛÙP˜\ÙM[]K™^˜U˜XÚÚ[™ÜÈ]K™^\ÕÐY
-Bˆ™]\›ˆŠ
-Kœ™\\™J	ÔÑSPÕ
-ˆ”“ÓH^[Y[ÒT‘HYHÉÊK™Ù]
-Y
-BˆK€¢vWE–ÖVçD'”–C¢†–C¢7G&–ær’Óâ°¢&WGW&âF"‚’ç&W&R‚u4TÄT5B¢e$ôÒ–ÖVçBt„U$R–BÒòr’ævWB†–B¢ÒÀ ¢vWE–ÖVçD'•W6†–ç”–C¢‡W6†–ç”–C¢7G&–ær’Óâ°¢&WGW&âF"‚’ç&W&R‚u4TÄT5B¢e$ôÒ–ÖVçBt„U$RW6†–ç”–BÒòr’ævWB‡W6†–ç”–B¢ÒÀ ¢WFFU–ÖVçE7FGW3¢†–C¢7G&–ærÂ7FGW3¢7G&–ær’Óâ°¢F"‚’ç&W&R‚uUDDR–ÖVçB4UB7FGW2ÒòÂWFFVDBÒ5U%$TåEõD”ÔU5DÕt„U$R–BÒòr’ç'Vâ‡7FGW2Â–B¢ÒÀ ¢vWEVæF–æu–ÖVçDf÷%W6W#¢‡W6W$–C¢7G&–ær’Óâ°¢&WGW&âF"‚’ç&W&R‚%4TÄT5B¢e$ôÒ–ÖVçBt„U$RW6W$–BÒòäB7FGW2ÒwVæF–ærrõ$DU"%’7&VFVDBDU42Ä”Ô•B"’ævWB‡W6W$–B¢ÒÀ§Ð¥¶µÒ¢F"‚’ç&W&R†UDDRW6W"4UBG·6WD6ÆW6WÒÂWFFVDBÒ5U%$TåEõD”ÔU5DÕt„U$R–BÒö¢ç'Vâ‚ââçfÇVW2Â–B¢&WGW&âF"‚’ç&W&R‚u4TÄT5B¢e$ôÒW6W"t„U$R–BÒòr’ævWB†–B¢ÒÀ 
+  getUserByUsername: (username: string) => {
+    return db().prepare('SELECT * FROM User WHERE username = ?').get(username)
+  },
+
+  getAllUsers: () => {
+    return db().prepare('SELECT * FROM User ORDER BY createdAt DESC').all()
+  },
+
+  createUser: (data: { username: string; email: string; password: string; registrationKeyId?: string; expiresAt?: string }) => {
+    const id = randomUUID()
+    db().prepare(
+      'INSERT INTO User (id, username, email, password, registrationKeyId, expiresAt) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(id, data.username, data.email, data.password, data.registrationKeyId || null, data.expiresAt || null)
+    return db().prepare('SELECT * FROM User WHERE id = ?').get(id)
+  },
+
+  updateUser: (id: string, fields: Record<string, any>) => {
+    const keys = Object.keys(fields)
+    if (keys.length === 0) return
+    const setClause = keys.map(k => `${k} = ?`).join(', ')
+    const values = keys.map(k => fields[k])
+    db().prepare(`UPDATE User SET ${setClause}, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`)
+      .run(...values, id)
+    return db().prepare('SELECT * FROM User WHERE id = ?').get(id)
+  },
+
+  incrementTrackingUsed: (userId: string) => {
+    db().prepare('UPDATE User SET trackingCodesUsed = trackingCodesUsed + 1 WHERE id = ?').run(userId)
+  },
+
+  addDaysToUser: (userId: string, days: number) => {
+    db().prepare(`UPDATE User SET expiresAt = datetime(COALESCE(expiresAt, datetime('now')), '+${days} days') WHERE id = ?`).run(userId)
+  },
+
+  addTrackingsToUser: (userId: string, count: number) => {
+    db().prepare('UPDATE User SET trackingCodesLimit = trackingCodesLimit + ? WHERE id = ?').run(count, userId)
+  },
+
+  // â”€â”€ Registration Keys â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  getKeyByValue: (key: string) => {
+    return db().prepare('SELECT * FROM RegistrationKey WHERE key = ?').get(key)
+  },
+
+  getAllKeys: () => {
+    return db().prepare('SELECT * FROM RegistrationKey ORDER BY createdAt DESC').all()
+  },
+
+  createKey: (key: string) => {
+    const id = randomUUID()
+    db().prepare('INSERT INTO RegistrationKey (id, key) VALUES (?, ?)').run(id, key)
+    return db().prepare('SELECT * FROM RegistrationKey WHERE id = ?').get(id)
+  },
+
+  markKeyUsed: (id: string, usedBy: string) => {
+    db().prepare('UPDATE RegistrationKey SET used = 1, usedBy = ? WHERE id = ?').run(usedBy, id)
+  },
+
+  deleteKey: (id: string) => {
+    return db().prepare('DELETE FROM RegistrationKey WHERE id = ?').run(id)
+  },
+
+  // â”€â”€ Payments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  createPayment: (data: { userId: string; type: string; amount: number; pushinpayId?: string; status?: string; qrCode?: string; qrCodeBase64?: string; extraTrackings?: number; daysToAdd?: number }) => {
+    const id = randomUUID()
+    db().prepare(
+      'INSERT INTO Payment (id, userId, type, amount, pushinpayId, status, qrCode, qrCodeBase64, extraTrackings, daysToAdd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(id, data.userId, data.type, data.amount, data.pushinpayId || null, data.status || 'pending', data.qrCode || null, data.qrCodeBase64 || null, data.extraTrackings || 0, data.daysToAdd || 0)
+    return db().prepare('SELECT * FROM Payment WHERE id = ?').get(id)
+  },
+
+  getPaymentById: (id: string) => {
+    return db().prepare('SELECT * FROM Payment WHERE id = ?').get(id)
+  },
+
+  getPaymentByPushinpayId: (pushinpayId: string) => {
+    return db().prepare('SELECT * FROM Payment WHERE pushinpayId = ?').get(pushinpayId)
+  },
+
+  updatePaymentStatus: (id: string, status: string) => {
+    db().prepare('UPDATE Payment SET status = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(status, id)
+  },
+
+  getPendingPaymentForUser: (userId: string) => {
+    return db().prepare("SELECT * FROM Payment WHERE userId = ? AND status = 'pending' ORDER BY createdAt DESC LIMIT 1").get(userId)
+  },
+}
