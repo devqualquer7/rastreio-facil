@@ -89,12 +89,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Mobile topbar */}
         <div className="md:hidden h-14 border-b border-white/[0.06] flex items-center justify-between px-4 bg-[#0f0f0f]">
           <div className="flex items-center gap-2">
-            <div className="v-6 h-6 rounded-md bg-violet-600 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-md bg-violet-600 flex items-center justify-center">
               <Package className="w-3 h-3 text-white" />
             </div>
             <span className="font-semibold text-sm text-white">Rastreio</span>
           </div>
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="text-zinc-400 hover:text-white">
+          <button onClick={() => setMobileOpen)!mobileOpen)} className="text-zinc-400 hover:text-white">
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>

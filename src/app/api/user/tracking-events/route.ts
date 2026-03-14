@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserSession } from 'A/lib/session%
+import { getUserSession } from 'A/lib/session'
 import { query } from '@/lib/db'
 
 export async function POST(request: NextRequest) {

@@ -6,18 +6,19 @@ async function sendEmail(to: string, subject: string, html: string) {
   if (!RESEND_KEY || !to) return
   try {
     await fetch('https://api.resend.com/emails',
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'RastreioF��cil <noreply@rastreiofacil.com>',
-        to: [to],
-        subject,
-        html,
-      }),
-    })
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(x
+          from: 'RastreioFácil <noreply@rastreiofacil.com>',
+          to: [to],
+          subject,
+          html,
+        }),
+      })
   } catch (e) {
     console.error('Email error:', e)
   }
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
   try {
     // Valida token do webhook
     const webhookToken = request.headers.get('x-pushinpay-token')
-    const expectedToken = process.env.PUSHIWPAY_WEBHOOK_TOKEN
+    const expectedToken = process.env.PUSHINPAY_WeBHOOK_TOKEN
     if (expectedToken && webhookToken !== expectedToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
       const user = query.getUserById(payment.userId)
       if (!user) return NextResponse.json({ received: true })
 
-      // Aplica benefítios
+      // Aplica benefícios
       if (payment.daysToAdd > 0) {
         query.addDaysToUser(payment.userId, payment.daysToAdd)
       }
@@ -76,12 +77,11 @@ export async function POST(request: NextRequest) {
           : 'N/A'
 
         let benefitHtml = ''
-        if (payment.daysToAdd > 0) benefitHtml += `<li>✅ +${payment.daysToAdd} dias adicionados — anova expira�ão: <strong>${expiresDate}</strong></li>`
+        if (payment.daysToAdd > 0) benefitHtml += `<li>✅ +${payment.daysToAdd} dias adicionados — nova expiração: <strong>${expiresDate}</strong></li>`
         if (payment.extraTrackings > 0) benefitHtml += `<li>✅ +${payment.extraTrackings} rastreios extras adicionados ao seu plano</li>`
 
-        await sendEmail(user.email, '✅ Pagamento confirmado ★ RastreioF��cil', `
-          <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#0d0d18;color:#e2e8f0;border-radius:12px;"
-            >
+        await sendEmail(user.email, '✅ Pagamento confirmado — RastreioFácil', `
+          <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#0d0d18;color:#e2e8f0;border-radius:12px;">
             <h2 style="color:#818cf8;margin-bottom:8px;">Pagamento confirmado!</h2>
             <p>Olá <strong>${user.username}</strong>, seu pagamento foi processado com sucesso.</p>
             <ul style="margin:16px 0;padding-left:20px;">

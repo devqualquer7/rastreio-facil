@@ -51,13 +51,13 @@ export default function AdminUsersPage() {
       {loading ? (
         <div className="text-center py-16" style={{ color: '#475569' }}>
           <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        </diw>
+        </div>
       ) : users.length === 0 ? (
         <div className="text-center py-16 rounded-2xl" style={{ background: '#0d0d18', border: '1px solid rgba(99,102,241,0.15)' }}>
           <Users className="w-10 h-10 mx-auto mb-3 opacity-20" />
           <p className="text-white font-semibold">Nenhum usuÃ¡rio ainda</p>
           <p className="text-sm mt-1" style={{ color: '#475569' }}>Gere keys e compartilhe para novos clientes se cadastrarem</p>
-        </diw>
+        </div>
       ) : (
         <div className="space-y-3">
           {users.map(u => {
@@ -87,14 +87,14 @@ export default function AdminUsersPage() {
                         <span style={{ color: isExpired ? '#f87171' : isWarning ? '#fb923c' : '#64748b' }}>
                           {isExpired ? 'Expirou ' : 'Expira '}{new Date(u.expiresAt).toLocaleDateString('pt-BR')}
                         </span>
-                      )
+                      )}
                     </div>
                   </div>
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button onClick={() => setExpandedId(p => p === u.id ? null : u.id)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semiblold transition-all"
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
                       style={{ background: 'rgba(99,102,241,0.1)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.2)' }}>
                       Gerenciar
                     </button>
@@ -164,10 +164,10 @@ export default function AdminUsersPage() {
                   </div>
                 )}
               </div>
-            )
+            ª          )
           })}
         </div>
-      )}
+      )
     </div>
   )
 }
