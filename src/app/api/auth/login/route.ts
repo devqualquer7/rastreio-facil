@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 })
     }
 
-    const admin = db.prepare('SELECT * FROM Admin WHERE username = ?').get(username) as any
+    const admin = db.getAdminByUsername(username) as any
     const dummyHash = '$2b$12$invalidhashtopreventtimingattack000000000000000000000'
     const hashToCompare = admin?.password || dummyHash
     const valid = await bcrypt.compare(password, hashToCompare)
