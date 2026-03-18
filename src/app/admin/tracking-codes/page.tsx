@@ -70,7 +70,7 @@ export default function TrackingCodesPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             trackingCodeId: d.id,
-            status: `Previs�o de entrega: ${dateFormatted}`,
+            status: `Previsão de entrega: ${dateFormatted}`,
             date: new Date(deliveryDate).toISOString()
           })
         })
@@ -150,7 +150,7 @@ export default function TrackingCodesPage() {
           </div>
           <div>
             <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f1f5f9', margin: 0 }}>Rastreios</h1>
-            <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: 0 }}>{codes.length} c�digo{codes.length !== 1 ? 's' : ''}</p>
+            <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: 0 }}>{codes.length} código{codes.length !== 1 ? 's' : ''}</p>
           </div>
         </div>
         <button onClick={() => setShowForm(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.625rem', padding: '0.5rem 1rem', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
@@ -173,14 +173,14 @@ export default function TrackingCodesPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Calendar size={11} /> Previs�o de entrega</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Calendar size={11} /> Previsão de entrega</span>
               </label>
               <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} style={inp} />
             </div>
           </div>
           <div style={{ marginBottom: '0.75rem' }}>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              C�digo personalizado (opcional)
+              Código personalizado (opcional)
             </label>
             <input
               type="text"
@@ -191,7 +191,7 @@ export default function TrackingCodesPage() {
             />
           </div>
           <p style={{ fontSize: '0.75rem', color: '#475569', margin: '0 0 0.75rem' }}>
-            {customCode.trim() ? `C�digo: ${customCode.trim().toUpperCase()}` : 'O c�digo ser� gerado automaticamente no formato LT...BR.'}
+            {customCode.trim() ? `Código: ${customCode.trim().toUpperCase()}` : 'O código será gerado automaticamente no formato LT...BR.'}
           </p>
           <button onClick={create} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: saving ? 'rgba(79,70,229,0.4)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: 600, fontSize: '0.875rem', cursor: saving ? 'not-allowed' : 'pointer' }}>
             {saving ? <Loader2 size={14} /> : <Plus size={14} />}
@@ -227,7 +227,7 @@ export default function TrackingCodesPage() {
                         </select>
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Previs�o de entrega</label>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Previsão de entrega</label>
                         <input type="date" value={editDeliveryDate} onChange={e => setEditDeliveryDate(e.target.value)} style={inp} />
                       </div>
                     </div>
