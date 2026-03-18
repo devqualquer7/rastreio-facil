@@ -2,6 +2,11 @@
 import { useState, useEffect } from 'react'
 import { Users, ToggleLeft, ToggleRight, Plus, Minus, Package, RefreshCw, AlertTriangle } from 'lucide-react'
 
+function fixEnc(s: string): string {
+  if (!s) return s
+  try { return new TextDecoder('utf-8').decode(new Uint8Array(s.split('').map(c => c.charCodeAt(0) & 0xff))) } catch { return s }
+}
+
 interface UserRow {
   id: string; username: string; email?: string
   expiresAt?: string; trackingLimit: number; trackingUsed: number
@@ -77,7 +82,7 @@ export default function AdminUsersPage() {
                   {/* User info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items center gap-2 flex-wrap">
-                      <p className="font-bold text-white">{u.username}</p>
+                      <p className="font-bold text-white">{fixEnc(u.username)}</p>
                       {!u.active && <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: 'rgba(239,68,68,0.15)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.25)' }}>Inativo</span>}
                       {isExpired && u.active ? <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: 'rgba(239,68,68,0.15)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.25)' }}>Expirado</span> : null}
                       {isWarning && <span className="px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1" style={{ background: 'rgba(249,115,22,0.15)', color: '#fdba74', border: '1px solid rgba(249,115,22,0.25)' }}><AlertTriangle className="w-3 h-3" />{daysLeft}d restantes</span>}
