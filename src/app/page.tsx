@@ -145,6 +145,21 @@ export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // Auto-search from ?code= URL param
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search)
+    const urlCode = p.get('code')
+    if (!urlCode) return
+    const trimmed = urlCode.trim().toUpperCase()
+    setCode(trimmed)
+    setLoading(true); setError(''); setResult(null)
+    fetch('/api/track/' + trimmed)
+      .then(res => res.ok ? res.json() : Promise.reject())
+      .then(data => { setResult(data); setTimeout(() => document.getElementById('resultado')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200) })
+      .catch(() => setError('Código não encontrado.'))
+      .finally(() => setLoading(false))
+  }, [])
+
   const handleSearch = async (e?: React.FormEvent) => {
     e?.preventDefault()
     const trimmed = code.trim().toUpperCase()
