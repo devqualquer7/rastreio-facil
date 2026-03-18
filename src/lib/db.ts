@@ -272,7 +272,7 @@ export const query = {
     return db().prepare('SELECT * FROM RegistrationKey WHERE id = ?').get(id)
   },
   markKeyUsed: (id: string, usedBy: string) => {
-    db().prepare('UPDATE RegistrationKey SET used = 1, usedBy = ? WHERE id = ?').run(usedBy, id)
+    db().prepare('UPDATE RegistrationKey SET used = 1, usedById = ? WHERE id = ?').run(usedBy, id)
   },
   deleteKey: (id: string) => {
     return db().prepare('DELETE FROM RegistrationKey WHERE id = ?').run(id)
