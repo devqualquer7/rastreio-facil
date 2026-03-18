@@ -7,21 +7,18 @@ interface TrackingCode { id: string; code: string; description: string | null; e
 
 const STATUS_PRESETS = [
   { label: 'Coletado', value: 'Pedido coletado' },
-  { label: 'Chegou ao CD', value: 'Chegou ao centro de distribuição' },
-  { label: 'Em Trânsito', value: 'Objeto em trânsito entre unidades' },
+  { label: 'Chegou ao CD', value: 'Chegou ao centro de distribuiÃ§Ã£o' },
+  { label: 'Em TrÃ¢nsito', value: 'Objeto em trÃ¢nsito entre unidades' },
   { label: 'Em Processamento', value: 'Objeto em processamento na unidade' },
-  { label: 'Saiu p/ Entrega', value: 'Objeto saiu para entrega ao destinatário' },
+  { label: 'Saiu p/ Entrega', value: 'Objeto saiu para entrega ao destinatÃ¡rio' },
   { label: 'Ag. Retirada', value: 'Aguardando retirada na unidade' },
-  { label: 'Não Atendido', value: 'Entregador não foi atendido - nova tentativa prevista' },
-  { label: 'Retido', value: 'Objeto retido para fiscalização ou regularização' },
+  { label: 'NÃ£o Atendido', value: 'Entregador nÃ£o foi atendido - nova tentativa prevista' },
+  { label: 'Retido', value: 'Objeto retido para fiscalizaÃ§Ã£o ou regularizaÃ§Ã£o' },
   { label: 'Entregue', value: 'Objeto entregue com sucesso' },
 ]
 
 function genCode() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  let r = 'RF'
-  for (let i = 0; i < 8; i++) r += chars[Math.floor(Math.random() * chars.length)]
-  return r
+  return 'LT' + String(Math.floor(100000000 + Math.random() * 900000000)) + 'BR'
 }
 
 export default function DashboardPage() {
@@ -165,8 +162,8 @@ export default function DashboardPage() {
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Nome do cliente *</label>
             <input value={clientName} onChange={e => setClientName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleCreate()}
-              placeholder="Ex: João Silva" autoFocus style={inp} />
-            <p style={{ fontSize: '0.75rem', color: '#475569', marginTop: '0.375rem', marginBottom: 0 }}>Um código de rastreamento único será gerado automaticamente</p>
+              placeholder="Ex: JoÃ£o Silva" autoFocus style={inp} />
+            <p style={{ fontSize: '0.75rem', color: '#475569', marginTop: '0.375rem', marginBottom: 0 }}>Um cÃ³digo de rastreamento Ãºnico serÃ¡ gerado automaticamente</p>
           </div>
           {error && <p style={{ color: '#f87171', fontSize: '0.875rem', marginBottom: '0.75rem' }}>{error}</p>}
           <button onClick={handleCreate} disabled={submitting || !clientName.trim()}
@@ -180,7 +177,7 @@ export default function DashboardPage() {
       <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
         <Search size={15} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
         <input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar por código ou cliente..."
+          placeholder="Buscar por cÃ³digo ou cliente..."
           style={{ ...inp, paddingLeft: '2.375rem' }} />
       </div>
 
@@ -191,7 +188,7 @@ export default function DashboardPage() {
         <div style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '1rem', padding: '3rem', textAlign: 'center' }}>
           <Package size={40} style={{ color: '#334155', margin: '0 auto 1rem', display: 'block' }} />
           <p style={{ fontWeight: 700, color: '#f1f5f9', margin: '0 0 0.375rem' }}>Nenhum rastreio ainda</p>
-          <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>Clique em &quot;Novo rastreio&quot; para começar</p>
+          <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>Clique em &quot;Novo rastreio&quot; para comeÃ§ar</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
@@ -258,12 +255,12 @@ export default function DashboardPage() {
                       <div style={{ flex: '1 1 180px' }}>
                         <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>Status *</label>
                         <input value={evStatus} onChange={e => setEvStatus(e.target.value)}
-                          placeholder="Ex: Objeto em trânsito" style={smallInp} />
+                          placeholder="Ex: Objeto em trÃ¢nsito" style={smallInp} />
                       </div>
                       <div style={{ flex: '1 1 140px' }}>
-                        <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>Localização</label>
+                        <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>LocalizaÃ§Ã£o</label>
                         <input value={evLocation} onChange={e => setEvLocation(e.target.value)}
-                          placeholder="Ex: São Paulo, SP" style={smallInp} />
+                          placeholder="Ex: SÃ£o Paulo, SP" style={smallInp} />
                       </div>
                       <div style={{ flex: '1 1 140px' }}>
                         <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>Data e hora *</label>
@@ -286,7 +283,7 @@ export default function DashboardPage() {
                     ) : (
                       <div>
                         <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 1fr 48px', padding: '0.5rem 1.125rem', borderBottom: '1px solid rgba(99,102,241,0.08)' }}>
-                          {['Data / Hora', 'Status', 'Localização', 'Ação'].map((h, i) => (
+                          {['Data / Hora', 'Status', 'LocalizaÃ§Ã£o', 'AÃ§Ã£o'].map((h, i) => (
                             <span key={h} style={{ fontSize: '0.625rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: i === 3 ? 'right' : 'left' }}>{h}</span>
                           ))}
                         </div>
@@ -301,7 +298,7 @@ export default function DashboardPage() {
                             </span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#64748b', fontSize: '0.8125rem', overflow: 'hidden' }}>
                               {ev.location && <MapPin size={11} style={{ color: '#475569', flexShrink: 0 }} />}
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.location || '—'}</span>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.location || 'â'}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                               <button onClick={() => handleDeleteEvent(ev.id)}
