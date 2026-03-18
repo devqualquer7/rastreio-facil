@@ -1,6 +1,11 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Search, Package, MapPin, Clock, ChevronDown, ChevronUp, X, User } from 'lucide-react'
+import { Plus, Trash2, Search, Package, MapPin, Clock, ChevronDown, ChevronUp, X, User, ExternalLink } from 'lucide-react'
+
+function fixEnc(s: string): string {
+  if (!s) return s
+  try { return new TextDecoder('utf-8').decode(new Uint8Array(s.split('').map(c => c.charCodeAt(0) & 0xff))) } catch { return s }
+}
 
 interface TrackingEvent { id: string; status: string; location: string | null; date: string }
 interface TrackingCode {
@@ -144,6 +149,9 @@ export default function DashboardPage() {
                       {expanded === tc.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </button>
                   )}
+                  <a href={'/?code=' + tc.code} target="_blank" rel="noopener noreferrer" title="Ver timeline" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.18)', borderRadius: '0.5rem', color: '#818cf8', padding: '0.3125rem', display: 'flex', textDecoration: 'none', alignItems: 'center' }}>
+                    <ExternalLink size={14} />
+                  </a>
                   <button onClick={() => handleDelete(tc.id)} style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: '0.5rem', color: '#f87171', cursor: 'pointer', padding: '0.3125rem', display: 'flex' }}>
                     <Trash2 size={14} />
                   </button>
