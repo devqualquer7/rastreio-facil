@@ -229,7 +229,7 @@ export const query = {
     const id = randomUUID()
     db().prepare(
       'INSERT INTO User (id, username, email, password, registrationKeyId, expiresAt) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(id, data.username, data.email, data.password, data.registrationKeyId || null, data.expiresAt || null)
+    ).run(id, data.username, data.email ?? null, data.password, data.registrationKeyId || null, data.expiresAt || null)
     return db().prepare('SELECT * FROM User WHERE id = ?').get(id)
   },
   updateUser: (id: string, fields: Record<string, any>) => {
