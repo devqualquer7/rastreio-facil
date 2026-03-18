@@ -50,7 +50,7 @@ function db(): any {
       CREATE TABLE IF NOT EXISTS User (
         id TEXT PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
-        email TEXT UNIQUE NOT NULL,
+        email TEXT UNIQUE,
         password TEXT NOT NULL,
         registrationKeyId TEXT,
         expiresAt TEXT,
@@ -81,6 +81,29 @@ function db(): any {
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
       );
     `)
+    // Migration: allow NULL email (fix registration without email)
+    try {
+      const emailCol = (_db.prepare("PRAGMA table_info(User)").all() as any[]).find((c: any) => c.name === 'email')
+      if (emailCol && emailCol.notnull === 1) {
+        _db.exec(`
+          CREATE TABLE User_v2 (
+            id TEXT PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE,
+            password TEXT NOT NULL,
+            registrationKeyId TEXT,
+            expiresAt TEXT,
+            trackingCodesUsed INTEGER DEFAULT 0,
+            trackingCodesLimit INTEGER DEFAULT 50,
+            createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+            updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+          );
+          INSERT INTO User_v2 SELECT * FROM User;
+          DROP TABLE User;
+          ALTER TABLE User_v2 RENAME TO User;
+        `)
+      }
+    } catch (migErr) { console.error('email migration:', migErr) }
   }
   return _db
 }
