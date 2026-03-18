@@ -3,19 +3,13 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Package, Users, Calendar, Clock, AlertTriangle, LayoutDashboard, ArrowRight } from 'lucide-react'
 
-function fixEnc(str: string): string {
-  try {
-    const bytes = new Uint8Array(str.split('').map(c => c.charCodeAt(0)))
-    return new TextDecoder('utf-8').decode(bytes)
-  } catch { return str }
-}
-
 interface UserData {
   id: string
   username: string
   email: string | null
   expiresAt: string | null
-  trackingCodesLimit: number
+  trackingLimit: number
+  trackingUsed: number
   daysLeft: number | null
 }
 
@@ -29,9 +23,9 @@ export default function DashboardPage() {
     Promise.all([
       fetch('/api/user/me').then(r => r.json()),
       fetch('/api/user/tracking-codes').then(r => r.json()),
-      fetch('/api/clients').then(r => r.json()),
+      fetch('/api/user/clients').then(r => r.json()).catch(() => []),
     ]).then(([userData, codes, clients]) => {
-      setUser(userData)
+      if (!userData.error) setUser(userData)
       setTrackingsCount(Array.isArray(codes) ? codes.length : 0)
       setClientsCount(Array.isArray(clients) ? clients.length : 0)
       setLoading(false)
@@ -40,6 +34,7 @@ export default function DashboardPage() {
 
   const daysWarning = user?.daysLeft !== null && user?.daysLeft !== undefined && user.daysLeft <= 7
   const daysColor = daysWarning ? '#f87171' : '#34d399'
+
   const S = (x: object) => x as React.CSSProperties
 
   return (
@@ -51,9 +46,9 @@ export default function DashboardPage() {
           </div>
           <div>
             <h1 style={S({ margin: 0, fontSize: 22, fontWeight: 700, color: '#f1f5f9' })}>
-              {loading ? 'Dashboard' : 'Ola, ' + fixEnc(user?.username || '') + ' !'}
+              {loading ? 'Dashboard' : `Olá, ${user?.username || ''} !`}
             </h1>
-            <p style={S({ margin: 0, fontSize: 13, color: '#64748b' })}>Visao geral da sua conta</p>
+            <p style={S({ margin: 0, fontSize: 13, color: '#64748b' })}>Visão geral da sua conta</p>
           </div>
         </div>
 
@@ -65,7 +60,9 @@ export default function DashboardPage() {
               <div style={S({ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, padding: '14px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' })}>
                 <AlertTriangle size={18} color="#f87171" />
                 <span style={S({ fontSize: 14, color: '#fca5a5', flex: 1 })}>
-                  {'Sua conta expira em ' + user?.daysLeft + ' dia' + (user?.daysLeft !== 1 ? 's' : '') + '. Renove agora para continuar usando.'}
+                  {user?.daysLeft !== null && user?.daysLeft !== undefined && user.daysLeft <= 0
+                    ? 'Sua assinatura expirou. Renove agora para continuar usando.'
+                    : `Sua assinatura expira em ${user?.daysLeft} dia${user?.daysLeft !== 1 ? 's' : ''}. Renove para continuar usando.`}
                 </span>
                 <Link href="/dashboard/renovar" style={S({ padding: '6px 14px', borderRadius: 8, background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none' })}>
                   Renovar
@@ -82,10 +79,10 @@ export default function DashboardPage() {
                   <span style={S({ fontSize: 13, color: '#94a3b8' })}>Rastreios</span>
                 </div>
                 <p style={S({ margin: 0, fontSize: 28, fontWeight: 700, color: '#f1f5f9' })}>{trackingsCount ?? '—'}</p>
-                <p style={S({ margin: '4px 0 0', fontSize: 12, color: '#64748b' })}>{'de ' + (user?.trackingCodesLimit ?? '—') + ' disponíveis'}</p>
-                {user && trackingsCount !== null && user.trackingCodesLimit > 0 && (
+                <p style={S({ margin: '4px 0 0', fontSize: 12, color: '#64748b' })}>{'de ' + (user?.trackingLimit ?? '—') + ' disponíveis'}</p>
+                {user && trackingsCount !== null && user.trackingLimit > 0 && (
                   <div style={S({ marginTop: 12, height: 4, borderRadius: 4, background: 'rgba(99,102,241,0.15)', overflow: 'hidden' })}>
-                    <div style={S({ height: '100%', borderRadius: 4, background: '#6366f1', width: Math.min(100, (trackingsCount / user.trackingCodesLimit) * 100) + '%' })} />
+                    <div style={S({ height: '100%', borderRadius: 4, background: '#6366f1', width: Math.min(100, (trackingsCount / user.trackingLimit) * 100) + '%' })} />
                   </div>
                 )}
               </div>
@@ -122,10 +119,10 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <h2 style={S({ margin: '0 0 16px', fontSize: 13, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' })}>Acesso rapido</h2>
+            <h2 style={S({ margin: '0 0 16px', fontSize: 13, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' })}>Acesso Rápido</h2>
             <div style={S({ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12 })}>
               {[
-                { href: '/dashboard/rastreios', Icon: Package, color: '#6366f1', bg: 'rgba(99,102,241,0.07)', bd: 'rgba(99,102,241,0.15)', label: 'Rastreios', desc: 'Gerenciar codigos de rastreio' },
+                { href: '/dashboard/rastreios', Icon: Package, color: '#6366f1', bg: 'rgba(99,102,241,0.07)', bd: 'rgba(99,102,241,0.15)', label: 'Rastreios', desc: 'Gerenciar códigos de rastreio' },
                 { href: '/dashboard/clientes', Icon: Users, color: '#a78bfa', bg: 'rgba(124,58,237,0.07)', bd: 'rgba(124,58,237,0.15)', label: 'Clientes', desc: 'Ver e cadastrar clientes' },
                 { href: '/dashboard/renovar', Icon: Clock, color: '#34d399', bg: 'rgba(52,211,153,0.07)', bd: 'rgba(52,211,153,0.15)', label: 'Renovar / Planos', desc: 'Ampliar acesso e rastreios' },
               ].map(({ href, Icon, color, bg, bd, label, desc }) => (
