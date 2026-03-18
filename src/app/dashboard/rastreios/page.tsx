@@ -1,12 +1,21 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Search, Package, Clock, ChevronDown, ChevronUp, X, User, ExternalLink, MapPin } from 'lucide-react'
+import { Plus, Trash2, Search, Package, Clock, ChevronDown, ChevronUp, X, User, ExternalLink, MapPin, Activity } from 'lucide-react'
 
 interface TrackingEvent { id: string; status: string; location: string | null; date: string }
-interface TrackingCode {
-  id: string; code: string; description: string | null
-  events: TrackingEvent[]; createdAt: string
-}
+interface TrackingCode { id: string; code: string; description: string | null; events: TrackingEvent[]; createdAt: string }
+
+const STATUS_PRESETS = [
+  { label: 'Coletado', value: 'Pedido coletado' },
+  { label: 'Chegou ao CD', value: 'Chegou ao centro de distribuição' },
+  { label: 'Em Trânsito', value: 'Objeto em trânsito entre unidades' },
+  { label: 'Em Processamento', value: 'Objeto em processamento na unidade' },
+  { label: 'Saiu p/ Entrega', value: 'Objeto saiu para entrega ao destinatário' },
+  { label: 'Ag. Retirada', value: 'Aguardando retirada na unidade' },
+  { label: 'Não Atendido', value: 'Entregador não foi atendido - nova tentativa prevista' },
+  { label: 'Retido', value: 'Objeto retido para fiscalização ou regularização' },
+  { label: 'Entregue', value: 'Objeto entregue com sucesso' },
+]
 
 function genCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -25,17 +34,19 @@ export default function DashboardPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
+  const [evStatus, setEvStatus] = useState('')
+  const [evLocation, setEvLocation] = useState('')
+  const [evDate, setEvDate] = useState('')
+  const [evSubmitting, setEvSubmitting] = useState(false)
+
   const load = async () => {
     try {
       const r = await fetch('/api/user/tracking-codes')
       const d = await r.json()
       if (d.error) setError(d.error)
       else setCodes(d.codes || d || [])
-    } catch {
-      setError('Erro ao carregar rastreios.')
-    } finally {
-      setLoading(false)
-    }
+    } catch { setError('Erro ao carregar rastreios.') }
+    finally { setLoading(false) }
   }
 
   useEffect(() => { load() }, [])
@@ -46,21 +57,57 @@ export default function DashboardPage() {
     try {
       const code = genCode()
       const r = await fetch('/api/user/tracking-codes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, description: clientName.trim() })
       })
       const d = await r.json()
       if (!r.ok) { setError(d.error || 'Erro ao criar rastreio.'); return }
       setClientName(''); setShowForm(false); load()
-    } finally {
-      setSubmitting(false)
-    }
+    } finally { setSubmitting(false) }
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('Remover este rastreio?')) return
     await fetch(`/api/user/tracking-codes/${id}`, { method: 'DELETE' })
+    load()
+  }
+
+  const handleExpand = (id: string) => {
+    if (expanded === id) {
+      setExpanded(null)
+    } else {
+      setExpanded(id)
+      setEvStatus('')
+      setEvLocation('')
+      const now = new Date()
+      const offset = now.getTimezoneOffset() * 60000
+      setEvDate(new Date(now.getTime() - offset).toISOString().slice(0, 16))
+    }
+  }
+
+  const handleAddEvent = async (tc: TrackingCode) => {
+    if (!evStatus.trim()) return
+    setEvSubmitting(true)
+    try {
+      await fetch('/api/user/tracking-events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          trackingCodeId: tc.id,
+          status: evStatus,
+          location: evLocation || null,
+          date: new Date(evDate).toISOString()
+        })
+      })
+      setEvStatus('')
+      setEvLocation('')
+      load()
+    } finally { setEvSubmitting(false) }
+  }
+
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!confirm('Apagar este evento?')) return
+    await fetch(`/api/user/tracking-events/${eventId}`, { method: 'DELETE' })
     load()
   }
 
@@ -76,6 +123,18 @@ export default function DashboardPage() {
     padding: '0.6875rem 1rem',
     color: '#f1f5f9',
     fontSize: '0.9375rem',
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box'
+  }
+
+  const smallInp: React.CSSProperties = {
+    background: 'rgba(15,15,30,0.6)',
+    border: '1px solid rgba(99,102,241,0.2)',
+    borderRadius: '0.5rem',
+    padding: '0.5rem 0.75rem',
+    color: '#f1f5f9',
+    fontSize: '0.875rem',
     outline: 'none',
     width: '100%',
     boxSizing: 'border-box'
@@ -100,24 +159,14 @@ export default function DashboardPage() {
       {showForm && (
         <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '1rem', padding: '1.5rem', marginBottom: '1.75rem' }}>
           <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#f1f5f9', margin: '0 0 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <User size={16} color="#818cf8" />
-            Adicionar rastreio
+            <User size={16} color="#818cf8" /> Adicionar rastreio
           </h2>
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-              Nome do cliente *
-            </label>
-            <input
-              value={clientName}
-              onChange={e => setClientName(e.target.value)}
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Nome do cliente *</label>
+            <input value={clientName} onChange={e => setClientName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleCreate()}
-              placeholder="Ex: João Silva"
-              autoFocus
-              style={inp}
-            />
-            <p style={{ fontSize: '0.75rem', color: '#475569', marginTop: '0.375rem', marginBottom: 0 }}>
-              Um código de rastreamento único será gerado automaticamente
-            </p>
+              placeholder="Ex: João Silva" autoFocus style={inp} />
+            <p style={{ fontSize: '0.75rem', color: '#475569', marginTop: '0.375rem', marginBottom: 0 }}>Um código de rastreamento único será gerado automaticamente</p>
           </div>
           {error && <p style={{ color: '#f87171', fontSize: '0.875rem', marginBottom: '0.75rem' }}>{error}</p>}
           <button onClick={handleCreate} disabled={submitting || !clientName.trim()}
@@ -130,12 +179,9 @@ export default function DashboardPage() {
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
         <Search size={15} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
+        <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Buscar por código ou cliente..."
-          style={{ ...inp, paddingLeft: '2.375rem' }}
-        />
+          style={{ ...inp, paddingLeft: '2.375rem' }} />
       </div>
 
       {/* List */}
@@ -150,7 +196,9 @@ export default function DashboardPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
           {filtered.map(tc => (
-            <div key={tc.id} style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '0.875rem', overflow: 'hidden' }}>
+            <div key={tc.id} style={{ background: 'rgba(99,102,241,0.04)', border: `1px solid ${expanded === tc.id ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.1)'}`, borderRadius: '0.875rem', overflow: 'hidden', transition: 'border-color 0.2s' }}>
+
+              {/* Card row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.125rem' }}>
                 <div style={{ width: '2.25rem', height: '2.25rem', borderRadius: '0.625rem', background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Package size={15} color="#818cf8" />
@@ -163,12 +211,12 @@ export default function DashboardPage() {
                   <span style={{ fontSize: '0.75rem', padding: '0.25rem 0.625rem', borderRadius: '999px', background: tc.events.length > 0 ? 'rgba(99,102,241,0.15)' : 'rgba(51,65,85,0.5)', color: tc.events.length > 0 ? '#a5b4fc' : '#475569', fontWeight: 600 }}>
                     {tc.events.length} evento{tc.events.length !== 1 ? 's' : ''}
                   </span>
-                  {tc.events.length > 0 && (
-                    <button onClick={() => setExpanded(expanded === tc.id ? null : tc.id)}
-                      style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '0.5rem', color: '#818cf8', cursor: 'pointer', padding: '0.3125rem', display: 'flex' }}>
-                      {expanded === tc.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </button>
-                  )}
+                  <button onClick={() => handleExpand(tc.id)}
+                    title="Gerenciar eventos"
+                    style={{ background: expanded === tc.id ? 'rgba(99,102,241,0.2)' : 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '0.5rem', color: '#818cf8', cursor: 'pointer', padding: '0.3125rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.6875rem', fontWeight: 700 }}>
+                    {expanded === tc.id ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                    Gerenciar
+                  </button>
                   <a href={'/?code=' + tc.code} target="_blank" rel="noopener noreferrer" title="Ver timeline"
                     style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.18)', borderRadius: '0.5rem', color: '#818cf8', padding: '0.3125rem', display: 'flex', textDecoration: 'none', alignItems: 'center' }}>
                     <ExternalLink size={14} />
@@ -180,31 +228,93 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {expanded === tc.id && tc.events.length > 0 && (
-                <div style={{ borderTop: '1px solid rgba(99,102,241,0.1)', padding: '0.875rem 1.125rem 0.875rem 4.375rem' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                    {tc.events.map((ev, i) => (
-                      <div key={ev.id} style={{ display: 'flex', gap: '0.75rem' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '0.625rem', flexShrink: 0 }}>
-                          <div style={{ width: '0.5rem', height: '0.5rem', borderRadius: '50%', background: i === 0 ? '#818cf8' : '#334155', flexShrink: 0, marginTop: '0.25rem' }} />
-                          {i < tc.events.length - 1 && <div style={{ width: '1px', flex: 1, minHeight: '1rem', background: 'rgba(99,102,241,0.15)' }} />}
-                        </div>
-                        <div style={{ paddingBottom: i < tc.events.length - 1 ? '0.625rem' : 0 }}>
-                          <p style={{ fontWeight: 600, fontSize: '0.875rem', color: i === 0 ? '#a5b4fc' : '#94a3b8', margin: 0 }}>{ev.status}</p>
-                          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
-                            {ev.location && (
-                              <span style={{ color: '#475569', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                <MapPin size={10} />{ev.location}
-                              </span>
-                            )}
-                            <span style={{ color: '#475569', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                              <Clock size={10} />{new Date(ev.date).toLocaleString('pt-BR')}
-                            </span>
-                          </div>
-                        </div>
+              {/* Expanded panel */}
+              {expanded === tc.id && (
+                <div style={{ borderTop: '1px solid rgba(99,102,241,0.15)' }}>
+
+                  {/* Event form */}
+                  <div style={{ padding: '1.25rem', background: 'rgba(99,102,241,0.04)' }}>
+                    <p style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#818cf8', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 0.875rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <Activity size={11} /> Registrar Evento
+                    </p>
+
+                    {/* Presets */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '0.875rem' }}>
+                      {STATUS_PRESETS.map(p => (
+                        <button key={p.label} type="button" onClick={() => setEvStatus(p.value)}
+                          style={{
+                            padding: '0.3125rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                            background: evStatus === p.value ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.08)',
+                            border: evStatus === p.value ? '1px solid rgba(99,102,241,0.6)' : '1px solid rgba(99,102,241,0.2)',
+                            color: evStatus === p.value ? '#c7d2fe' : '#6366f1',
+                          }}>
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Inputs */}
+                    <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                      <div style={{ flex: '1 1 180px' }}>
+                        <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>Status *</label>
+                        <input value={evStatus} onChange={e => setEvStatus(e.target.value)}
+                          placeholder="Ex: Objeto em trânsito" style={smallInp} />
                       </div>
-                    ))}
+                      <div style={{ flex: '1 1 140px' }}>
+                        <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>Localização</label>
+                        <input value={evLocation} onChange={e => setEvLocation(e.target.value)}
+                          placeholder="Ex: São Paulo, SP" style={smallInp} />
+                      </div>
+                      <div style={{ flex: '1 1 140px' }}>
+                        <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>Data e hora *</label>
+                        <input type="datetime-local" value={evDate} onChange={e => setEvDate(e.target.value)} style={smallInp} />
+                      </div>
+                      <button onClick={() => handleAddEvent(tc)} disabled={evSubmitting || !evStatus.trim()}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: evSubmitting || !evStatus.trim() ? 'rgba(79,70,229,0.3)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: 700, fontSize: '0.875rem', cursor: evSubmitting || !evStatus.trim() ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', flexShrink: 0, height: '2.125rem' }}>
+                        <Plus size={14} /> {evSubmitting ? 'Salvando...' : 'Registrar'}
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Events table */}
+                  <div style={{ borderTop: '1px solid rgba(99,102,241,0.1)' }}>
+                    {tc.events.length === 0 ? (
+                      <div style={{ padding: '1.75rem', textAlign: 'center' }}>
+                        <Activity size={22} style={{ color: '#334155', margin: '0 auto 0.5rem', display: 'block' }} />
+                        <p style={{ color: '#475569', fontSize: '0.875rem', margin: 0 }}>Nenhum evento registrado ainda</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 1fr 48px', padding: '0.5rem 1.125rem', borderBottom: '1px solid rgba(99,102,241,0.08)' }}>
+                          {['Data / Hora', 'Status', 'Localização', 'Ação'].map((h, i) => (
+                            <span key={h} style={{ fontSize: '0.625rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: i === 3 ? 'right' : 'left' }}>{h}</span>
+                          ))}
+                        </div>
+                        {tc.events.map((ev, i) => (
+                          <div key={ev.id} style={{ display: 'grid', gridTemplateColumns: '130px 1fr 1fr 48px', alignItems: 'center', padding: '0.75rem 1.125rem', borderBottom: i < tc.events.length - 1 ? '1px solid rgba(99,102,241,0.06)' : 'none' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#64748b', fontSize: '0.75rem', fontFamily: 'monospace' }}>
+                              <Clock size={11} />
+                              {new Date(ev.date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.625rem', borderRadius: '999px', background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.2)', width: 'fit-content', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {ev.status}
+                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#64748b', fontSize: '0.8125rem', overflow: 'hidden' }}>
+                              {ev.location && <MapPin size={11} style={{ color: '#475569', flexShrink: 0 }} />}
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.location || '—'}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                              <button onClick={() => handleDeleteEvent(ev.id)}
+                                style={{ width: '1.75rem', height: '1.75rem', borderRadius: '0.375rem', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569' }}>
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                 </div>
               )}
             </div>
