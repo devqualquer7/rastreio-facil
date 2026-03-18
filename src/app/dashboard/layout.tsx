@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { MapPin, Package, RefreshCw, LogOut, Menu, X, AlertTriangle, Clock } from 'lucide-react'
+import { MapPin, Package, RefreshCw, LogOut, Menu, X, AlertTriangle, Clock, LayoutDashboard, Users } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 
 interface UserInfo {
@@ -28,7 +28,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const nav = [
-    { href: '/dashboard', label: 'Meus Rastreios', Icon: Package },
+    { href: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
+    { href: '/dashboard/clientes', label: 'Clientes', Icon: Users },
+    { href: '/dashboard/rastreios', label: 'Rastreios', Icon: Package },
     { href: '/dashboard/renovar', label: 'Renovar / Planos', Icon: RefreshCw },
   ]
 
@@ -45,7 +47,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)' }}>
               <MapPin className="w-4 h-4 text-white" />
             </div>
-            <span className="font-extrabold text-white text-sm">Rastreio<span style={{ color: '#818cf8' }}>Fácil</span></span>
+            <span className="font-extrabold text-white text-sm">Rastreio<span style={{ color: '#818cf8' }}>F�cil</span></span>
           </a>
         </div>
 
@@ -56,7 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <p className="text-xs mt-0.5" style={{ color: '#64748b' }}>{user.trackingUsed}/{user.trackingLimit} rastreios</p>
             {user.expiresAt && (
               <p className="text-xs mt-0.5" style={{ color: isExpired ? '#ef4444' : isExpiringSoon ? '#f97316' : '#64748b' }}>
-                {isExpired ? '⛔ Expirado' : `Expira em ${user.daysLeft}d`}
+                {isExpired ? '� Expirado' : `Expira em ${user.daysLeft}d`}
               </p>
             )}
           </div>
@@ -94,7 +96,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)' }}>
             <MapPin className="w-3.5 h-3.5 text-white" />
           </div>
-          <span className="font-extrabold text-white text-sm">Rastreio<span style={{ color: '#818cf8' }}>Fácil</span></span>
+          <span className="font-extrabold text-white text-sm">Rastreio<span style={{ color: '#818cf8' }}>F�cil</span></span>
         </a>
         <button onClick={() => setMobileOpen(p => !p)} style={{ color: '#94a3b8' }}>
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -123,7 +125,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="flex-1 md:overflow-auto">
         <div className="md:hidden h-14" />
 
-        {/* Banners de expiração */}
+        {/* Banners de expira��o */}
         {(isExpiringSoon || isExpired) && (
           <div className="px-4 pt-4">
             <div className="flex items-center gap-3 px-5 py-3 rounded-xl text-sm font-semibold"
@@ -134,8 +136,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               }}>
               {isExpired ? <AlertTriangle className="w-4 h-4 flex-shrink-0" /> : <Clock className="w-4 h-4 flex-shrink-0" />}
               {isExpired
-                ? '⛔ Sua assinatura expirou. Renove agora para continuar criando rastreios.'
-                : `⚠️ Sua assinatura expira em ${user?.daysLeft} dia${user?.daysLeft === 1 ? '' : 's'}. Renove para não perder o acesso.`}
+                ? '� Sua assinatura expirou. Renove agora para continuar criando rastreios.'
+                : `� Sua assinatura expira em ${user?.daysLeft} dia${user?.daysLeft === 1 ? '' : 's'}. Renove para n�o perder o acesso.`}
               <a href="/dashboard/renovar" className="ml-auto flex-shrink-0 underline font-bold">Renovar agora</a>
             </div>
           </div>
