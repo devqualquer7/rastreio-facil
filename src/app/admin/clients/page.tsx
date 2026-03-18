@@ -1,6 +1,11 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Users, Plus, Trash2, Loader2, User, Phone, Mail, X } from 'lucide-react'
+
+function fixEnc(s: string): string {
+  if (!s) return s
+  try { return new TextDecoder('utf-8').decode(new Uint8Array(s.split('').map(c => c.charCodeAt(0) & 0xff))) } catch { return s }
+}
 interface Client { id: string; name: string; email?: string; phone?: string; createdAt: string }
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
@@ -68,7 +73,7 @@ export default function ClientsPage() {
                 <User size={14} color="#818cf8" />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontWeight: 600, color: '#f1f5f9', fontSize: '0.9375rem', margin: 0 }}>{c.name}</p>
+                <p style={{ fontWeight: 600, color: '#f1f5f9', fontSize: '0.9375rem', margin: 0 }}>{fixEnc(c.name)}</p>
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '0.125rem', flexWrap: 'wrap' }}>
                   {c.email && <span style={{ color: '#64748b', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Mail size={11} />{c.email}</span>}
                   {c.phone && <span style={{ color: '#64748b', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Phone size={11} />{c.phone}</span>}
