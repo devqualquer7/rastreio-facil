@@ -23,6 +23,11 @@ export default function TrackingCodesPage() {
   const [editClientId, setEditClientId] = useState('')
   const [editDeliveryDate, setEditDeliveryDate] = useState('')
   const [editSaving, setEditSaving] = useState(false)
+  const [showEventFormFor, setShowEventFormFor] = useState<string | null>(null)
+  const [newEvtStatus, setNewEvtStatus] = useState('')
+  const [newEvtLocation, setNewEvtLocation] = useState('')
+  const [newEvtDate, setNewEvtDate] = useState('')
+  const [savingEvent, setSavingEvent] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -60,7 +65,7 @@ export default function TrackingCodesPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             trackingCodeId: d.id,
-            status: `PrevisÃ£o de entrega: ${dateFormatted}`,
+            status: `Previs�o de entrega: ${dateFormatted}`,
             date: new Date(deliveryDate).toISOString()
           })
         })
@@ -110,6 +115,27 @@ export default function TrackingCodesPage() {
   }
   const sel: React.CSSProperties = { ...inp, cursor: 'pointer' }
 
+  const addEvent = async (trackingCodeId: string) => {
+    if (!newEvtStatus.trim()) return
+    setSavingEvent(true)
+    try {
+      await fetch('/api/tracking-events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trackingCodeId, status: newEvtStatus.trim(), location: newEvtLocation.trim(), date: newEvtDate || new Date().toISOString() }),
+      })
+      setNewEvtStatus(''); setNewEvtLocation(''); setNewEvtDate('')
+      setShowEventFormFor(null)
+      await load()
+    } finally { setSavingEvent(false) }
+  }
+
+  const deleteEvent = async (eventId: string) => {
+    if (!confirm('Remover este evento?')) return
+    await fetch(`/api/tracking-events/${eventId}`, { method: 'DELETE' })
+    await load()
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
@@ -119,7 +145,7 @@ export default function TrackingCodesPage() {
           </div>
           <div>
             <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f1f5f9', margin: 0 }}>Rastreios</h1>
-            <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: 0 }}>{codes.length} cÃ³digo{codes.length !== 1 ? 's' : ''}</p>
+            <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: 0 }}>{codes.length} c�digo{codes.length !== 1 ? 's' : ''}</p>
           </div>
         </div>
         <button onClick={() => setShowForm(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.625rem', padding: '0.5rem 1rem', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
@@ -136,20 +162,20 @@ export default function TrackingCodesPage() {
                 Cliente (opcional)
               </label>
               <select value={clientId} onChange={e => setClientId(e.target.value)} style={sel}>
-                <option value="">â Sem cliente vinculado â</option>
+                <option value=""> Sem cliente vinculado </option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Calendar size={11} /> PrevisÃ£o de entrega</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Calendar size={11} /> Previs�o de entrega</span>
               </label>
               <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} style={inp} />
             </div>
           </div>
           <div style={{ marginBottom: '0.75rem' }}>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              CÃ³digo personalizado (opcional)
+              C�digo personalizado (opcional)
             </label>
             <input
               type="text"
@@ -160,7 +186,7 @@ export default function TrackingCodesPage() {
             />
           </div>
           <p style={{ fontSize: '0.75rem', color: '#475569', margin: '0 0 0.75rem' }}>
-            {customCode.trim() ? `CÃ³digo: ${customCode.trim().toUpperCase()}` : 'O cÃ³digo serÃ¡ gerado automaticamente no formato LT...BR.'}
+            {customCode.trim() ? `C�digo: ${customCode.trim().toUpperCase()}` : 'O c�digo ser� gerado automaticamente no formato LT...BR.'}
           </p>
           <button onClick={create} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: saving ? 'rgba(79,70,229,0.4)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: 600, fontSize: '0.875rem', cursor: saving ? 'not-allowed' : 'pointer' }}>
             {saving ? <Loader2 size={14} /> : <Plus size={14} />}
@@ -191,12 +217,12 @@ export default function TrackingCodesPage() {
                       <div>
                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Cliente</label>
                         <select value={editClientId} onChange={e => setEditClientId(e.target.value)} style={sel}>
-                          <option value="">â Sem cliente â</option>
+                          <option value=""> Sem cliente </option>
                           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>PrevisÃ£o de entrega</label>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Previs�o de entrega</label>
                         <input type="date" value={editDeliveryDate} onChange={e => setEditDeliveryDate(e.target.value)} style={inp} />
                       </div>
                     </div>
@@ -236,13 +262,39 @@ export default function TrackingCodesPage() {
                 {!isEditing && expanded === tc.id && realEvents.length > 0 && (
                   <div style={{ borderTop: '1px solid rgba(99,102,241,0.1)', padding: '0.75rem 1rem 0.75rem 3.875rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {realEvents.map(ev => (
-                      <div key={ev.id} style={{ fontSize: '0.8125rem', display: 'flex', gap: '0.5rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
-                        <span style={{ fontWeight: 600, color: '#94a3b8' }}>{ev.status}</span>
-                        {ev.location && <span style={{ color: '#475569' }}>ð {ev.location}</span>}
-                        <span style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Clock size={10} />{new Date(ev.date).toLocaleString('pt-BR')}</span>
+                      <div key={ev.id} style={{ fontSize: '0.8125rem', display: 'flex', gap: '0.5rem', alignItems: 'baseline', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline', flexWrap: 'wrap', flex: 1 }}>
+                          <span style={{ fontWeight: 600, color: '#94a3b8' }}>{ev.status}</span>
+                          {ev.location && <span style={{ color: '#64748b' }}>{ev.location}</span>}
+                          <span style={{ color: '#475569', fontSize: '0.75rem' }}>{ev.date ? new Date(ev.date).toLocaleDateString('pt-BR') : ''}</span>
+                        </div>
+                        <button onClick={() => deleteEvent(ev.id)} title="Remover evento"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '0 2px', fontSize: '0.75rem', lineHeight: 1 }}>
+                          ×
+                        </button>
                       </div>
                     ))}
-                  </div>
+                  
+                    <button
+                      onClick={() => setShowEventFormFor(showEventFormFor === tc.id ? null : tc.id)}
+                      style={{ marginTop: '0.5rem', fontSize: '0.75rem', padding: '2px 8px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '0.375rem', color: '#a5b4fc', cursor: 'pointer' }}>
+                      {showEventFormFor === tc.id ? '✕ Fechar' : '+ Adicionar Evento'}
+                    </button>
+                    {showEventFormFor === tc.id && (
+                      <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                        <input placeholder="Status do evento" value={newEvtStatus} onChange={e => setNewEvtStatus(e.target.value)}
+                          style={{ ...inp, fontSize: '0.8125rem', padding: '4px 8px' }} />
+                        <input placeholder="Local (opcional)" value={newEvtLocation} onChange={e => setNewEvtLocation(e.target.value)}
+                          style={{ ...inp, fontSize: '0.8125rem', padding: '4px 8px' }} />
+                        <input type="datetime-local" value={newEvtDate} onChange={e => setNewEvtDate(e.target.value)}
+                          style={{ ...inp, fontSize: '0.8125rem', padding: '4px 8px' }} />
+                        <button onClick={() => addEvent(tc.id)} disabled={savingEvent || !newEvtStatus.trim()}
+                          style={{ padding: '4px 12px', borderRadius: '0.375rem', fontSize: '0.8125rem', cursor: 'pointer', background: savingEvent ? 'rgba(99,102,241,0.3)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: 'white', border: 'none', fontWeight: 600 }}>
+                          {savingEvent ? 'Salvando...' : 'Salvar Evento'}
+                        </button>
+                      </div>
+                    )}
+                    </div>
                 )}
               </div>
             )
