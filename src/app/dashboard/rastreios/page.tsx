@@ -1,11 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Search, Package, MapPin, Clock, ChevronDown, ChevronUp, X, User, ExternalLink } from 'lucide-react'
-
-function fixEnc(s: string): string {
-  if (!s) return s
-  try { return new TextDecoder('utf-8').decode(new Uint8Array(s.split('').map(c => c.charCodeAt(0) & 0xff))) } catch { return s }
-}
+import { Plus, Trash2, Search, Package, Clock, ChevronDown, ChevronUp, X, User, ExternalLink, MapPin } from 'lucide-react'
 
 interface TrackingEvent { id: string; status: string; location: string | null; date: string }
 interface TrackingCode {
@@ -36,9 +31,13 @@ export default function DashboardPage() {
       const d = await r.json()
       if (d.error) setError(d.error)
       else setCodes(d.codes || d || [])
-    } catch { setError('Erro ao carregar rastreios.') }
-    finally { setLoading(false) }
+    } catch {
+      setError('Erro ao carregar rastreios.')
+    } finally {
+      setLoading(false)
+    }
   }
+
   useEffect(() => { load() }, [])
 
   const handleCreate = async () => {
@@ -47,13 +46,16 @@ export default function DashboardPage() {
     try {
       const code = genCode()
       const r = await fetch('/api/user/tracking-codes', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, description: clientName.trim() })
       })
       const d = await r.json()
       if (!r.ok) { setError(d.error || 'Erro ao criar rastreio.'); return }
       setClientName(''); setShowForm(false); load()
-    } finally { setSubmitting(false) }
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const handleDelete = async (id: string) => {
@@ -68,9 +70,15 @@ export default function DashboardPage() {
   )
 
   const inp: React.CSSProperties = {
-    background: 'rgba(15,15,30,0.6)', border: '1px solid rgba(99,102,241,0.2)',
-    borderRadius: '0.625rem', padding: '0.6875rem 1rem', color: '#f1f5f9',
-    fontSize: '0.9375rem', outline: 'none', width: '100%', boxSizing: 'border-box'
+    background: 'rgba(15,15,30,0.6)',
+    border: '1px solid rgba(99,102,241,0.2)',
+    borderRadius: '0.625rem',
+    padding: '0.6875rem 1rem',
+    color: '#f1f5f9',
+    fontSize: '0.9375rem',
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box'
   }
 
   return (
@@ -83,7 +91,8 @@ export default function DashboardPage() {
         </div>
         <button onClick={() => { setShowForm(v => !v); setError('') }}
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.75rem', padding: '0.625rem 1.25rem', fontWeight: 700, fontSize: '0.9375rem', cursor: 'pointer', flexShrink: 0 }}>
-          {showForm ? <X size={16} /> : <Plus size={16} />} {showForm ? 'Cancelar' : 'Novo rastreio'}
+          {showForm ? <X size={16} /> : <Plus size={16} />}
+          {showForm ? 'Cancelar' : 'Novo rastreio'}
         </button>
       </div>
 
@@ -91,17 +100,23 @@ export default function DashboardPage() {
       {showForm && (
         <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '1rem', padding: '1.5rem', marginBottom: '1.75rem' }}>
           <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#f1f5f9', margin: '0 0 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <User size={16} color="#818cf8" /> Adicionar rastreio
+            <User size={16} color="#818cf8" />
+            Adicionar rastreio
           </h2>
           <div style={{ marginBottom: '1rem' }}>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
               Nome do cliente *
             </label>
-            <input value={clientName} onChange={e => setClientName(e.target.value)}
+            <input
+              value={clientName}
+              onChange={e => setClientName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleCreate()}
-              placeholder="Ex: Jo�o Silva" autoFocus style={inp} />
+              placeholder="Ex: João Silva"
+              autoFocus
+              style={inp}
+            />
             <p style={{ fontSize: '0.75rem', color: '#475569', marginTop: '0.375rem', marginBottom: 0 }}>
-              Um c�digo de rastreamento �nico ser� gerado automaticamente
+              Um código de rastreamento único será gerado automaticamente
             </p>
           </div>
           {error && <p style={{ color: '#f87171', fontSize: '0.875rem', marginBottom: '0.75rem' }}>{error}</p>}
@@ -115,8 +130,12 @@ export default function DashboardPage() {
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
         <Search size={15} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por c�digo ou cliente..."
-          style={{ ...inp, paddingLeft: '2.375rem' }} />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar por código ou cliente..."
+          style={{ ...inp, paddingLeft: '2.375rem' }}
+        />
       </div>
 
       {/* List */}
@@ -126,7 +145,7 @@ export default function DashboardPage() {
         <div style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '1rem', padding: '3rem', textAlign: 'center' }}>
           <Package size={40} style={{ color: '#334155', margin: '0 auto 1rem', display: 'block' }} />
           <p style={{ fontWeight: 700, color: '#f1f5f9', margin: '0 0 0.375rem' }}>Nenhum rastreio ainda</p>
-          <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>Clique em "Novo rastreio" para come�ar</p>
+          <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>Clique em &quot;Novo rastreio&quot; para começar</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
@@ -145,18 +164,22 @@ export default function DashboardPage() {
                     {tc.events.length} evento{tc.events.length !== 1 ? 's' : ''}
                   </span>
                   {tc.events.length > 0 && (
-                    <button onClick={() => setExpanded(expanded === tc.id ? null : tc.id)} style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '0.5rem', color: '#818cf8', cursor: 'pointer', padding: '0.3125rem', display: 'flex' }}>
+                    <button onClick={() => setExpanded(expanded === tc.id ? null : tc.id)}
+                      style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '0.5rem', color: '#818cf8', cursor: 'pointer', padding: '0.3125rem', display: 'flex' }}>
                       {expanded === tc.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </button>
                   )}
-                  <a href={'/?code=' + tc.code} target="_blank" rel="noopener noreferrer" title="Ver timeline" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.18)', borderRadius: '0.5rem', color: '#818cf8', padding: '0.3125rem', display: 'flex', textDecoration: 'none', alignItems: 'center' }}>
+                  <a href={'/?code=' + tc.code} target="_blank" rel="noopener noreferrer" title="Ver timeline"
+                    style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.18)', borderRadius: '0.5rem', color: '#818cf8', padding: '0.3125rem', display: 'flex', textDecoration: 'none', alignItems: 'center' }}>
                     <ExternalLink size={14} />
                   </a>
-                  <button onClick={() => handleDelete(tc.id)} style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: '0.5rem', color: '#f87171', cursor: 'pointer', padding: '0.3125rem', display: 'flex' }}>
+                  <button onClick={() => handleDelete(tc.id)}
+                    style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: '0.5rem', color: '#f87171', cursor: 'pointer', padding: '0.3125rem', display: 'flex' }}>
                     <Trash2 size={14} />
                   </button>
                 </div>
               </div>
+
               {expanded === tc.id && tc.events.length > 0 && (
                 <div style={{ borderTop: '1px solid rgba(99,102,241,0.1)', padding: '0.875rem 1.125rem 0.875rem 4.375rem' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
@@ -169,7 +192,11 @@ export default function DashboardPage() {
                         <div style={{ paddingBottom: i < tc.events.length - 1 ? '0.625rem' : 0 }}>
                           <p style={{ fontWeight: 600, fontSize: '0.875rem', color: i === 0 ? '#a5b4fc' : '#94a3b8', margin: 0 }}>{ev.status}</p>
                           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
-                            {ev.location && <span style={{ color: '#475569', fontSize: '0.75rem' }}>=� {ev.location}</span>}
+                            {ev.location && (
+                              <span style={{ color: '#475569', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                <MapPin size={10} />{ev.location}
+                              </span>
+                            )}
                             <span style={{ color: '#475569', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                               <Clock size={10} />{new Date(ev.date).toLocaleString('pt-BR')}
                             </span>
