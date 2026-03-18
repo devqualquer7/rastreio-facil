@@ -54,8 +54,8 @@ function db(): any {
         password TEXT NOT NULL,
         registrationKeyId TEXT,
         expiresAt TEXT,
-        trackingCodesUsed INTEGER DEFAULT 0,
-        trackingCodesLimit INTEGER DEFAULT 50,
+        trackingUsed INTEGER DEFAULT 0,
+        trackingLimit INTEGER DEFAULT 50,
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
       );
@@ -93,8 +93,8 @@ function db(): any {
             password TEXT NOT NULL,
             registrationKeyId TEXT,
             expiresAt TEXT,
-            trackingCodesUsed INTEGER DEFAULT 0,
-            trackingCodesLimit INTEGER DEFAULT 50,
+            trackingUsed INTEGER DEFAULT 0,
+            trackingLimit INTEGER DEFAULT 50,
             createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
             updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
           );
@@ -242,13 +242,13 @@ export const query = {
     return db().prepare('SELECT * FROM User WHERE id = ?').get(id)
   },
   incrementTrackingUsed: (userId: string) => {
-    db().prepare('UPDATE User SET trackingCodesUsed = trackingCodesUsed + 1 WHERE id = ?').run(userId)
+    db().prepare('UPDATE User SET trackingUsed = trackingUsed + 1 WHERE id = ?').run(userId)
   },
   addDaysToUser: (userId: string, days: number) => {
     db().prepare(`UPDATE User SET expiresAt = datetime(COALESCE(expiresAt, datetime('now')), '+${days} days') WHERE id = ?`).run(userId)
   },
   addTrackingsToUser: (userId: string, count: number) => {
-    db().prepare('UPDATE User SET trackingCodesLimit = trackingCodesLimit + ? WHERE id = ?').run(count, userId)
+    db().prepare('UPDATE User SET trackingLimit = trackingLimit + ? WHERE id = ?').run(count, userId)
   },
   removeDaysFromUser: (userId: string, days: number) => {
     const d = Math.abs(Math.round(Number(days)))
@@ -256,7 +256,7 @@ export const query = {
   },
   removeTrackingsFromUser: (userId: string, count: number) => {
     const c = Math.abs(Math.round(Number(count)))
-    db().prepare('UPDATE User SET trackingCodesLimit = MAX(0, trackingCodesLimit - ?) WHERE id = ?').run(c, userId)
+    db().prepare('UPDATE User SET trackingLimit = MAX(0, trackingLimit - ?) WHERE id = ?').run(c, userId)
   },
 
   // ── Registration Keys ─────────────────────────────────────────────────────
