@@ -125,6 +125,11 @@ function db(): any {
   return _db
 }
 
+// Migration: add userId column to Client if not present
+try {
+  db().prepare('ALTER TABLE Client ADD COLUMN userId TEXT').run();
+} catch (_) { /* column already exists */ }
+
 export const query = {
   // ── Admin ────────────────────────────────────────────────────────────────
   getAdminByUsername: (username: string) => {
@@ -138,15 +143,18 @@ export const query = {
   getClients: () => {
     return db().prepare('SELECT * FROM Client ORDER BY createdAt DESC').all()
   },
+  getClientsByUserId: (userId: string) => {
+    return db().prepare('SELECT * FROM Client WHERE userId = ? ORDER BY createdAt DESC').all(userId)
+  },
   getClientById: (id: string) => {
     return db().prepare('SELECT * FROM Client WHERE id = ?').get(id)
   },
-  createClient: (data: { name: string; email?: string; phone?: string }) => {
+  createClient: (data: { name: string; email?: string; phone?: string; userId?: string }) => {
     const id = randomUUID()
     const now = new Date().toISOString()
     db().prepare(
-      'INSERT INTO Client (id, name, email, phone, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(id, data.name, data.email || null, data.phone || null, now, now)
+      'INSERT INTO Client (id, name, email, phone, userId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(id, data.name, data.email || null, data.phone || null, data.userId || null, now, now)
     return db().prepare('SELECT * FROM Client WHERE id = ?').get(id)
   },
   deleteClient: (id: string) => {
