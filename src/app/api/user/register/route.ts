@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { query } from '@/lib/db'
+import { query, runTransaction } from '@/lib/db'
 import { createUserSession } from '@/lib/session'
 
 export async function POST(request: NextRequest) {
@@ -34,16 +34,31 @@ export async function POST(request: NextRequest) {
     expiresAt.setDate(expiresAt.getDate() + 30)
 
     const hashedPassword = await bcrypt.hash(password, 12)
-    const user = query.createUser({
-      username: username.trim().toLowerCase(),
-      email: email?.trim() || undefined,
-      password: hashedPassword,
-      registrationKeyId: regKey.id,
-      expiresAt: expiresAt.toISOString(),
-    })
 
-    query.markKeyUsed(regKey.id, user.id)
-    await createUserSession(user.id)
+    // Atomic: create user + mark key as used in one transaction
+    let user: any
+    try {
+      user = runTransaction(() => {
+        const newUser = query.createUser({
+          username: username.trim().toLowerCase(),
+          email: email?.trim() || undefined,
+          password: hashedPassword,
+          registrationKeyId: regKey.id,
+          expiresAt: expiresAt.toISOString(),
+        })
+        query.markKeyUsed(regKey.id, newUser.id)
+        return newUser
+      })
+    } catch (dbError) {
+      console.error('DB transaction error:', dbError)
+      return NextResponse.json({ error: 'Erro ao criar conta. Tente novamente.' }, { status: 500 })
+    }
+
+    try {
+      await createUserSession(user.id)
+    } catch (sessionError) {
+      console.error('Session error (non-critical):', sessionError)
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {
