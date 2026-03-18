@@ -227,6 +227,14 @@ export const query = {
   addTrackingsToUser: (userId: string, count: number) => {
     db().prepare('UPDATE User SET trackingCodesLimit = trackingCodesLimit + ? WHERE id = ?').run(count, userId)
   },
+  removeDaysFromUser: (userId: string, days: number) => {
+    const d = Math.abs(Math.round(Number(days)))
+    db().prepare(`UPDATE User SET expiresAt = datetime(COALESCE(expiresAt, datetime('now')), '-${d} days') WHERE id = ?`).run(userId)
+  },
+  removeTrackingsFromUser: (userId: string, count: number) => {
+    const c = Math.abs(Math.round(Number(count)))
+    db().prepare('UPDATE User SET trackingCodesLimit = MAX(0, trackingCodesLimit - ?) WHERE id = ?').run(c, userId)
+  },
 
   // ── Registration Keys ─────────────────────────────────────────────────────
   getKeyByValue: (key: string) => {
@@ -270,3 +278,7 @@ export const query = {
 }
 
 export default query
+
+export function runTransaction<T>(fn: () => T): T {
+  return (db() as any).transaction(fn)()
+}
