@@ -12,6 +12,7 @@ function db(): any {
     _db = new Database(DB_PATH)
     _db.pragma('journal_mode = WAL')
     _db.pragma('foreign_keys = ON')
+
     // Ensure all tables exist
     _db.exec(`
       CREATE TABLE IF NOT EXISTS Admin (
@@ -21,6 +22,7 @@ function db(): any {
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
       );
+
       CREATE TABLE IF NOT EXISTS Client (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -29,14 +31,18 @@ function db(): any {
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
       );
+
       CREATE TABLE IF NOT EXISTS TrackingCode (
         id TEXT PRIMARY KEY,
         code TEXT UNIQUE NOT NULL,
         clientId TEXT,
+        userId TEXT,
+        description TEXT,
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (clientId) REFERENCES Client(id) ON DELETE SET NULL
       );
+
       CREATE TABLE IF NOT EXISTS TrackingEvent (
         id TEXT PRIMARY KEY,
         status TEXT NOT NULL,
@@ -47,6 +53,7 @@ function db(): any {
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (trackingCodeId) REFERENCES TrackingCode(id) ON DELETE CASCADE
       );
+
       CREATE TABLE IF NOT EXISTS User (
         id TEXT PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
@@ -59,6 +66,7 @@ function db(): any {
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
       );
+
       CREATE TABLE IF NOT EXISTS RegistrationKey (
         id TEXT PRIMARY KEY,
         key TEXT UNIQUE NOT NULL,
@@ -66,6 +74,7 @@ function db(): any {
         usedBy TEXT,
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP
       );
+
       CREATE TABLE IF NOT EXISTS Payment (
         id TEXT PRIMARY KEY,
         userId TEXT NOT NULL,
@@ -81,6 +90,7 @@ function db(): any {
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
       );
     `)
+
     // Migration: allow NULL email (fix registration without email)
     try {
       const emailCol = (_db.prepare("PRAGMA table_info(User)").all() as any[]).find((c: any) => c.name === 'email')
@@ -104,12 +114,19 @@ function db(): any {
         `)
       }
     } catch (migErr) { console.error('email migration:', migErr) }
+
+    // Migration: add userId and description columns to TrackingCode if missing
+    try {
+      const cols = (_db.prepare("PRAGMA table_info(TrackingCode)").all() as any[]).map((c: any) => c.name)
+      if (!cols.includes('userId')) _db.exec('ALTER TABLE TrackingCode ADD COLUMN userId TEXT')
+      if (!cols.includes('description')) _db.exec('ALTER TABLE TrackingCode ADD COLUMN description TEXT')
+    } catch (e) { console.error('TrackingCode migration:', e) }
   }
   return _db
 }
 
 export const query = {
-  // ── Admin ─────────────────────────────────────────────────────────────────
+  // ── Admin ────────────────────────────────────────────────────────────────
   getAdminByUsername: (username: string) => {
     return db().prepare('SELECT * FROM Admin WHERE username = ?').get(username)
   },
@@ -117,7 +134,7 @@ export const query = {
     return db().prepare('SELECT * FROM Admin WHERE id = ?').get(id)
   },
 
-  // ── Clients ───────────────────────────────────────────────────────────────
+  // ── Clients ──────────────────────────────────────────────────────────────
   getClients: () => {
     return db().prepare('SELECT * FROM Client ORDER BY createdAt DESC').all()
   },
@@ -136,7 +153,7 @@ export const query = {
     return db().prepare('DELETE FROM Client WHERE id = ?').run(id)
   },
 
-  // ── Tracking Codes ────────────────────────────────────────────────────────
+  // ── Tracking Codes ───────────────────────────────────────────────────────
   getTrackingCodes: () => {
     const codes = db().prepare(
       'SELECT tc.*, c.name as clientName FROM TrackingCode tc LEFT JOIN Client c ON tc.clientId = c.id ORDER BY tc.createdAt DESC'
@@ -149,8 +166,8 @@ export const query = {
   },
   getTrackingCodesByUserId: (userId: string) => {
     const codes = db().prepare(
-      'SELECT tc.*, c.name as clientName FROM TrackingCode tc LEFT JOIN Client c ON tc.clientId = c.id ORDER BY tc.createdAt DESC'
-    ).all() as any[]
+      'SELECT tc.*, c.name as clientName FROM TrackingCode tc LEFT JOIN Client c ON tc.clientId = c.id WHERE tc.userId = ? ORDER BY tc.createdAt DESC'
+    ).all(userId) as any[]
     return codes.map(tc => ({
       ...tc,
       client: tc.clientId ? { id: tc.clientId, name: tc.clientName } : null,
@@ -179,12 +196,12 @@ export const query = {
       events: query.getEventsByCodeId(tc.id)
     }
   },
-  createTrackingCode: (data: { code: string; clientId?: string | null }) => {
+  createTrackingCode: (data: { code: string; clientId?: string | null; userId?: string | null; description?: string | null }) => {
     const id = randomUUID()
     const now = new Date().toISOString()
     db().prepare(
-      'INSERT INTO TrackingCode (id, code, clientId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)'
-    ).run(id, data.code, data.clientId || null, now, now)
+      'INSERT INTO TrackingCode (id, code, clientId, userId, description, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(id, data.code, data.clientId || null, data.userId || null, data.description || null, now, now)
     return db().prepare('SELECT * FROM TrackingCode WHERE id = ?').get(id)
   },
   updateTrackingCode: (id: string, data: { clientId?: string | null }) => {
@@ -197,7 +214,7 @@ export const query = {
     return db().prepare('DELETE FROM TrackingCode WHERE id = ?').run(id)
   },
 
-  // ── Tracking Events ───────────────────────────────────────────────────────
+  // ── Tracking Events ──────────────────────────────────────────────────────
   getEventsByCodeId: (trackingCodeId: string) => {
     return db().prepare(
       'SELECT * FROM TrackingEvent WHERE trackingCodeId = ? ORDER BY date DESC'
@@ -215,7 +232,7 @@ export const query = {
     return db().prepare('DELETE FROM TrackingEvent WHERE id = ?').run(id)
   },
 
-  // ── Users (SaaS subscribers) ──────────────────────────────────────────────
+  // ── Users (SaaS subscribers) ─────────────────────────────────────────────
   getUserById: (id: string) => {
     return db().prepare('SELECT * FROM User WHERE id = ?').get(id)
   },
@@ -259,7 +276,7 @@ export const query = {
     db().prepare('UPDATE User SET trackingLimit = MAX(0, trackingLimit - ?) WHERE id = ?').run(c, userId)
   },
 
-  // ── Registration Keys ─────────────────────────────────────────────────────
+  // ── Registration Keys ────────────────────────────────────────────────────
   getKeyByValue: (key: string) => {
     return db().prepare('SELECT * FROM RegistrationKey WHERE key = ?').get(key)
   },
@@ -278,7 +295,7 @@ export const query = {
     return db().prepare('DELETE FROM RegistrationKey WHERE id = ?').run(id)
   },
 
-  // ── Payments ──────────────────────────────────────────────────────────────
+  // ── Payments ─────────────────────────────────────────────────────────────
   createPayment: (data: { userId: string; type: string; amount: number; pushinpayId?: string; status?: string; qrCode?: string; qrCodeBase64?: string; extraTrackings?: number; daysToAdd?: number }) => {
     const id = randomUUID()
     db().prepare(
