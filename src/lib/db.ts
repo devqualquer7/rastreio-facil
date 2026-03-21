@@ -131,7 +131,7 @@ try {
 } catch (_) { /* column already exists */ }
 
 export const query = {
-  // ── Admin ────────────────────────────────────────────────────────────────
+  // ââ Admin ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   getAdminByUsername: (username: string) => {
     return db().prepare('SELECT * FROM Admin WHERE username = ?').get(username)
   },
@@ -139,7 +139,7 @@ export const query = {
     return db().prepare('SELECT * FROM Admin WHERE id = ?').get(id)
   },
 
-  // ── Clients ──────────────────────────────────────────────────────────────
+  // ââ Clients ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   getClients: () => {
     return db().prepare('SELECT * FROM Client ORDER BY createdAt DESC').all()
   },
@@ -161,7 +161,7 @@ export const query = {
     return db().prepare('DELETE FROM Client WHERE id = ?').run(id)
   },
 
-  // ── Tracking Codes ───────────────────────────────────────────────────────
+  // ââ Tracking Codes âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   getTrackingCodes: () => {
     const codes = db().prepare(
       'SELECT tc.*, c.name as clientName FROM TrackingCode tc LEFT JOIN Client c ON tc.clientId = c.id ORDER BY tc.createdAt DESC'
@@ -222,7 +222,7 @@ export const query = {
     return db().prepare('DELETE FROM TrackingCode WHERE id = ?').run(id)
   },
 
-  // ── Tracking Events ──────────────────────────────────────────────────────
+  // ââ Tracking Events ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   getEventsByCodeId: (trackingCodeId: string) => {
     return db().prepare(
       'SELECT * FROM TrackingEvent WHERE trackingCodeId = ? ORDER BY date DESC'
@@ -240,21 +240,24 @@ export const query = {
     return db().prepare('DELETE FROM TrackingEvent WHERE id = ?').run(id)
   },
 
-  // ── Users (SaaS subscribers) ─────────────────────────────────────────────
+  // ââ Users (SaaS subscribers) âââââââââââââââââââââââââââââââââââââââââââââ
   getUserById: (id: string) => {
     return db().prepare('SELECT * FROM User WHERE id = ?').get(id)
   },
   getUserByUsername: (username: string) => {
     return db().prepare('SELECT * FROM User WHERE username = ?').get(username)
   },
+  getUserByKeyauthKey: (key: string) => {
+    return db().prepare('SELECT * FROM User WHERE keyauthKey = ?').get(key)
+  },
   getAllUsers: () => {
     return db().prepare('SELECT * FROM User ORDER BY createdAt DESC').all()
   },
-  createUser: (data: { username: string; email: string; password: string; registrationKeyId?: string; expiresAt?: string }) => {
+  createUser: (data: { username: string; email?: string; password: string; registrationKeyId?: string; expiresAt?: string; keyauthKey?: string }) => {
     const id = randomUUID()
     db().prepare(
-      'INSERT INTO User (id, username, email, password, registrationKeyId, expiresAt) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(id, data.username, data.email ?? null, data.password, data.registrationKeyId || null, data.expiresAt || null)
+      'INSERT INTO User (id, username, email, password, registrationKeyId, expiresAt, keyauthKey) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(id, data.username, data.email ?? null, data.password, data.registrationKeyId || null, data.expiresAt || null, data.keyauthKey || null)
     return db().prepare('SELECT * FROM User WHERE id = ?').get(id)
   },
   updateUser: (id: string, fields: Record<string, any>) => {
@@ -284,7 +287,7 @@ export const query = {
     db().prepare('UPDATE User SET trackingLimit = MAX(0, trackingLimit - ?) WHERE id = ?').run(c, userId)
   },
 
-  // ── Registration Keys ────────────────────────────────────────────────────
+  // ââ Registration Keys ââââââââââââââââââââââââââââââââââââââââââââââââââââ
   getKeyByValue: (key: string) => {
     return db().prepare('SELECT * FROM RegistrationKey WHERE key = ?').get(key)
   },
@@ -297,13 +300,13 @@ export const query = {
     return db().prepare('SELECT * FROM RegistrationKey WHERE id = ?').get(id)
   },
   markKeyUsed: (id: string, usedBy: string) => {
-    db().prepare('UPDATE RegistrationKey SET used = 1, usedById = ? WHERE id = ?').run(usedBy, id)
+    db().prepare('UPDATE RegistrationKey SET used = 1, usedBy = ?, usedAt = CURRENT_TIMESTAMP WHERE id = ?').run(usedBy, id)
   },
   deleteKey: (id: string) => {
     return db().prepare('DELETE FROM RegistrationKey WHERE id = ?').run(id)
   },
 
-  // ── Payments ─────────────────────────────────────────────────────────────
+  // ââ Payments âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   createPayment: (data: { userId: string; type: string; amount: number; pushinpayId?: string; status?: string; qrCode?: string; qrCodeBase64?: string; extraTrackings?: number; daysToAdd?: number }) => {
     const id = randomUUID()
     db().prepare(
