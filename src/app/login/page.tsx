@@ -22,7 +22,7 @@ export default function LoginPage() {
       if (!res.ok) { setError(data.error || 'Erro ao fazer login'); return }
       router.push('/dashboard')
       router.refresh()
-    } catch { setError('Erro de conexÃ£o. Tente novamente.') }
+    } catch { setError('Erro de conexão. Tente novamente.') }
     finally { setLoading(false) }
   }
 
@@ -35,12 +35,12 @@ export default function LoginPage() {
             style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', boxShadow: '0 0 20px rgba(79,70,229,0.4)' }}>
             <MapPin className="w-5 h-5 text-white" />
           </div>
-          <span className="text-xl font-extrabold text-white">Rastreio<span style={{ color: '#818cf8' }}>FÃ¡cil</span></span>
+          <span className="text-xl font-extrabold text-white">Rastreio<span style={{ color: '#818cf8' }}>Fácil</span></span>
         </a>
 
         <div className="rounded-2xl p-8" style={{ background: '#0d0d18', border: '1px solid rgba(99,102,241,0.2)' }}>
           <h1 className="text-2xl font-black text-white mb-1">Acessar</h1>
-          <p className="text-sm mb-6" style={{ color: '#64748b' }}>Insira sua licenÃ§a para acessar o painel</p>
+          <p className="text-sm mb-6" style={{ color: '#64748b' }}>Insira sua licença para acessar o painel</p>
 
           {error && (
             <div className="mb-4 px-4 py-3 rounded-xl text-sm font-medium" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}>
@@ -50,7 +50,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: '#94a3b8' }}>LicenÃ§a KeyAuth</label>
+              <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: '#94a3b8' }}>Licença KeyAuth</label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#6366f1' }} />
                 <input
@@ -70,7 +70,7 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-6 text-center text-sm" style={{ color: '#64748b' }}>
-            Ainda nÃ£o tem licenÃ§a?{' '}
+            Ainda não tem licença?{' '}
             <a href="https://discord.gg/" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline" style={{ color: '#818cf8' }}>Adquira no Discord</a>
           </p>
         </div>
