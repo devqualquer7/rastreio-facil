@@ -13,12 +13,12 @@ export async function POST(request: NextRequest) {
     const { key } = await request.json()
 
     if (!key || typeof key !== 'string') {
-      return NextResponse.json({ error: 'Informe sua licença' }, { status: 400 })
+      return NextResponse.json({ error: 'Informe sua licenÃ§a' }, { status: 400 })
     }
 
     if (!KEYAUTH_NAME || !KEYAUTH_OWNERID) {
       console.error('KeyAuth env vars missing: KEYAUTH_APPNAME, KEYAUTH_OWNERID')
-      return NextResponse.json({ error: 'KeyAuth não configurado no servidor' }, { status: 500 })
+      return NextResponse.json({ error: 'KeyAuth nÃ£o configurado no servidor' }, { status: 500 })
     }
 
     const trimmedKey = key.trim()
@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       body: initParams.toString(),
     })
     const initData = await initRes.json()
+    console.log('KEYAUTH_DEBUG init:', JSON.stringify(initData))
 
     if (!initData.success) {
       console.error('KeyAuth init failed:', initData.message)
@@ -60,9 +61,11 @@ export async function POST(request: NextRequest) {
       body: licenseParams.toString(),
     })
     const licenseData = await licenseRes.json()
+    console.log('KEYAUTH_DEBUG license:', JSON.stringify(licenseData))
+    console.log('KEYAUTH_DEBUG params: name=' + KEYAUTH_NAME + ' ownerid=' + KEYAUTH_OWNERID + ' key=' + trimmedKey)
 
     if (!licenseData.success) {
-      const msg = licenseData.message || 'Licença inválida'
+      const msg = licenseData.message || 'LicenÃ§a invÃ¡lida'
       return NextResponse.json({ error: msg }, { status: 401 })
     }
 
