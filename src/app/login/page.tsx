@@ -1,11 +1,13 @@
 'use client'
 import { useState } from 'react'
-import { MapPin, KeyRound } from 'lucide-react'
+import { MapPin, User, Lock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [key, setKey] = useState('')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -13,10 +15,10 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true); setError('')
     try {
-      const res = await fetch('/api/auth/keyauth', {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key }),
+        body: JSON.stringify({ username, password }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Erro ao fazer login'); return }
@@ -27,53 +29,76 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#06060f' }}>
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <a href="/" className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', boxShadow: '0 0 20px rgba(79,70,229,0.4)' }}>
-            <MapPin className="w-5 h-5 text-white" />
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#06060f', fontFamily: 'system-ui, sans-serif', padding: '1rem' }}>
+      <div style={{ width: '100%', maxWidth: 400 }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+            <MapPin color="#fff" size={28} />
           </div>
-          <span className="text-xl font-extrabold text-white">Rastreio<span style={{ color: '#818cf8' }}>Fácil</span></span>
-        </a>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#f1f5f9', margin: '0 0 0.25rem' }}>
+            Rastreio<span style={{ color: '#818cf8' }}>Fácil</span>
+          </h1>
+          <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>Entre na sua conta</p>
+        </div>
 
-        <div className="rounded-2xl p-8" style={{ background: '#0d0d18', border: '1px solid rgba(99,102,241,0.2)' }}>
-          <h1 className="text-2xl font-black text-white mb-1">Acessar</h1>
-          <p className="text-sm mb-6" style={{ color: '#64748b' }}>Insira sua licença para acessar o painel</p>
+        <form onSubmit={handleSubmit} style={{ background: 'rgba(15,14,36,0.6)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '1rem', padding: '1.75rem' }}>
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+              Usuário
+            </label>
+            <div style={{ position: 'relative' }}>
+              <User size={16} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
+              <input
+                type="text"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                placeholder="Seu nome de usuário"
+                required
+                autoFocus
+                style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,15,30,0.6)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '0.625rem', padding: '0.6875rem 1rem 0.6875rem 2.5rem', color: '#f1f5f9', fontSize: '0.9375rem', outline: 'none' }}
+              />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+              Senha
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Lock size={16} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Sua senha"
+                required
+                style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(15,15,30,0.6)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '0.625rem', padding: '0.6875rem 1rem 0.6875rem 2.5rem', color: '#f1f5f9', fontSize: '0.9375rem', outline: 'none' }}
+              />
+            </div>
+          </div>
 
           {error && (
-            <div className="mb-4 px-4 py-3 rounded-xl text-sm font-medium" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}>
-              {error}
+            <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '0.625rem', padding: '0.75rem 1rem', marginBottom: '1rem' }}>
+              <p style={{ color: '#f87171', fontSize: '0.875rem', margin: 0 }}>{error}</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: '#94a3b8' }}>Licença KeyAuth</label>
-              <div className="relative">
-                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#6366f1' }} />
-                <input
-                  type="text" required placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"
-                  value={key}
-                  onChange={e => setKey(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl text-sm font-mono font-medium focus:outline-none tracking-wider"
-                  style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.3)', color: '#f1f5f9' }}
-                />
-              </div>
-            </div>
-            <button type="submit" disabled={loading}
-              className="w-full py-3 rounded-xl text-white font-bold text-sm transition-all disabled:opacity-50 mt-2"
-              style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', boxShadow: '0 0 20px rgba(79,70,229,0.3)' }}>
-              {loading ? 'Verificando...' : 'Acessar painel'}
-            </button>
-          </form>
+          <button type="submit" disabled={loading} style={{ width: '100%', background: loading ? 'rgba(79,70,229,0.4)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.625rem', padding: '0.75rem', fontWeight: 700, fontSize: '1rem', cursor: loading ? 'not-allowed' : 'pointer' }}>
+            {loading ? 'Entrando...' : 'Entrar'}
+          </button>
 
-          <p className="mt-6 text-center text-sm" style={{ color: '#64748b' }}>
-            Ainda não tem licença?{' '}
-            <a href="https://discord.gg/" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline" style={{ color: '#818cf8' }}>Adquira no Discord</a>
-          </p>
-        </div>
+          <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
+            <p style={{ color: '#64748b', fontSize: '0.875rem', margin: '0 0 0.75rem' }}>
+              Não tem conta?{' '}
+              <Link href="/register" style={{ color: '#818cf8', fontWeight: 600, textDecoration: 'none' }}>
+                Registre-se
+              </Link>
+            </p>
+            <a href="https://discord.gg/Th8X5CJ3td" target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', fontSize: '0.8125rem', textDecoration: 'none', fontWeight: 600 }}>
+              Adquira no Discord
+            </a>
+          </div>
+        </form>
       </div>
     </div>
   )
