@@ -43,12 +43,12 @@ export default function DashboardPage() {
 
   const load = async () => {
     try {
-      const [r, rc] = await Promise.all([
+      const [r, clientsData] = await Promise.all([
         fetch('/api/user/tracking-codes'),
-        fetch('/api/user/clients').catch(() => ({ json: async () => [] }))
+        fetch('/api/clients').then(res => res.ok ? res.json() : []).catch(() => [])
       ])
       const d = await r.json()
-      const dc = await rc.json()
+      const dc = clientsData
       if (d.error) setError(d.error)
       else setCodes(d.codes || d || [])
       setClients(Array.isArray(dc) ? dc : (dc.clients || []))
