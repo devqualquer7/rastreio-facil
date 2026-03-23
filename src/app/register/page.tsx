@@ -1,15 +1,132 @@
 'use client'
-import { useEffect } from 'react'
+import { useState } from 'react'
+import { MapPin, User, Lock, KeyRound } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function RegisterPage() {
   const router = useRouter()
-  useEffect(() => {
-    router.replace('/login')
-  }, [router])
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [licenseKey, setLicenseKey] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+
+    if (password !== confirmPassword) {
+      setError('As senhas não coincidem.')
+      return
+    }
+    if (password.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres.')
+      return
+    }
+    if (username.length < 3) {
+      setError('O usuário deve ter pelo menos 3 caracteres.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, key: licenseKey }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || 'Erro ao registrar'); return }
+      router.push('/dashboard')
+      router.refresh()
+    } catch { setError('Erro de conexão. Tente novamente.') }
+    finally { setLoading(false) }
+  }
+
+  const inp = { width: '100%', boxSizing: 'border-box' as const, background: 'rgba(15,15,30,0.6)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '0.625rem', padding: '0.6875rem 1rem 0.6875rem 2.5rem', color: '#f1f5f9', fontSize: '0.9375rem', outline: 'none' }
+
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#06060f' }}>
-      <p className="text-sm" style={{ color: '#64748b' }}>Redirecionando...</p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#06060f', fontFamily: 'system-ui, sans-serif', padding: '1rem' }}>
+      <div style={{ width: '100%', maxWidth: 400 }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+            <MapPin color="#fff" size={28} />
+          </div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#f1f5f9', margin: '0 0 0.25rem' }}>
+            Rastreio<span style={{ color: '#818cf8' }}>Fácil</span>
+          </h1>
+          <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>Crie sua conta</p>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ background: 'rgba(15,14,36,0.6)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '1rem', padding: '1.75rem' }}>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+              Usuário
+            </label>
+            <div style={{ position: 'relative' }}>
+              <User size={16} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
+              <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Escolha um nome de usuário" required autoFocus style={inp} />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+              Senha
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Lock size={16} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Crie uma senha" required style={inp} />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+              Confirmar senha
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Lock size={16} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
+              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Repita a senha" required style={inp} />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+              Chave de licença
+            </label>
+            <div style={{ position: 'relative' }}>
+              <KeyRound size={16} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
+              <input type="text" value={licenseKey} onChange={e => setLicenseKey(e.target.value)} placeholder="Cole sua chave KeyAuth" required style={inp} />
+            </div>
+            <p style={{ fontSize: '0.75rem', color: '#475569', marginTop: '0.375rem', marginBottom: 0 }}>
+              Adquira sua chave no nosso Discord
+            </p>
+          </div>
+
+          {error && (
+            <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '0.625rem', padding: '0.75rem 1rem', marginBottom: '1rem' }}>
+              <p style={{ color: '#f87171', fontSize: '0.875rem', margin: 0 }}>{error}</p>
+            </div>
+          )}
+
+          <button type="submit" disabled={loading} style={{ width: '100%', background: loading ? 'rgba(79,70,229,0.4)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.625rem', padding: '0.75rem', fontWeight: 700, fontSize: '1rem', cursor: loading ? 'not-allowed' : 'pointer' }}>
+            {loading ? 'Registrando...' : 'Registrar'}
+          </button>
+
+          <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
+            <p style={{ color: '#64748b', fontSize: '0.875rem', margin: '0 0 0.75rem' }}>
+              Já tem conta?{' '}
+              <Link href="/login" style={{ color: '#818cf8', fontWeight: 600, textDecoration: 'none' }}>
+                Entrar
+              </Link>
+            </p>
+            <a href="https://discord.gg/Th8X5CJ3td" target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', fontSize: '0.8125rem', textDecoration: 'none', fontWeight: 600 }}>
+              Adquira no Discord
+            </a>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
