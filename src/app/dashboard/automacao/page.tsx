@@ -21,13 +21,13 @@ interface Template {
 
 const STATUS_PRESETS = [
   { label: 'Coletado', value: 'Pedido coletado' },
-  { label: 'Em TrÃ¢nsito', value: 'Objeto em trÃ¢nsito entre unidades' },
-  { label: 'Chegou ao CD', value: 'Chegou ao centro de distribuiÃ§Ã£o' },
+  { label: 'Em Trânsito', value: 'Objeto em trânsito entre unidades' },
+  { label: 'Chegou ao CD', value: 'Chegou ao centro de distribuição' },
   { label: 'Em Processamento', value: 'Objeto em processamento na unidade' },
-  { label: 'Saiu p/ Entrega', value: 'Objeto saiu para entrega ao destinatÃ¡rio' },
+  { label: 'Saiu p/ Entrega', value: 'Objeto saiu para entrega ao destinatário' },
   { label: 'Ag. Retirada', value: 'Aguardando retirada na unidade' },
-  { label: 'NÃ£o Atendido', value: 'Entregador nÃ£o foi atendido - nova tentativa prevista' },
-  { label: 'Retido', value: 'Objeto retido para fiscalizaÃ§Ã£o ou regularizaÃ§Ã£o' },
+  { label: 'Não Atendido', value: 'Entregador não foi atendido - nova tentativa prevista' },
+  { label: 'Retido', value: 'Objeto retido para fiscalização ou regularização' },
   { label: 'Entregue', value: 'Objeto entregue com sucesso' },
 ]
 
@@ -82,7 +82,7 @@ export default function AutomacaoPage() {
   }
 
   const handleAddStep = async (templateId: string) => {
-    if (!stepStatus.trim()) { setError('Status Ã© obrigatÃ³rio'); return }
+    if (!stepStatus.trim()) { setError('Status é obrigatório'); return }
     setAddingStep(true); setError('')
     try {
       const r = await fetch(`/api/auto-templates/${templateId}/steps`, {
@@ -123,10 +123,10 @@ export default function AutomacaoPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.75rem', gap: '1rem', flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#f1f5f9', margin: '0 0 0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Zap size={20} color="#818cf8" /> AutomaÃ§Ã£o
+            <Zap size={20} color="#818cf8" /> Automação
           </h1>
           <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
-            Crie modelos de atualizaÃ§Ã£o automÃ¡tica para seus rastreios
+            Crie modelos de atualização automática para seus rastreios
           </p>
         </div>
         <button onClick={() => { setShowCreate(v => !v); setError('') }}
@@ -163,7 +163,7 @@ export default function AutomacaoPage() {
         <div style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '1rem', padding: '3rem', textAlign: 'center' }}>
           <Zap size={40} style={{ color: '#334155', margin: '0 auto 1rem', display: 'block' }} />
           <p style={{ fontWeight: 700, color: '#f1f5f9', margin: '0 0 0.375rem' }}>Nenhum modelo criado</p>
-          <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>Crie um modelo para automatizar as atualizaÃ§Ãµes dos seus rastreios</p>
+          <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>Crie um modelo para automatizar as atualizaçÃµes dos seus rastreios</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -214,16 +214,16 @@ export default function AutomacaoPage() {
                         <input type="number" min="0" value={stepDay} onChange={e => setStepDay(parseInt(e.target.value) || 0)} style={inp} />
                       </div>
                       <div style={{ flex: '0 0 100px' }}>
-                        <label style={lbl}>HorÃ¡rio</label>
+                        <label style={lbl}>Horário</label>
                         <input type="time" value={stepTime} onChange={e => setStepTime(e.target.value)} style={inp} />
                       </div>
                       <div style={{ flex: '1 1 160px' }}>
                         <label style={lbl}>Status *</label>
-                        <input value={stepStatus} onChange={e => setStepStatus(e.target.value)} placeholder="Ex: Objeto em trÃ¢nsito" style={inp} />
+                        <input value={stepStatus} onChange={e => setStepStatus(e.target.value)} placeholder="Ex: Objeto em trânsito" style={inp} />
                       </div>
                       <div style={{ flex: '1 1 120px' }}>
-                        <label style={lbl}>LocalizaÃ§Ã£o</label>
-                        <input value={stepLocation} onChange={e => setStepLocation(e.target.value)} placeholder="Ex: SÃ£o Paulo, SP" style={inp} />
+                        <label style={lbl}>Localização</label>
+                        <input value={stepLocation} onChange={e => setStepLocation(e.target.value)} placeholder="Ex: São Paulo, SP" style={inp} />
                       </div>
                       <button onClick={() => handleAddStep(t.id)} disabled={addingStep || !stepStatus.trim()}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: addingStep || !stepStatus.trim() ? 'rgba(79,70,229,0.3)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: 700, fontSize: '0.875rem', cursor: addingStep || !stepStatus.trim() ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', height: '2.125rem' }}>
@@ -231,7 +231,7 @@ export default function AutomacaoPage() {
                       </button>
                     </div>
                     <p style={{ fontSize: '0.6875rem', color: '#475569', marginTop: '0.5rem' }}>
-                      Dia 0 = dia da ativaÃ§Ã£o. Dia 1 = dia seguinte, etc.
+                      Dia 0 = dia da ativação. Dia 1 = dia seguinte, etc.
                     </p>
                   </div>
 
@@ -245,7 +245,7 @@ export default function AutomacaoPage() {
                     ) : (
                       <div>
                         <div style={{ display: 'grid', gridTemplateColumns: '80px 70px 1fr 1fr 40px', padding: '0.5rem 1.125rem', borderBottom: '1px solid rgba(99,102,241,0.08)' }}>
-                          {['Dia', 'HorÃ¡rio', 'Status', 'Local', ''].map((h) => (
+                          {['Dia', 'Horário', 'Status', 'Local', ''].map((h) => (
                             <span key={h} style={{ fontSize: '0.625rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</span>
                           ))}
                         </div>
