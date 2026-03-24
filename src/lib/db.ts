@@ -157,12 +157,12 @@ export const query = {
   getUserByUsername: (username: string) => db.prepare('SELECT * FROM User WHERE username = ?').get(username) as any,
   getUserByKeyauthKey: (keyauthKey: string) => db.prepare('SELECT * FROM User WHERE keyauthKey = ?').get(keyauthKey) as any,
   getAllUsers: () => db.prepare('SELECT id, username, email, expiresAt, trackingLimit, trackingUsed, active, createdAt FROM User ORDER BY createdAt DESC').all(),
-  createUser: (data: { username: string; email?: string; password: string; registrationKeyId?: string; expiresAt?: string }) => {
+  createUser: (data: { username: string; email?: string; password: string; keyauthKey?: string; expiresAt?: string }) => {
     const id = generateId();
     db.prepare(`
-      INSERT INTO User (id, username, email, password, registrationKeyId, expiresAt)
+      INSERT INTO User (id, username, email, password, keyauthKey, expiresAt)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run(id, data.username, data.email || null, data.password, data.registrationKeyId || null, data.expiresAt || null);
+    `).run(id, data.username, data.email || null, data.password, data.keyauthKey || null, data.expiresAt || null);
     return { id, ...data };
   },
   updateUser: (id: string, data: Partial<{ active: number; expiresAt: string; trackingLimit: number; trackingUsed: number }>) => {
