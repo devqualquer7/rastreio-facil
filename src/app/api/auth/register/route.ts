@@ -17,13 +17,13 @@ export async function POST(request: NextRequest) {
     const trimKey = String(key || '').trim()
 
     if (!trimUser || !trimPass || !trimKey) {
-      return NextResponse.json({ error: 'Todos os campos sÃ£o obrigatÃ³rios' }, { status: 400 })
+      return NextResponse.json({ error: 'Todos os campos sÃÂ£o obrigatÃÂ³rios' }, { status: 400 })
     }
     if (trimUser.length < 3 || trimUser.length > 32) {
-      return NextResponse.json({ error: 'UsuÃ¡rio deve ter entre 3 e 32 caracteres' }, { status: 400 })
+      return NextResponse.json({ error: 'UsuÃÂ¡rio deve ter entre 3 e 32 caracteres' }, { status: 400 })
     }
     if (!/^[a-zA-Z0-9_-]+$/.test(trimUser)) {
-      return NextResponse.json({ error: 'UsuÃ¡rio pode conter apenas letras, nÃºmeros, _ e -' }, { status: 400 })
+      return NextResponse.json({ error: 'UsuÃÂ¡rio pode conter apenas letras, nÃÂºmeros, _ e -' }, { status: 400 })
     }
     if (trimPass.length < 6 || trimPass.length > 128) {
       return NextResponse.json({ error: 'Senha deve ter entre 6 e 128 caracteres' }, { status: 400 })
@@ -32,19 +32,19 @@ export async function POST(request: NextRequest) {
     // Check if username already taken
     const existingUser = query.getUserByUsername(trimUser) as any
     if (existingUser) {
-      return NextResponse.json({ error: 'Este nome de usuÃ¡rio jÃ¡ estÃ¡ em uso' }, { status: 409 })
+      return NextResponse.json({ error: 'Este nome de usuÃÂ¡rio jÃÂ¡ estÃÂ¡ em uso' }, { status: 409 })
     }
 
     // Check if key already used
     const existingKey = query.getUserByKeyauthKey(trimKey) as any
     if (existingKey) {
-      return NextResponse.json({ error: 'Esta chave de licenÃ§a jÃ¡ foi utilizada' }, { status: 409 })
+      return NextResponse.json({ error: 'Esta chave de licenÃÂ§a jÃÂ¡ foi utilizada' }, { status: 409 })
     }
 
     // Validate key with KeyAuth
     if (!KEYAUTH_NAME || !KEYAUTH_OWNERID) {
       console.error('KeyAuth env vars missing: KEYAUTH_APPNAME, KEYAUTH_OWNERID')
-      return NextResponse.json({ error: 'KeyAuth nÃ£o configurado no servidor' }, { status: 500 })
+      return NextResponse.json({ error: 'KeyAuth nÃÂ£o configurado no servidor' }, { status: 500 })
     }
 
     // Step 1: Initialize KeyAuth session
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     })
     const licenseData = await licenseRes.json()
     if (!licenseData.success) {
-      const msg = licenseData.message || 'LicenÃ§a invÃ¡lida'
+      const msg = licenseData.message || 'LicenÃÂ§a invÃÂ¡lida'
       return NextResponse.json({ error: msg }, { status: 401 })
     }
 
@@ -104,6 +104,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, username: (user as any).username })
   } catch (error) {
     console.error('Registration error:', error)
-    return NextResponse.json({ error: 'Erro interno. Tente novamente.', debug: (error as any).message }, { status: 500 })
+    return NextResponse.json({ error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }
