@@ -158,7 +158,7 @@ export const query = {
   getUserByKeyauthKey: (keyauthKey: string) => db.prepare('SELECT * FROM User WHERE keyauthKey = ?').get(keyauthKey) as any,
   getAllUsers: () => {
     return db.prepare('SELECT id, username, email, planType, planExpiry AS expiresAt, maxTrackingCodes AS trackingLimit, keyauthKey, pushinpayEmail, discordWebhookUrl, createdAt, updatedAt FROM User ORDER BY createdAt DESC').all();
-  }
+  },
   createUser: (data: { username: string; email?: string; password: string; keyauthKey?: string; expiresAt?: string }) => {
     const id = generateId();
     db.prepare(`
