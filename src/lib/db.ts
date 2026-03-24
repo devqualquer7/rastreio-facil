@@ -160,7 +160,7 @@ export const query = {
   createUser: (data: { username: string; email?: string; password: string; keyauthKey?: string; expiresAt?: string }) => {
     const id = generateId();
     db.prepare(`
-      INSERT INTO User (id, username, email, password, keyauthKey, expiresAt)
+      INSERT INTO User (id, username, email, password, keyauthKey, planExpiry)
       VALUES (?, ?, ?, ?, ?, ?)
     `).run(id, data.username, data.email || null, data.password, data.keyauthKey || null, data.expiresAt || null);
     return { id, ...data };
