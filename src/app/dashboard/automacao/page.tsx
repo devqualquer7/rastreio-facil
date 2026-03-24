@@ -163,7 +163,7 @@ export default function AutomacaoPage() {
         <div style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '1rem', padding: '3rem', textAlign: 'center' }}>
           <Zap size={40} style={{ color: '#334155', margin: '0 auto 1rem', display: 'block' }} />
           <p style={{ fontWeight: 700, color: '#f1f5f9', margin: '0 0 0.375rem' }}>Nenhum modelo criado</p>
-          <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>Crie um modelo para automatizar as atualizaçÃµes dos seus rastreios</p>
+          <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>Crie um modelo para automatizar as atualizações dos seus rastreios</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -256,7 +256,7 @@ export default function AutomacaoPage() {
                             <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.status}</span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#64748b', fontSize: '0.8125rem' }}>
                               {s.location && <MapPin size={10} style={{ flexShrink: 0 }} />}
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.location || 'â'}</span>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.location || '—'}</span>
                             </div>
                             <button onClick={() => handleDeleteStep(t.id, s.id)}
                               style={{ width: '1.5rem', height: '1.5rem', borderRadius: '0.375rem', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569' }}>
