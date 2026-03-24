@@ -45,9 +45,9 @@ export default function AdminUsersPage() {
     <div className="p-6 max-w-5xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-black text-white flex items-center gap-2">
-          <Users className="w-6 h-6" style={{ color: '#818cf8' }} /> Usuários
+          <Users className="w-6 h-6" style={{ color: '#818cf8' }} /> Usu\u00e1rios
         </h1>
-        <p className="text-sm mt-1" style={{ color: '#64748b' }}>{users.length} usuário{users.length !== 1 ? 's' : ''} cadastrado{users.length !== 1 ? 's' : ''}</p>
+        <p className="text-sm mt-1" style={{ color: '#64748b' }}>{users.length} usu\u00e1rio{users.length !== 1 ? 's' : ''} cadastrado{users.length !== 1 ? 's' : ''}</p>
       </div>
 
       {loading ? (
@@ -57,7 +57,7 @@ export default function AdminUsersPage() {
       ) : users.length === 0 ? (
         <div className="text-center py-16 rounded-2xl" style={{ background: '#0d0d18', border: '1px solid rgba(99,102,241,0.15)' }}>
           <Users className="w-10 h-10 mx-auto mb-3 opacity-20" />
-          <p className="text-white font-semibold">Nenhum usuário ainda</p>
+          <p className="text-white font-semibold">Nenhum usu\u00e1rio ainda</p>
           <p className="text-sm mt-1" style={{ color: '#475569' }}>Gere keys e compartilhe para novos clientes se cadastrarem</p>
         </div>
       ) : (
@@ -71,7 +71,10 @@ export default function AdminUsersPage() {
             return (
               <div key={u.id} className="rounded-2xl overflow-hidden" style={{ background: '#0d0d18', border: `1px solid ${isExpired ? 'rgba(239,68,68,0.25)' : isWarning ? 'rgba(249,115,22,0.25)' : 'rgba(99,102,241,0.15)'}` }}>
                 <div className="flex items-center gap-3 p-4">
+                  {/* Status indicator */}
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${!u.active ? 'bg-red-500' : isExpired ? 'bg-red-400' : isWarning ? 'bg-orange-400' : 'bg-emerald-400'}`} />
+
+                  {/* User info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-bold text-white">{u.username}</p>
@@ -89,6 +92,8 @@ export default function AdminUsersPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* Actions */}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button onClick={() => setExpandedId(p => p === u.id ? null : u.id)}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
@@ -103,10 +108,11 @@ export default function AdminUsersPage() {
                   </div>
                 </div>
 
+                {/* Expanded actions — 2×2 grid */}
                 {isExpanded && (
                   <div className="border-t px-4 pb-4 pt-3 grid grid-cols-2 gap-3" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
 
-                    {/* Adicionar dias */}
+                    {/* ── Adicionar dias ── */}
                     <div className="p-4 rounded-xl" style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)' }}>
                       <p className="text-xs font-bold uppercase tracking-wide mb-2 flex items-center gap-1" style={{ color: '#818cf8' }}>
                         <RefreshCw className="w-3 h-3" /> Adicionar dias
@@ -133,7 +139,7 @@ export default function AdminUsersPage() {
                       </div>
                     </div>
 
-                    {/* Adicionar rastreios */}
+                    {/* ── Adicionar rastreios ── */}
                     <div className="p-4 rounded-xl" style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)' }}>
                       <p className="text-xs font-bold uppercase tracking-wide mb-2 flex items-center gap-1" style={{ color: '#a78bfa' }}>
                         <Package className="w-3 h-3" /> Adicionar rastreios
@@ -160,7 +166,7 @@ export default function AdminUsersPage() {
                       </div>
                     </div>
 
-                    {/* Remover dias */}
+                    {/* ── Remover dias ── */}
                     <div className="p-4 rounded-xl" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
                       <p className="text-xs font-bold uppercase tracking-wide mb-2 flex items-center gap-1" style={{ color: '#f87171' }}>
                         <Minus className="w-3 h-3" /> Remover dias
@@ -187,7 +193,7 @@ export default function AdminUsersPage() {
                       </div>
                     </div>
 
-                    {/* Remover rastreios */}
+                    {/* ── Remover rastreios ── */}
                     <div className="p-4 rounded-xl" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
                       <p className="text-xs font-bold uppercase tracking-wide mb-2 flex items-center gap-1" style={{ color: '#f87171' }}>
                         <Minus className="w-3 h-3" /> Remover rastreios
