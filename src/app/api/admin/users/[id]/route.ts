@@ -17,6 +17,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       query.addDaysToUser(id, Number(days))
     } else if (action === 'add_trackings' && trackings) {
       query.addTrackingsToUser(id, Number(trackings))
+    } else if (action === 'remove_days' && days) {
+      query.addDaysToUser(id, -Number(days))
+    } else if (action === 'remove_trackings' && trackings) {
+      const newLimit = Math.max(0, (user.trackingLimit || 0) - Number(trackings))
+      query.updateUser(id, { trackingLimit: newLimit })
     } else if (action === 'set_expiry' && body.expiresAt) {
       query.updateUser(id, { expiresAt: new Date(body.expiresAt).toISOString() })
     }
