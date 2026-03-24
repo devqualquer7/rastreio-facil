@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { query, runTransaction } from '@/lib/db'
+import { query } from '@/lib/db'
 import { createUserSession } from '@/lib/session'
 
 export async function POST(request: NextRequest) {
@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Senha deve ter ao menos 6 caracteres' }, { status: 400 })
     }
 
+    // Valida key
     const regKey = query.getKeyByValue(key.trim().toUpperCase())
     if (!regKey) {
       return NextResponse.json({ error: 'Key inválida. Verifique e tente novamente.' }, { status: 400 })
@@ -25,40 +26,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Esta key já foi utilizada.' }, { status: 400 })
     }
 
+    // Verifica username único
     const existingUser = query.getUserByUsername(username.trim().toLowerCase())
     if (existingUser) {
       return NextResponse.json({ error: 'Este username já está em uso.' }, { status: 400 })
     }
 
+    // Cria conta com 30 dias de acesso
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + 30)
 
     const hashedPassword = await bcrypt.hash(password, 12)
+    const user = query.createUser({
+      username: username.trim().toLowerCase(),
+      email: email?.trim() || undefined,
+      password: hashedPassword,
+      registrationKeyId: regKey.id,
+      expiresAt: expiresAt.toISOString(),
+    })
 
-    // Atomic: create user + mark key as used in one transaction
-    let user: any
-    try {
-      user = runTransaction(() => {
-        const newUser = query.createUser({
-          username: username.trim().toLowerCase(),
-          email: email?.trim() || undefined,
-          password: hashedPassword,
-          registrationKeyId: regKey.id,
-          expiresAt: expiresAt.toISOString(),
-        })
-        query.markKeyUsed(regKey.id, newUser.id)
-        return newUser
-      })
-    } catch (dbError) {
-      console.error('DB transaction error:', dbError)
-      return NextResponse.json({ error: 'Erro ao criar conta. Tente novamente.' }, { status: 500 })
-    }
+    // Marca key como usada
+    query.markKeyUsed(regKey.id, user.id)
 
-    try {
-      await createUserSession(user.id)
-    } catch (sessionError) {
-      console.error('Session error (non-critical):', sessionError)
-    }
+    // Cria sessão
+    await createUserSession(user.id)
 
     return NextResponse.json({ success: true })
   } catch (error) {
