@@ -103,14 +103,14 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS AutoTemplateStep (
     id TEXT PRIMARY KEY,
-    templateId TEXT NOT NULL,
+    autoTemplateId TEXT NOT NULL,
     dayOffset INTEGER NOT NULL DEFAULT 0,
     time TEXT NOT NULL DEFAULT '09:00',
     status TEXT NOT NULL,
     location TEXT,
     sortOrder INTEGER DEFAULT 0,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (templateId) REFERENCES AutoTemplate(id)
+    FOREIGN KEY (autoTemplateId) REFERENCES AutoTemplate(id)
   );
 `);
 
