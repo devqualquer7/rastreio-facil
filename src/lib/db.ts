@@ -17,6 +17,7 @@ const db = new Database(dbPath);
 const migrate = (sql: string) => { try { db.prepare(sql).run(); } catch (_) { /* already exists */ } };
 migrate('ALTER TABLE Client ADD COLUMN userId TEXT');
 migrate('ALTER TABLE User ADD COLUMN keyauthKey TEXT');
+migrate('ALTER TABLE AutoTemplateStep ADD COLUMN sortOrder INTEGER DEFAULT 0');
 
 // Create AutoTemplate tables if they don't exist
 try {
@@ -48,7 +49,7 @@ function generateId() {
 }
 
 export const query = {
-  // ─── Clients ────────────────────────────────────────────────────────────────
+  // âââ Clients ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   getClients: () => db.prepare('SELECT * FROM Client ORDER BY createdAt DESC').all(),
   getClientsByUserId: (userId: string) => db.prepare('SELECT * FROM Client WHERE userId = ? ORDER BY createdAt DESC').all(userId),
   getClientById: (id: string) => db.prepare('SELECT * FROM Client WHERE id = ?').get(id),
@@ -61,7 +62,7 @@ export const query = {
   },
   deleteClient: (id: string) => db.prepare('DELETE FROM Client WHERE id = ?').run(id),
 
-  // ─── Tracking Codes ─────────────────────────────────────────────────────────
+  // âââ Tracking Codes âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   getTrackingCodes: () => {
     const codes = db.prepare(`
       SELECT tc.*, c.name as clientName
@@ -120,7 +121,7 @@ export const query = {
   },
   deleteTrackingCode: (id: string) => db.prepare('DELETE FROM TrackingCode WHERE id = ?').run(id),
 
-  // ─── Tracking Events ────────────────────────────────────────────────────────
+  // âââ Tracking Events ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   createTrackingEvent: (data: { trackingCodeId: string; status: string; location?: string | null; date?: string }) => {
     const id = generateId();
     const date = data.date ? new Date(data.date).toISOString() : new Date().toISOString();
@@ -131,7 +132,7 @@ export const query = {
   },
   deleteTrackingEvent: (id: string) => db.prepare('DELETE FROM TrackingEvent WHERE id = ?').run(id),
 
-  // ─── Users ──────────────────────────────────────────────────────────────────
+  // âââ Users ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   getUserById: (id: string) => db.prepare('SELECT * FROM User WHERE id = ?').get(id) as any,
   getUserByUsername: (username: string) => db.prepare('SELECT * FROM User WHERE username = ?').get(username) as any,
   getUserByKeyauthKey: (keyauthKey: string) => db.prepare('SELECT * FROM User WHERE keyauthKey = ?').get(keyauthKey) as any,
@@ -163,7 +164,7 @@ export const query = {
     db.prepare('UPDATE User SET trackingLimit = trackingLimit + ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(amount, userId);
   },
 
-  // ─── Registration Keys ──────────────────────────────────────────────────────
+  // âââ Registration Keys ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   getKeyByValue: (key: string) => db.prepare('SELECT * FROM RegistrationKey WHERE key = ?').get(key) as any,
   getAllKeys: () => db.prepare('SELECT * FROM RegistrationKey ORDER BY createdAt DESC').all(),
   createKey: (key: string) => {
@@ -176,7 +177,7 @@ export const query = {
   },
   deleteKey: (id: string) => db.prepare('DELETE FROM RegistrationKey WHERE id = ?').run(id),
 
-  // ─── Payments ───────────────────────────────────────────────────────────────
+  // âââ Payments âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   createPayment: (data: { userId: string; type: string; amount: number; pushinpayId?: string; qrCode?: string; qrCodeBase64?: string; extraTrackings?: number; daysToAdd?: number }) => {
     const id = generateId();
     db.prepare(`
@@ -195,7 +196,7 @@ export const query = {
     return db.prepare("SELECT * FROM Payment WHERE userId = ? AND type = ? AND status = 'pending' ORDER BY createdAt DESC LIMIT 1").get(userId, type) as any;
   },
 
-  // ─── Auto Templates ─────────────────────────────────────────────────────────
+  // âââ Auto Templates âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   getAutoTemplatesByUserId: (userId: string) => {
     return db.prepare('SELECT * FROM AutoTemplate WHERE userId = ? ORDER BY createdAt DESC').all(userId) as any[];
   },
@@ -211,10 +212,11 @@ export const query = {
     return { id, ...data };
   },
   deleteAutoTemplate: (id: string) => db.prepare('DELETE FROM AutoTemplate WHERE id = ?').run(id),
-  createAutoTemplateStep: (data: { autoTemplateId: string; dayOffset: number; time?: string; status: string; location?: string }) => {
+  createAutoTemplateStep: (data: { templateId?: string; autoTemplateId?: string; dayOffset: number; time?: string; status: string; location?: string; sortOrder?: number }) => {
     const id = generateId();
-    db.prepare('INSERT INTO AutoTemplateStep (id, autoTemplateId, dayOffset, time, status, location) VALUES (?, ?, ?, ?, ?, ?)').run(
-      id, data.autoTemplateId, data.dayOffset, data.time || '09:00', data.status, data.location || null
+    const tplId = data.templateId || data.autoTemplateId || '';
+    db.prepare('INSERT INTO AutoTemplateStep (id, autoTemplateId, dayOffset, time, status, location, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
+      id, tplId, data.dayOffset, data.time || '09:00', data.status, data.location || null, data.sortOrder || 0
     );
     return { id, ...data };
   },
