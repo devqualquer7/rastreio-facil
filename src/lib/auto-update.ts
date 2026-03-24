@@ -42,7 +42,11 @@ export function processAutoUpdates(userId: string) {
         // Step times are in Brasília (UTC-3), convert to UTC by adding 3 hours
         fireDate.setUTCHours(hours + 3, minutes, 0, 0)
 
+        // Skip if the scheduled time hasn't arrived yet
         if (fireDate > now) continue
+
+        // Skip events scheduled before activation (no retroactive events)
+        if (fireDate < activatedAt) continue
 
         const existingEvents = query.getEventsByCodeId(tc.id) as any[]
         const alreadyExists = existingEvents.some(
