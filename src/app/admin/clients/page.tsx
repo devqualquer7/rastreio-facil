@@ -17,7 +17,7 @@ export default function ClientsPage() {
   const [saving, setSaving] = useState(false)
   const load = async () => {
     setLoading(true)
-    try { const r = await fetch('/api/clients'); const d = await r.json(); setClients(Array.isArray(d) ? d : (d.clients || [])) }
+    try { const r = await fetch('/api/admin/clients'); const d = await r.json(); setClients(Array.isArray(d) ? d : (d.clients || [])) }
     finally { setLoading(false) }
   }
   useEffect(() => { load() }, [])
@@ -28,7 +28,7 @@ export default function ClientsPage() {
       setName(''); setEmail(''); setPhone(''); setShowForm(false); load()
     } finally { setSaving(false) }
   }
-  const remove = async (id: string) => { if (!confirm('Remover este cliente?')) return; await fetch(`/api/clients/${id}`, { method: 'DELETE' }); load() }
+  const remove = async (id: string) => { if (!confirm('Remover este cliente?')) return; await fetch(`/api/admin/clients/${id}`, { method: 'DELETE' }); load() }
   const inp: React.CSSProperties = { background: 'rgba(15,15,30,0.6)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '0.5rem', padding: '0.5625rem 0.75rem', color: '#f1f5f9', fontSize: '0.875rem', outline: 'none', width: '100%', boxSizing: 'border-box' }
   return (
     <div>
