@@ -3,14 +3,11 @@ import { getUserSession } from '@/lib/session'
 import { query } from '@/lib/db'
 
 export async function GET() {
-  try {
-    const session = await getUserSession()
-    if (!session?.userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    const codes = query.getTrackingCodesByUserId(session.userId as string)
-    return NextResponse.json(codes)
-  } catch (error) {
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
-  }
+  const session = await getUserSession()
+  if (!session?.userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+
+  const codes = query.getTrackingCodesByUserId(session.userId as string)
+  return NextResponse.json(codes)
 }
 
 export async function POST(request: NextRequest) {
@@ -18,64 +15,37 @@ export async function POST(request: NextRequest) {
     const session = await getUserSession()
     if (!session?.userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    const user = query.getUserById(session.userId as string) as any
-    if (!user) return NextResponse.json({ error: 'Conta inativa' }, { status: 403 })
+    const user = query.getUserById(session.userId as string)
+    if (!user || !user.active) return NextResponse.json({ error: 'Conta inativa' }, { status: 403 })
 
-    // Check plan expiry
-    if (user.planExpiry && new Date(user.planExpiry) < new Date()) {
+    // Verifica expiração
+    if (user.expiresAt && new Date(user.expiresAt) < new Date()) {
       return NextResponse.json({ error: 'Sua assinatura expirou. Renove para continuar.' }, { status: 403 })
     }
 
-    // Check tracking limit using maxTrackingCodes
-    const existingCodes = query.getTrackingCodesByUserId(session.userId as string) as any[]
-    const limit = user.maxTrackingCodes || 5
-    if (existingCodes.length >= limit) {
-      return NextResponse.json({ error: 'Limite de rastreios atingido. Faça upgrade do plano.' }, { status: 403 })
+    // Verifica quota
+    if (user.trackingUsed >= user.trackingLimit) {
+      return NextResponse.json({ error: `Limite de ${user.trackingLimit} rastreios atingido. Adquira um pacote extra.` }, { status: 403 })
     }
 
-    const { code, description, clientId, deliveryDate } = await request.json()
+    const { code, description } = await request.json()
+    if (!code) return NextResponse.json({ error: 'Código obrigatório' }, { status: 400 })
 
-    if (!code || !String(code).trim()) {
-      return NextResponse.json({ error: 'Código obrigatório' }, { status: 400 })
-    }
+    // Verifica código duplicado
+    const existing = query.getTrackingCodeByCode(code.trim().toUpperCase())
+    if (existing) return NextResponse.json({ error: 'Este código já existe no sistema' }, { status: 409 })
 
-    const trimCode = String(code).trim().toUpperCase()
-
-    // Check duplicate
-    const existing = query.getTrackingCodeByCode(trimCode) as any
-    if (existing) {
-      return NextResponse.json({ error: 'Este código já existe no sistema' }, { status: 409 })
-    }
-
-    // Validate client if provided
-    if (clientId) {
-      const client = query.getClientById(clientId) as any
-      if (!client || client.userId !== session.userId) {
-        return NextResponse.json({ error: 'Cliente inválido' }, { status: 400 })
-      }
-    }
-
-    // Create tracking code
     const tc = query.createTrackingCode({
-      code: trimCode,
-      description: description || null,
-      clientId: clientId || null,
+      code: code.trim().toUpperCase(),
       userId: session.userId as string,
+      description: description || null,
     })
 
-    // Create initial event if delivery date
-    if (deliveryDate) {
-      query.createTrackingEvent({
-        trackingCodeId: (tc as any).id,
-        status: 'Objeto postado',
-        location: null,
-        date: new Date(deliveryDate).toISOString(),
-      })
-    }
+    query.incrementTrackingUsed(session.userId as string)
 
     return NextResponse.json(tc, { status: 201 })
   } catch (error) {
-    console.error('Error creating tracking code:', error)
+    console.error(error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
