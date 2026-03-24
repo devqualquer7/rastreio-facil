@@ -1,12 +1,15 @@
 'use client'
+
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Search, Package, Clock, ChevronDown, ChevronUp, X, User, ExternalLink, MapPin, Activity, Calendar } from 'lucide-react'
+import { Plus, Trash2, Search, Package, Clock, ChevronDown, ChevronUp, X, User, ExternalLink, MapPin, Activity, Calendar, Zap } from 'lucide-react'
 
 interface TrackingEvent { id: string; status: string; location: string | null; date: string }
 interface Client { id: string; name: string }
+interface AutoTemplate { id: string; name: string; steps: any[] }
 interface TrackingCode {
   id: string; code: string; description: string | null; clientId?: string
   client?: { id: string; name: string } | null
+  autoTemplateId?: string | null; autoActivatedAt?: string | null
   events: TrackingEvent[]; createdAt: string
 }
 
@@ -27,6 +30,7 @@ function genCode() { return 'LT' + String(Math.floor(100000000 + Math.random() *
 export default function DashboardPage() {
   const [codes, setCodes] = useState<TrackingCode[]>([])
   const [clients, setClients] = useState<Client[]>([])
+  const [templates, setTemplates] = useState<AutoTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -41,20 +45,27 @@ export default function DashboardPage() {
   const [evDate, setEvDate] = useState('')
   const [evSubmitting, setEvSubmitting] = useState(false)
 
+  // Auto-update modal state
+  const [autoModal, setAutoModal] = useState<string | null>(null) // tracking code id
+  const [selectedTemplate, setSelectedTemplate] = useState('')
+  const [autoSubmitting, setAutoSubmitting] = useState(false)
+
   const load = async () => {
     try {
-      const [r, clientsData] = await Promise.all([
+      const [r, clientsData, templatesData] = await Promise.all([
         fetch('/api/user/tracking-codes'),
-        fetch('/api/clients').then(res => res.ok ? res.json() : []).catch(() => [])
+        fetch('/api/clients').then(res => res.ok ? res.json() : []).catch(() => []),
+        fetch('/api/auto-templates').then(res => res.ok ? res.json() : []).catch(() => []),
       ])
       const d = await r.json()
-      const dc = clientsData
       if (d.error) setError(d.error)
       else setCodes(d.codes || d || [])
-      setClients(Array.isArray(dc) ? dc : (dc.clients || []))
+      setClients(Array.isArray(clientsData) ? clientsData : (clientsData.clients || []))
+      setTemplates(Array.isArray(templatesData) ? templatesData : [])
     } catch { setError('Erro ao carregar rastreios.') }
     finally { setLoading(false) }
   }
+
   useEffect(() => { load() }, [])
 
   const handleCreate = async () => {
@@ -64,11 +75,7 @@ export default function DashboardPage() {
       const code = genCode()
       const body: any = { code, clientId: clientId || undefined, description: clientName.trim() || undefined }
       if (deliveryDate) body.deliveryDate = deliveryDate
-      const r = await fetch('/api/user/tracking-codes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      })
+      const r = await fetch('/api/user/tracking-codes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const d = await r.json()
       if (!r.ok) { setError(d.error || 'Erro ao criar rastreio.'); return }
       setClientId(''); setClientName(''); setDeliveryDate(''); setShowForm(false); load()
@@ -93,8 +100,7 @@ export default function DashboardPage() {
     if (!evStatus.trim()) return
     setEvSubmitting(true)
     try {
-      await fetch('/api/user/tracking-events', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      await fetch('/api/user/tracking-events', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trackingCodeId: tc.id, status: evStatus, location: evLocation || null, date: new Date(evDate).toISOString() })
       })
       setEvStatus(''); setEvLocation(''); load()
@@ -104,6 +110,28 @@ export default function DashboardPage() {
   const handleDeleteEvent = async (eventId: string) => {
     if (!confirm('Apagar este evento?')) return
     await fetch(`/api/user/tracking-events/${eventId}`, { method: 'DELETE' })
+    load()
+  }
+
+  const handleActivateAuto = async (tcId: string) => {
+    if (!selectedTemplate) { setError('Selecione um modelo de automação'); return }
+    setAutoSubmitting(true); setError('')
+    try {
+      const r = await fetch(`/api/user/tracking-codes/${tcId}/auto-update`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templateId: selectedTemplate, action: 'activate' })
+      })
+      if (!r.ok) { const d = await r.json(); setError(d.error || 'Erro'); return }
+      setAutoModal(null); setSelectedTemplate(''); load()
+    } finally { setAutoSubmitting(false) }
+  }
+
+  const handleDeactivateAuto = async (tcId: string) => {
+    if (!confirm('Desativar automação deste rastreio?')) return
+    await fetch(`/api/user/tracking-codes/${tcId}/auto-update`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'deactivate' })
+    })
     load()
   }
 
@@ -139,7 +167,6 @@ export default function DashboardPage() {
           <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#f1f5f9', margin: '0 0 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <User size={16} color="#818cf8" /> Adicionar rastreio
           </h2>
-
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             <div>
               <label style={lbl}>Cliente cadastrado</label>
@@ -149,24 +176,18 @@ export default function DashboardPage() {
               </select>
             </div>
             <div>
-              <label style={{ ...lbl, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <Calendar size={11} /> Prazo de entrega
-              </label>
+              <label style={{ ...lbl, display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Calendar size={11} /> Prazo de entrega</label>
               <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} style={inp} />
             </div>
           </div>
-
           {!clientId && (
             <div style={{ marginBottom: '1rem' }}>
               <label style={lbl}>Ou digite o nome do cliente *</label>
               <input value={clientName} onChange={e => setClientName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleCreate()} placeholder="Ex: João Silva" style={inp} />
             </div>
           )}
-
           <p style={{ fontSize: '0.75rem', color: '#475569', marginTop: '0.375rem', marginBottom: '0.75rem' }}>Um código de rastreamento único será gerado automaticamente</p>
-
           {error && <p style={{ color: '#f87171', fontSize: '0.875rem', marginBottom: '0.75rem' }}>{error}</p>}
-
           <button onClick={handleCreate} disabled={submitting || (!clientId && !clientName.trim())}
             style={{ background: submitting || (!clientId && !clientName.trim()) ? 'rgba(79,70,229,0.4)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.625rem', padding: '0.625rem 1.5rem', fontWeight: 700, fontSize: '0.9375rem', cursor: submitting || (!clientId && !clientName.trim()) ? 'not-allowed' : 'pointer' }}>
             {submitting ? 'Adicionando...' : 'Adicionar'}
@@ -179,6 +200,61 @@ export default function DashboardPage() {
         <Search size={15} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#475569' }} />
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por código, cliente..." style={{ ...inp, paddingLeft: '2.375rem' }} />
       </div>
+
+      {/* Auto-update activation modal */}
+      {autoModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => { setAutoModal(null); setSelectedTemplate('') }}>
+          <div style={{ background: '#0f0f1e', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '1rem', padding: '1.5rem', width: '100%', maxWidth: '420px' }}
+            onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f1f5f9', margin: '0 0 0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Zap size={16} color="#818cf8" /> Ativar Automação
+            </h3>
+            <p style={{ color: '#64748b', fontSize: '0.8125rem', margin: '0 0 1rem' }}>
+              Selecione um modelo para atualizar este rastreio automaticamente.
+            </p>
+            {templates.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '1rem' }}>
+                <p style={{ color: '#475569', fontSize: '0.875rem', margin: '0 0 0.5rem' }}>Nenhum modelo criado.</p>
+                <a href="/dashboard/automacao" style={{ color: '#818cf8', fontSize: '0.875rem', fontWeight: 600 }}>Criar modelo →</a>
+              </div>
+            ) : (
+              <>
+                <select value={selectedTemplate} onChange={e => setSelectedTemplate(e.target.value)} style={sel}>
+                  <option value="">— Selecione um modelo —</option>
+                  {templates.map(t => (
+                    <option key={t.id} value={t.id}>{t.name} ({t.steps?.length || 0} etapas)</option>
+                  ))}
+                </select>
+                {selectedTemplate && (() => {
+                  const t = templates.find(t => t.id === selectedTemplate)
+                  if (!t || !t.steps?.length) return null
+                  return (
+                    <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(99,102,241,0.06)', borderRadius: '0.5rem', border: '1px solid rgba(99,102,241,0.15)' }}>
+                      <p style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#818cf8', textTransform: 'uppercase', margin: '0 0 0.5rem' }}>Etapas do modelo:</p>
+                      {[...t.steps].sort((a: any, b: any) => a.sortOrder - b.sortOrder).map((s: any) => (
+                        <p key={s.id} style={{ fontSize: '0.75rem', color: '#94a3b8', margin: '0.25rem 0' }}>
+                          <span style={{ color: '#a5b4fc', fontWeight: 600 }}>Dia {s.dayOffset}</span> às {s.time} — {s.status}
+                        </p>
+                      ))}
+                    </div>
+                  )
+                })()}
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                  <button onClick={() => handleActivateAuto(autoModal)} disabled={autoSubmitting || !selectedTemplate}
+                    style={{ flex: 1, background: autoSubmitting || !selectedTemplate ? 'rgba(79,70,229,0.3)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem', fontWeight: 700, fontSize: '0.875rem', cursor: autoSubmitting || !selectedTemplate ? 'not-allowed' : 'pointer' }}>
+                    {autoSubmitting ? 'Ativando...' : 'Ativar'}
+                  </button>
+                  <button onClick={() => { setAutoModal(null); setSelectedTemplate('') }}
+                    style={{ padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', color: '#94a3b8', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem' }}>
+                    Cancelar
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* List */}
       {loading ? (
@@ -194,6 +270,8 @@ export default function DashboardPage() {
           {filtered.map(tc => {
             const previsaoEvt = tc.events.find(e => e.status.toLowerCase().startsWith('previs'))
             const realEvents = tc.events.filter(e => !e.status.toLowerCase().startsWith('previs'))
+            const hasAuto = !!tc.autoTemplateId
+            const templateName = hasAuto ? templates.find(t => t.id === tc.autoTemplateId)?.name : null
 
             return (
               <div key={tc.id} style={{ background: 'rgba(99,102,241,0.04)', border: `1px solid ${expanded === tc.id ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.1)'}`, borderRadius: '0.875rem', overflow: 'hidden', transition: 'border-color 0.2s' }}>
@@ -206,11 +284,28 @@ export default function DashboardPage() {
                     {(tc.client?.name || tc.description) && <p style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.9375rem', margin: '0 0 0.125rem' }}>{tc.client?.name || tc.description}</p>}
                     <p style={{ color: '#64748b', fontSize: '0.8125rem', margin: 0, fontFamily: 'monospace', letterSpacing: '0.05em' }}>{tc.code}</p>
                     {previsaoEvt && <p style={{ color: '#475569', fontSize: '0.75rem', margin: '0.125rem 0 0' }}>{previsaoEvt.status}</p>}
+                    {hasAuto && (
+                      <p style={{ color: '#22c55e', fontSize: '0.6875rem', margin: '0.25rem 0 0', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Zap size={10} /> Auto: {templateName || 'Modelo ativo'}
+                      </p>
+                    )}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     <span style={{ fontSize: '0.75rem', padding: '0.25rem 0.625rem', borderRadius: '999px', background: realEvents.length > 0 ? 'rgba(99,102,241,0.15)' : 'rgba(51,65,85,0.5)', color: realEvents.length > 0 ? '#a5b4fc' : '#475569', fontWeight: 600 }}>
                       {realEvents.length} evento{realEvents.length !== 1 ? 's' : ''}
                     </span>
+                    {/* Auto-update toggle */}
+                    {hasAuto ? (
+                      <button onClick={() => handleDeactivateAuto(tc.id)} title="Desativar automação"
+                        style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '0.5rem', color: '#22c55e', cursor: 'pointer', padding: '0.3125rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.6875rem', fontWeight: 700 }}>
+                        <Zap size={12} /> Auto
+                      </button>
+                    ) : (
+                      <button onClick={() => { setAutoModal(tc.id); setSelectedTemplate(''); setError('') }} title="Ativar automação"
+                        style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.18)', borderRadius: '0.5rem', color: '#64748b', cursor: 'pointer', padding: '0.3125rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.6875rem', fontWeight: 700 }}>
+                        <Zap size={12} /> Auto
+                      </button>
+                    )}
                     <button onClick={() => handleExpand(tc.id)} title="Gerenciar eventos"
                       style={{ background: expanded === tc.id ? 'rgba(99,102,241,0.2)' : 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: '0.5rem', color: '#818cf8', cursor: 'pointer', padding: '0.3125rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.6875rem', fontWeight: 700 }}>
                       {expanded === tc.id ? <ChevronUp size={13} /> : <ChevronDown size={13} />} Gerenciar
@@ -234,19 +329,14 @@ export default function DashboardPage() {
                       <p style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#818cf8', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 0.875rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                         <Activity size={11} /> Registrar Evento
                       </p>
-                      {/* Presets */}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '0.875rem' }}>
                         {STATUS_PRESETS.map(p => (
                           <button key={p.label} type="button" onClick={() => setEvStatus(p.value)}
-                            style={{ padding: '0.3125rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
-                              background: evStatus === p.value ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.08)',
-                              border: evStatus === p.value ? '1px solid rgba(99,102,241,0.6)' : '1px solid rgba(99,102,241,0.2)',
-                              color: evStatus === p.value ? '#c7d2fe' : '#6366f1' }}>
+                            style={{ padding: '0.3125rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s', background: evStatus === p.value ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.08)', border: evStatus === p.value ? '1px solid rgba(99,102,241,0.6)' : '1px solid rgba(99,102,241,0.2)', color: evStatus === p.value ? '#c7d2fe' : '#6366f1' }}>
                             {p.label}
                           </button>
                         ))}
                       </div>
-                      {/* Inputs */}
                       <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
                         <div style={{ flex: '1 1 180px' }}>
                           <label style={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>Status *</label>
@@ -266,6 +356,7 @@ export default function DashboardPage() {
                         </button>
                       </div>
                     </div>
+
                     {/* Events table */}
                     <div style={{ borderTop: '1px solid rgba(99,102,241,0.1)' }}>
                       {realEvents.length === 0 ? (
@@ -294,7 +385,8 @@ export default function DashboardPage() {
                                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.location || '—'}</span>
                               </div>
                               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                <button onClick={() => handleDeleteEvent(ev.id)} style={{ width: '1.75rem', height: '1.75rem', borderRadius: '0.375rem', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569' }}>
+                                <button onClick={() => handleDeleteEvent(ev.id)}
+                                  style={{ width: '1.75rem', height: '1.75rem', borderRadius: '0.375rem', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569' }}>
                                   <Trash2 size={13} />
                                 </button>
                               </div>
