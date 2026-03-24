@@ -20,6 +20,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
+    { href: '/admin/users', icon: UserCog, label: 'Usuários' },
   ]
 
   return (
