@@ -44,6 +44,6 @@ export function processAutoUpdates(userId: string) {
       }
     }
   } catch (err) {
-    console.error('Auto-update processing error:', err)
+    console.error('Error processing auto-update:', err)
   }
 }
