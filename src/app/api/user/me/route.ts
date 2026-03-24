@@ -5,10 +5,10 @@ import { query } from '@/lib/db'
 export async function GET() {
   try {
     const session = await getUserSession()
-    if (!session?.userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    if (!session?.userId) return NextResponse.json({ error: 'NÃ£o autorizado' }, { status: 401 })
 
     const user = query.getUserById(session.userId as string) as any
-    if (!user) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
+    if (!user) return NextResponse.json({ error: 'UsuÃ¡rio nÃ£o encontrado' }, { status: 404 })
 
     const { password: _, ...safeUser } = user
     const now = new Date()
@@ -20,7 +20,7 @@ export async function GET() {
     const trackingUsed = trackingCodes.length
     const trackingLimit = user.maxTrackingCodes || 5
 
-    return NextResponse.json({ ...safeUser, daysLeft, trackingUsed, trackingLimit })
+    return NextResponse.json({ ...safeUser, daysLeft, trackingUsed, trackingLimit, expiresAt: user.planExpiry || null })
   } catch (error) {
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
