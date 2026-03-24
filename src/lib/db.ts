@@ -170,4 +170,9 @@ export const query = {
   },
 };
 
+export function runTransaction<T>(fn: () => T): T {
+  const transaction = db.transaction(fn);
+  return transaction();
+}
+
 export default db;
