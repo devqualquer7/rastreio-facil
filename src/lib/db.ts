@@ -156,7 +156,9 @@ export const query = {
   getUserById: (id: string) => db.prepare('SELECT * FROM User WHERE id = ?').get(id) as any,
   getUserByUsername: (username: string) => db.prepare('SELECT * FROM User WHERE username = ?').get(username) as any,
   getUserByKeyauthKey: (keyauthKey: string) => db.prepare('SELECT * FROM User WHERE keyauthKey = ?').get(keyauthKey) as any,
-  getAllUsers: () => db.prepare('SELECT id, username, email, expiresAt, trackingLimit, trackingUsed, active, createdAt FROM User ORDER BY createdAt DESC').all(),
+  getAllUsers: () => {
+    return db.prepare('SELECT id, username, email, planType, planExpiry AS expiresAt, maxTrackingCodes AS trackingLimit, keyauthKey, pushinpayEmail, discordWebhookUrl, createdAt, updatedAt FROM User ORDER BY createdAt DESC').all();
+  }
   createUser: (data: { username: string; email?: string; password: string; keyauthKey?: string; expiresAt?: string }) => {
     const id = generateId();
     db.prepare(`
@@ -165,7 +167,7 @@ export const query = {
     `).run(id, data.username, data.email || null, data.password, data.keyauthKey || null, data.expiresAt || null);
     return { id, ...data };
   },
-  updateUser: (id: string, data: Partial<{ active: number; expiresAt: string; trackingLimit: number; trackingUsed: number }>) => {
+  updateUser: (id: string, data: Partial<{ planExpiry: string; maxTrackingCodes: number; planType: string; pushinpayEmail: string; pushinpayToken: string; discordWebhookUrl: string }>) => {
     const fields = Object.entries(data).map(([k]) => `${k} = ?`).join(', ');
     const values = Object.values(data);
     db.prepare(`UPDATE User SET ${fields}, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`).run(...values, id);
@@ -174,14 +176,14 @@ export const query = {
     db.prepare('UPDATE User SET trackingUsed = trackingUsed + 1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(userId);
   },
   addDaysToUser: (userId: string, days: number) => {
-    const user = db.prepare('SELECT expiresAt FROM User WHERE id = ?').get(userId) as any;
-    const base = user?.expiresAt ? new Date(user.expiresAt) : new Date();
+    const user = db.prepare('SELECT planExpiry FROM User WHERE id = ?').get(userId) as any;
+    const base = user?.planExpiry ? new Date(user.planExpiry) : new Date();
     if (base < new Date()) base.setTime(new Date().getTime());
     base.setDate(base.getDate() + days);
-    db.prepare('UPDATE User SET expiresAt = ?, active = 1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(base.toISOString(), userId);
+    db.prepare('UPDATE User SET planExpiry = ?, active = 1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(base.toISOString(), userId);
   },
   addTrackingsToUser: (userId: string, amount: number) => {
-    db.prepare('UPDATE User SET trackingLimit = trackingLimit + ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(amount, userId);
+    db.prepare('UPDATE User SET maxTrackingCodes = maxTrackingCodes + ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(amount, userId);
   },
 
   // --- Registration Keys ---
