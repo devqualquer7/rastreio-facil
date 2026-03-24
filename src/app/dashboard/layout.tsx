@@ -1,6 +1,7 @@
 'use client'
+
 import { useState, useEffect } from 'react'
-import { MapPin, Package, RefreshCw, LogOut, Menu, X, AlertTriangle, Clock, LayoutDashboard, Users } from 'lucide-react'
+import { MapPin, Package, RefreshCw, LogOut, Menu, X, AlertTriangle, Clock, LayoutDashboard, Users, Zap } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 
 interface UserInfo {
@@ -17,25 +18,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     fetch('/api/user/me').then(r => r.json()).then(d => {
-      if (d.error) {
-        fetch('/api/user/logout', { method: 'POST' }).finally(() => router.push('/login'))
-      } else {
-        setUser(d)
-      }
+      if (d.error) { fetch('/api/user/logout', { method: 'POST' }).finally(() => router.push('/login')) }
+      else { setUser(d) }
     }).catch(() => {
       fetch('/api/user/logout', { method: 'POST' }).finally(() => router.push('/login'))
     })
   }, [router])
 
-  const logout = async () => {
-    await fetch('/api/user/logout', { method: 'POST' })
-    router.push('/login')
-  }
+  const logout = async () => { await fetch('/api/user/logout', { method: 'POST' }); router.push('/login') }
 
   const nav = [
     { href: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
     { href: '/dashboard/clientes', label: 'Clientes', Icon: Users },
     { href: '/dashboard/rastreios', label: 'Rastreios', Icon: Package },
+    { href: '/dashboard/automacao', label: 'Automação', Icon: Zap },
     { href: '/dashboard/renovar', label: 'Renovar / Planos', Icon: RefreshCw },
   ]
 
@@ -77,8 +73,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 color: pathname === href ? '#a5b4fc' : '#94a3b8',
                 border: pathname === href ? '1px solid rgba(99,102,241,0.25)' : '1px solid transparent',
               }}>
-              <Icon className="w-4 h-4" />
-              {label}
+              <Icon className="w-4 h-4" /> {label}
             </a>
           ))}
         </nav>
@@ -89,8 +84,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             style={{ color: '#64748b' }}
             onMouseEnter={e => (e.currentTarget.style.color = '#f1f5f9')}
             onMouseLeave={e => (e.currentTarget.style.color = '#64748b')}>
-            <LogOut className="w-4 h-4" />
-            Sair
+            <LogOut className="w-4 h-4" /> Sair
           </button>
         </div>
       </aside>
@@ -120,15 +114,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   background: pathname === href ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.03)',
                   color: pathname === href ? '#a5b4fc' : '#94a3b8'
                 }}>
-                <Icon className="w-4 h-4" />
-                {label}
+                <Icon className="w-4 h-4" /> {label}
               </a>
             ))}
             <button onClick={logout}
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium mt-2"
               style={{ color: '#64748b' }}>
-              <LogOut className="w-4 h-4" />
-              Sair
+              <LogOut className="w-4 h-4" /> Sair
             </button>
           </nav>
         </div>
@@ -137,6 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main content */}
       <main className="flex-1 md:overflow-auto">
         <div className="md:hidden h-14" />
+
         {/* Banners de expiração */}
         {(isExpiringSoon || isExpired) && (
           <div className="px-4 pt-4">
@@ -154,6 +147,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
         )}
+
         <div className="p-4 md:p-8">
           {children}
         </div>
