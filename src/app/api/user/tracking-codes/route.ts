@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserSession } from '@/lib/session'
 import { query } from '@/lib/db'
+import { processAutoUpdates } from '@/lib/auto-update'
 
 export async function GET() {
   const session = await getUserSession()
   if (!session?.userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+
+  // Process any pending auto-updates before returning data
+  processAutoUpdates(session.userId as string)
+
   const codes = query.getTrackingCodesByUserId(session.userId as string)
   return NextResponse.json(codes)
 }
