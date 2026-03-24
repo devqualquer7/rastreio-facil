@@ -35,21 +35,34 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // Get template steps and create tracking events immediately
     const steps = query.getAutoTemplateSteps(templateId) as any[]
-    const now = new Date()
+
+    // Use Brazil timezone (UTC-3) for date calculations
+    const BRT_OFFSET = -3
+    const nowUtc = new Date()
+    const nowBrt = new Date(nowUtc.getTime() + BRT_OFFSET * 60 * 60 * 1000)
     const eventsCreated: any[] = []
 
     for (const step of steps) {
-      // Calculate event date: activation date + dayOffset days, at the specified time
-      const eventDate = new Date(now)
-      eventDate.setDate(eventDate.getDate() + (step.dayOffset || 0))
+      // Calculate the target date in BRT
+      const targetBrt = new Date(nowBrt)
+      targetBrt.setDate(targetBrt.getDate() + (step.dayOffset || 0))
 
-      // Parse time (HH:MM format)
-      if (step.time) {
-        const [hours, minutes] = step.time.split(':').map(Number)
-        eventDate.setHours(hours, minutes, 0, 0)
-      }
+      // Get year, month, day in BRT
+      const year = targetBrt.getUTCFullYear()
+      const month = String(targetBrt.getUTCMonth() + 1).padStart(2, '0')
+      const day = String(targetBrt.getUTCDate()).padStart(2, '0')
 
-      // Create the tracking event
+      // Use the exact time from the template step (already in BRT)
+      const time = step.time || '09:00'
+      const [hours, minutes] = time.split(':')
+
+      // Build the date string directly in BRT then convert to UTC ISO for storage
+      // The template times are in BRT, so we subtract the offset to get UTC
+      const dateStr = year + '-' + month + '-' + day + 'T' + hours.padStart(2, '0') + ':' + minutes.padStart(2, '0') + ':00.000-03:00'
+
+      // Create the tracking event with the correct timezone-aware date
+      const eventDate = new Date(dateStr)
+
       const event = query.createTrackingEvent({
         trackingCodeId: id,
         status: step.status,
@@ -61,7 +74,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     return NextResponse.json({
       success: true,
-      message: `Automacao ativada com ${eventsCreated.length} eventos criados`,
+      message: 'Automacao ativada com ' + eventsCreated.length + ' eventos criados',
       eventsCreated: eventsCreated.length
     })
   } catch (error) {
