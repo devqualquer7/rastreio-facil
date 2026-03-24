@@ -45,9 +45,9 @@ export default function AdminUsersPage() {
     <div className="p-6 max-w-5xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-black text-white flex items-center gap-2">
-          <Users className="w-6 h-6" style={{ color: '#818cf8' }} /> Usu\u00e1rios
+          <Users className="w-6 h-6" style={{ color: '#818cf8' }} /> Usuários
         </h1>
-        <p className="text-sm mt-1" style={{ color: '#64748b' }}>{users.length} usu\u00e1rio{users.length !== 1 ? 's' : ''} cadastrado{users.length !== 1 ? 's' : ''}</p>
+        <p className="text-sm mt-1" style={{ color: '#64748b' }}>{users.length} usuário{users.length !== 1 ? 's' : ''} cadastrado{users.length !== 1 ? 's' : ''}</p>
       </div>
 
       {loading ? (
@@ -57,7 +57,7 @@ export default function AdminUsersPage() {
       ) : users.length === 0 ? (
         <div className="text-center py-16 rounded-2xl" style={{ background: '#0d0d18', border: '1px solid rgba(99,102,241,0.15)' }}>
           <Users className="w-10 h-10 mx-auto mb-3 opacity-20" />
-          <p className="text-white font-semibold">Nenhum usu\u00e1rio ainda</p>
+          <p className="text-white font-semibold">Nenhum usuário ainda</p>
           <p className="text-sm mt-1" style={{ color: '#475569' }}>Gere keys e compartilhe para novos clientes se cadastrarem</p>
         </div>
       ) : (
