@@ -89,6 +89,25 @@ function db(): any {
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS AutoTemplate (
+        id TEXT PRIMARY KEY,
+        userId TEXT NOT NULL,
+        name TEXT NOT NULL,
+        createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS AutoTemplateStep (
+        id TEXT PRIMARY KEY,
+        templateId TEXT NOT NULL,
+        dayOffset INTEGER NOT NULL DEFAULT 0,
+        time TEXT NOT NULL DEFAULT '08:00',
+        status TEXT NOT NULL,
+        location TEXT,
+        sortOrder INTEGER DEFAULT 0,
+        createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (templateId) REFERENCES AutoTemplate(id) ON DELETE CASCADE
+      );
     `)
 
     // Migration: allow NULL email (fix registration without email)
@@ -128,17 +147,22 @@ function db(): any {
       if (!userCols.includes('keyauthKey')) _db.exec('ALTER TABLE User ADD COLUMN keyauthKey TEXT')
       if (!userCols.includes('active')) _db.exec('ALTER TABLE User ADD COLUMN active INTEGER DEFAULT 1')
     } catch (e) { console.error('User keyauthKey/active migration:', e) }
+
+    // Migration: add autoTemplateId and autoActivatedAt to TrackingCode
+    try {
+      const tcCols = (_db.prepare("PRAGMA table_info(TrackingCode)").all() as any[]).map((c: any) => c.name)
+      if (!tcCols.includes('autoTemplateId')) _db.exec('ALTER TABLE TrackingCode ADD COLUMN autoTemplateId TEXT')
+      if (!tcCols.includes('autoActivatedAt')) _db.exec('ALTER TABLE TrackingCode ADD COLUMN autoActivatedAt TEXT')
+    } catch (e) { console.error('TrackingCode auto-update migration:', e) }
   }
   return _db
 }
 
 // Migration: add userId column to Client if not present
-try {
-  db().prepare('ALTER TABLE Client ADD COLUMN userId TEXT').run();
-} catch (_) { /* column already exists */ }
+try { db().prepare('ALTER TABLE Client ADD COLUMN userId TEXT').run(); } catch (_) { /* column already exists */ }
 
 export const query = {
-  // Ã¢ÂÂÃ¢ÂÂ Admin Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+  // ── Admin ──────────────────────────────────────────────────────────
   getAdminByUsername: (username: string) => {
     return db().prepare('SELECT * FROM Admin WHERE username = ?').get(username)
   },
@@ -146,7 +170,7 @@ export const query = {
     return db().prepare('SELECT * FROM Admin WHERE id = ?').get(id)
   },
 
-  // Ã¢ÂÂÃ¢ÂÂ Clients Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+  // ── Clients ────────────────────────────────────────────────────────
   getClients: () => {
     return db().prepare('SELECT * FROM Client ORDER BY createdAt DESC').all()
   },
@@ -168,7 +192,7 @@ export const query = {
     return db().prepare('DELETE FROM Client WHERE id = ?').run(id)
   },
 
-  // Ã¢ÂÂÃ¢ÂÂ Tracking Codes Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+  // ── Tracking Codes ─────────────────────────────────────────────────
   getTrackingCodes: () => {
     const codes = db().prepare(
       'SELECT tc.*, c.name as clientName FROM TrackingCode tc LEFT JOIN Client c ON tc.clientId = c.id ORDER BY tc.createdAt DESC'
@@ -179,6 +203,7 @@ export const query = {
       events: query.getEventsByCodeId(tc.id)
     }))
   },
+
   getTrackingCodesByUserId: (userId: string) => {
     const codes = db().prepare(
       'SELECT tc.*, c.name as clientName FROM TrackingCode tc LEFT JOIN Client c ON tc.clientId = c.id WHERE tc.userId = ? ORDER BY tc.createdAt DESC'
@@ -189,6 +214,7 @@ export const query = {
       events: query.getEventsByCodeId(tc.id)
     }))
   },
+
   getTrackingCodeByCode: (code: string) => {
     const tc = db().prepare(
       'SELECT tc.*, c.name as clientName FROM TrackingCode tc LEFT JOIN Client c ON tc.clientId = c.id WHERE tc.code = ?'
@@ -200,6 +226,7 @@ export const query = {
       events: query.getEventsByCodeId(tc.id)
     }
   },
+
   getTrackingCodeById: (id: string) => {
     const tc = db().prepare(
       'SELECT tc.*, c.name as clientName FROM TrackingCode tc LEFT JOIN Client c ON tc.clientId = c.id WHERE tc.id = ?'
@@ -211,6 +238,7 @@ export const query = {
       events: query.getEventsByCodeId(tc.id)
     }
   },
+
   createTrackingCode: (data: { code: string; clientId?: string | null; userId?: string | null; description?: string | null }) => {
     const id = randomUUID()
     const now = new Date().toISOString()
@@ -219,22 +247,25 @@ export const query = {
     ).run(id, data.code, data.clientId || null, data.userId || null, data.description || null, now, now)
     return db().prepare('SELECT * FROM TrackingCode WHERE id = ?').get(id)
   },
+
   updateTrackingCode: (id: string, data: { clientId?: string | null }) => {
     const now = new Date().toISOString()
     db().prepare('UPDATE TrackingCode SET clientId = ?, updatedAt = ? WHERE id = ?')
       .run(data.clientId || null, now, id)
     return db().prepare('SELECT * FROM TrackingCode WHERE id = ?').get(id)
   },
+
   deleteTrackingCode: (id: string) => {
     return db().prepare('DELETE FROM TrackingCode WHERE id = ?').run(id)
   },
 
-  // Ã¢ÂÂÃ¢ÂÂ Tracking Events Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+  // ── Tracking Events ────────────────────────────────────────────────
   getEventsByCodeId: (trackingCodeId: string) => {
     return db().prepare(
       'SELECT * FROM TrackingEvent WHERE trackingCodeId = ? ORDER BY date DESC'
     ).all(trackingCodeId)
   },
+
   createTrackingEvent: (data: { status: string; location?: string | null; date?: string; trackingCodeId: string }) => {
     const id = randomUUID()
     const now = new Date().toISOString()
@@ -243,11 +274,12 @@ export const query = {
     ).run(id, data.status, data.location || null, data.date || now, data.trackingCodeId, now, now)
     return db().prepare('SELECT * FROM TrackingEvent WHERE id = ?').get(id)
   },
+
   deleteTrackingEvent: (id: string) => {
     return db().prepare('DELETE FROM TrackingEvent WHERE id = ?').run(id)
   },
 
-  // Ã¢ÂÂÃ¢ÂÂ Users (SaaS subscribers) Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+  // ── Users (SaaS subscribers) ───────────────────────────────────────
   getUserById: (id: string) => {
     return db().prepare('SELECT * FROM User WHERE id = ?').get(id)
   },
@@ -267,6 +299,7 @@ export const query = {
     ).run(id, data.username, data.email ?? null, data.password, data.registrationKeyId || null, data.expiresAt || null, data.keyauthKey || null)
     return db().prepare('SELECT * FROM User WHERE id = ?').get(id)
   },
+
   updateUser: (id: string, fields: Record<string, any>) => {
     const keys = Object.keys(fields)
     if (keys.length === 0) return
@@ -276,25 +309,30 @@ export const query = {
       .run(...values, id)
     return db().prepare('SELECT * FROM User WHERE id = ?').get(id)
   },
+
   incrementTrackingUsed: (userId: string) => {
     db().prepare('UPDATE User SET trackingUsed = trackingUsed + 1 WHERE id = ?').run(userId)
   },
+
   addDaysToUser: (userId: string, days: number) => {
     db().prepare(`UPDATE User SET expiresAt = datetime(COALESCE(expiresAt, datetime('now')), '+${days} days') WHERE id = ?`).run(userId)
   },
+
   addTrackingsToUser: (userId: string, count: number) => {
     db().prepare('UPDATE User SET trackingLimit = trackingLimit + ? WHERE id = ?').run(count, userId)
   },
+
   removeDaysFromUser: (userId: string, days: number) => {
     const d = Math.abs(Math.round(Number(days)))
     db().prepare(`UPDATE User SET expiresAt = datetime(COALESCE(expiresAt, datetime('now')), '-${d} days') WHERE id = ?`).run(userId)
   },
+
   removeTrackingsFromUser: (userId: string, count: number) => {
     const c = Math.abs(Math.round(Number(count)))
     db().prepare('UPDATE User SET trackingLimit = MAX(0, trackingLimit - ?) WHERE id = ?').run(c, userId)
   },
 
-  // Ã¢ÂÂÃ¢ÂÂ Registration Keys Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+  // ── Registration Keys ──────────────────────────────────────────────
   getKeyByValue: (key: string) => {
     return db().prepare('SELECT * FROM RegistrationKey WHERE key = ?').get(key)
   },
@@ -313,7 +351,7 @@ export const query = {
     return db().prepare('DELETE FROM RegistrationKey WHERE id = ?').run(id)
   },
 
-  // Ã¢ÂÂÃ¢ÂÂ Payments Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+  // ── Payments ───────────────────────────────────────────────────────
   createPayment: (data: { userId: string; type: string; amount: number; pushinpayId?: string; status?: string; qrCode?: string; qrCodeBase64?: string; extraTrackings?: number; daysToAdd?: number }) => {
     const id = randomUUID()
     db().prepare(
@@ -333,10 +371,57 @@ export const query = {
   getPendingPaymentForUser: (userId: string) => {
     return db().prepare("SELECT * FROM Payment WHERE userId = ? AND status = 'pending' ORDER BY createdAt DESC LIMIT 1").get(userId)
   },
+
+  // ── Auto Templates ─────────────────────────────────────────────────
+  getAutoTemplatesByUserId: (userId: string) => {
+    return db().prepare('SELECT * FROM AutoTemplate WHERE userId = ? ORDER BY createdAt DESC').all(userId)
+  },
+  getAutoTemplateById: (id: string) => {
+    return db().prepare('SELECT * FROM AutoTemplate WHERE id = ?').get(id)
+  },
+  createAutoTemplate: (data: { userId: string; name: string }) => {
+    const id = randomUUID()
+    const now = new Date().toISOString()
+    db().prepare('INSERT INTO AutoTemplate (id, userId, name, createdAt) VALUES (?, ?, ?, ?)').run(id, data.userId, data.name, now)
+    return db().prepare('SELECT * FROM AutoTemplate WHERE id = ?').get(id)
+  },
+  deleteAutoTemplate: (id: string) => {
+    return db().prepare('DELETE FROM AutoTemplate WHERE id = ?').run(id)
+  },
+
+  // ── Auto Template Steps ────────────────────────────────────────────
+  getAutoTemplateSteps: (templateId: string) => {
+    return db().prepare('SELECT * FROM AutoTemplateStep WHERE templateId = ? ORDER BY sortOrder ASC').all(templateId)
+  },
+  createAutoTemplateStep: (data: { templateId: string; dayOffset: number; time: string; status: string; location?: string | null; sortOrder?: number }) => {
+    const id = randomUUID()
+    const now = new Date().toISOString()
+    db().prepare(
+      'INSERT INTO AutoTemplateStep (id, templateId, dayOffset, time, status, location, sortOrder, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(id, data.templateId, data.dayOffset, data.time, data.status, data.location || null, data.sortOrder || 0, now)
+    return db().prepare('SELECT * FROM AutoTemplateStep WHERE id = ?').get(id)
+  },
+  deleteAutoTemplateStep: (id: string) => {
+    return db().prepare('DELETE FROM AutoTemplateStep WHERE id = ?').run(id)
+  },
+
+  // ── Auto Update on Tracking Codes ──────────────────────────────────
+  activateAutoUpdate: (trackingCodeId: string, templateId: string) => {
+    const now = new Date().toISOString()
+    db().prepare('UPDATE TrackingCode SET autoTemplateId = ?, autoActivatedAt = ?, updatedAt = ? WHERE id = ?')
+      .run(templateId, now, now, trackingCodeId)
+  },
+  deactivateAutoUpdate: (trackingCodeId: string) => {
+    const now = new Date().toISOString()
+    db().prepare('UPDATE TrackingCode SET autoTemplateId = NULL, autoActivatedAt = NULL, updatedAt = ? WHERE id = ?')
+      .run(now, trackingCodeId)
+  },
+  getTrackingCodesWithAutoUpdate: (userId: string) => {
+    return db().prepare(
+      'SELECT * FROM TrackingCode WHERE userId = ? AND autoTemplateId IS NOT NULL AND autoActivatedAt IS NOT NULL'
+    ).all(userId)
+  },
 }
 
 export default query
-
-export function runTransaction<T>(fn: () => T): T {
-  return (db() as any).transaction(fn)()
-}
+export function runTransaction<T>(fn: () => T): T { return (db() as any).transaction(fn)() }
