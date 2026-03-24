@@ -3,16 +3,20 @@ import { getUserSession } from '@/lib/session'
 import { query } from '@/lib/db'
 
 export async function GET() {
-  const session = await getUserSession()
-  if (!session?.userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  try {
+    const session = await getUserSession()
+    if (!session?.userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-  const templates = query.getAutoTemplatesByUserId(session.userId as string)
-  // Attach steps to each template
-  const result = (templates as any[]).map((t: any) => ({
-    ...t,
-    steps: query.getAutoTemplateSteps(t.id),
-  }))
-  return NextResponse.json(result)
+    const templates = query.getAutoTemplatesByUserId(session.userId as string)
+    const result = (templates as any[]).map((t: any) => ({
+      ...t,
+      steps: query.getAutoTemplateSteps(t.id),
+    }))
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error('Error loading templates:', error)
+    return NextResponse.json({ error: 'Erro ao carregar modelos' }, { status: 500 })
+  }
 }
 
 export async function POST(request: NextRequest) {
