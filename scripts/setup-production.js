@@ -1,5 +1,5 @@
 /**
- * Script de inicialização do banco de dados em produção.
+ * Script de inicializaÃ§Ã£o do banco de dados em produÃ§Ã£o.
  * Executado automaticamente via postinstall no Render.
  */
 const Database = require('better-sqlite3');
@@ -90,7 +90,7 @@ db.exec(`
   );
 `);
 
-// Tabelas de automação
+// Tabelas de automaÃ§Ã£o
 db.exec(`
   CREATE TABLE IF NOT EXISTS AutoTemplate (
     id TEXT PRIMARY KEY,
@@ -107,17 +107,19 @@ db.exec(`
     time TEXT DEFAULT '09:00',
     status TEXT NOT NULL,
     location TEXT,
+    sortOrder INTEGER DEFAULT 0,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (autoTemplateId) REFERENCES AutoTemplate(id) ON DELETE CASCADE
   );
 `);
 
-// Migração segura: adiciona colunas novas sem quebrar DBs existentes
+// MigraÃ§Ã£o segura: adiciona colunas novas sem quebrar DBs existentes
 const migrate = (sql) => { try { db.exec(sql); } catch(e) {} };
 migrate('ALTER TABLE TrackingCode ADD COLUMN userId TEXT');
 migrate('ALTER TABLE TrackingCode ADD COLUMN description TEXT');
 migrate('ALTER TABLE User ADD COLUMN keyauthKey TEXT');
+  migrate('ALTER TABLE AutoTemplateStep ADD COLUMN sortOrder INTEGER DEFAULT 0');
 
 const existing = db.prepare('SELECT id FROM Admin WHERE username = ?').get(
   process.env.ADMIN_USERNAME || 'foster'
@@ -130,8 +132,8 @@ if (!existing) {
   );
   console.log('Admin criado:', process.env.ADMIN_USERNAME || 'foster');
 } else {
-  console.log('Admin já existe.');
+  console.log('Admin jÃ¡ existe.');
 }
 
 db.close();
-console.log('Setup concluído!');
+console.log('Setup concluÃ­do!');
