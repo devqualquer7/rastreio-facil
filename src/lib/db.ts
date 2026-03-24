@@ -13,10 +13,35 @@ if (!fs.existsSync(path.dirname(dbPath))) {
 
 const db = new Database(dbPath);
 
-// Migration: add userId column to Client if not present
+// Migrations: add columns safely
+const migrate = (sql: string) => { try { db.prepare(sql).run(); } catch (_) { /* already exists */ } };
+migrate('ALTER TABLE Client ADD COLUMN userId TEXT');
+migrate('ALTER TABLE User ADD COLUMN keyauthKey TEXT');
+
+// Create AutoTemplate tables if they don't exist
 try {
-  db.prepare('ALTER TABLE Client ADD COLUMN userId TEXT').run();
-} catch (_) { /* column already exists */ }
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS AutoTemplate (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES User(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS AutoTemplateStep (
+      id TEXT PRIMARY KEY,
+      autoTemplateId TEXT NOT NULL,
+      dayOffset INTEGER NOT NULL DEFAULT 0,
+      time TEXT DEFAULT '09:00',
+      status TEXT NOT NULL,
+      location TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (autoTemplateId) REFERENCES AutoTemplate(id) ON DELETE CASCADE
+    );
+  `);
+} catch (_) { /* tables already exist */ }
 
 function generateId() {
   return crypto.randomBytes(12).toString('hex');
@@ -109,6 +134,7 @@ export const query = {
   // ─── Users ──────────────────────────────────────────────────────────────────
   getUserById: (id: string) => db.prepare('SELECT * FROM User WHERE id = ?').get(id) as any,
   getUserByUsername: (username: string) => db.prepare('SELECT * FROM User WHERE username = ?').get(username) as any,
+  getUserByKeyauthKey: (keyauthKey: string) => db.prepare('SELECT * FROM User WHERE keyauthKey = ?').get(keyauthKey) as any,
   getAllUsers: () => db.prepare('SELECT id, username, email, expiresAt, trackingLimit, trackingUsed, active, createdAt FROM User ORDER BY createdAt DESC').all(),
   createUser: (data: { username: string; email?: string; password: string; registrationKeyId?: string; expiresAt?: string }) => {
     const id = generateId();
@@ -168,6 +194,31 @@ export const query = {
   getPendingPaymentForUser: (userId: string, type: string) => {
     return db.prepare("SELECT * FROM Payment WHERE userId = ? AND type = ? AND status = 'pending' ORDER BY createdAt DESC LIMIT 1").get(userId, type) as any;
   },
+
+  // ─── Auto Templates ─────────────────────────────────────────────────────────
+  getAutoTemplatesByUserId: (userId: string) => {
+    return db.prepare('SELECT * FROM AutoTemplate WHERE userId = ? ORDER BY createdAt DESC').all(userId) as any[];
+  },
+  getAutoTemplateById: (id: string) => {
+    return db.prepare('SELECT * FROM AutoTemplate WHERE id = ?').get(id) as any;
+  },
+  getAutoTemplateSteps: (autoTemplateId: string) => {
+    return db.prepare('SELECT * FROM AutoTemplateStep WHERE autoTemplateId = ? ORDER BY dayOffset ASC, time ASC').all(autoTemplateId) as any[];
+  },
+  createAutoTemplate: (data: { name: string; userId: string }) => {
+    const id = generateId();
+    db.prepare('INSERT INTO AutoTemplate (id, name, userId) VALUES (?, ?, ?)').run(id, data.name, data.userId);
+    return { id, ...data };
+  },
+  deleteAutoTemplate: (id: string) => db.prepare('DELETE FROM AutoTemplate WHERE id = ?').run(id),
+  createAutoTemplateStep: (data: { autoTemplateId: string; dayOffset: number; time?: string; status: string; location?: string }) => {
+    const id = generateId();
+    db.prepare('INSERT INTO AutoTemplateStep (id, autoTemplateId, dayOffset, time, status, location) VALUES (?, ?, ?, ?, ?, ?)').run(
+      id, data.autoTemplateId, data.dayOffset, data.time || '09:00', data.status, data.location || null
+    );
+    return { id, ...data };
+  },
+  deleteAutoTemplateStep: (id: string) => db.prepare('DELETE FROM AutoTemplateStep WHERE id = ?').run(id),
 };
 
 export function runTransaction<T>(fn: () => T): T {
