@@ -1,27 +1,37 @@
-/**
- * Script de inicializacao do banco de dados em producao.
- * Executado automaticamente via postinstall no Render.
- */
 const Database = require('better-sqlite3');
 const path = require('path');
-const fs = require('fs');
-const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
-const dbPath = process.env.DATABASE_URL
-  ? process.env.DATABASE_URL.replace('file:', '')
-  : path.join(__dirname, '..', 'prisma', 'dev.db');
+const DB_PATH = process.env.DATABASE_URL || '/tmp/staging.db';
 
-const dbDir = path.dirname(dbPath);
-if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+console.log('Setting up production database at:', DB_PATH);
 
-const db = new Database(dbPath);
-console.log('Banco:', dbPath);
+const db = new Database(DB_PATH);
 
+// Enable WAL mode for better performance
+db.pragma('journal_mode = WAL');
+
+// Create tables
 db.exec(`
   CREATE TABLE IF NOT EXISTS Admin (
     id TEXT PRIMARY KEY,
     username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
+    passwordHash TEXT NOT NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS User (
+    id TEXT PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT,
+    passwordHash TEXT NOT NULL,
+    keyauthKey TEXT,
+    planType TEXT DEFAULT 'free',
+    planExpiry DATETIME,
+    maxTrackingCodes INTEGER DEFAULT 5,
+    pushinpayEmail TEXT,
+    pushinpayToken TEXT,
+    discordWebhookUrl TEXT,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
   );
@@ -31,31 +41,10 @@ db.exec(`
     name TEXT NOT NULL,
     email TEXT,
     phone TEXT,
+    userId TEXT,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS RegistrationKey (
-    id TEXT PRIMARY KEY,
-    key TEXT UNIQUE NOT NULL,
-    used INTEGER DEFAULT 0,
-    usedById TEXT,
-    usedAt DATETIME,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS User (
-    id TEXT PRIMARY KEY,
-    username TEXT UNIQUE NOT NULL,
-    email TEXT,
-    password TEXT NOT NULL,
-    registrationKeyId TEXT,
-    expiresAt DATETIME,
-    trackingLimit INTEGER DEFAULT 200,
-    trackingUsed INTEGER DEFAULT 0,
-    active INTEGER DEFAULT 1,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (userId) REFERENCES User(id)
   );
 
   CREATE TABLE IF NOT EXISTS TrackingCode (
@@ -66,85 +55,92 @@ db.exec(`
     description TEXT,
     autoTemplateId TEXT,
     autoUpdateActive INTEGER DEFAULT 0,
+    autoUpdateActivatedAt TEXT,
+    autoUpdateLastStepIndex INTEGER DEFAULT -1,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (clientId) REFERENCES Client(id) ON DELETE SET NULL
+    FOREIGN KEY (clientId) REFERENCES Client(id),
+    FOREIGN KEY (userId) REFERENCES User(id)
   );
 
   CREATE TABLE IF NOT EXISTS TrackingEvent (
     id TEXT PRIMARY KEY,
+    trackingCodeId TEXT NOT NULL,
     status TEXT NOT NULL,
     location TEXT,
-    date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    trackingCodeId TEXT NOT NULL,
+    date DATETIME NOT NULL,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (trackingCodeId) REFERENCES TrackingCode(id) ON DELETE CASCADE
+    FOREIGN KEY (trackingCodeId) REFERENCES TrackingCode(id)
   );
 
   CREATE TABLE IF NOT EXISTS Payment (
     id TEXT PRIMARY KEY,
     userId TEXT NOT NULL,
-    type TEXT NOT NULL,
-    amount INTEGER NOT NULL,
-    pushinpayId TEXT UNIQUE,
+    planType TEXT NOT NULL,
+    amount REAL NOT NULL,
     status TEXT DEFAULT 'pending',
-    qrCode TEXT,
-    qrCodeBase64 TEXT,
-    extraTrackings INTEGER DEFAULT 0,
-    daysToAdd INTEGER DEFAULT 0,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-`);
-
-// Tabelas de automacao
-db.exec(`
-  CREATE TABLE IF NOT EXISTS AutoTemplate (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    userId TEXT NOT NULL,
+    pushinpayTxid TEXT,
+    pixCode TEXT,
+    pixQrCode TEXT,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (userId) REFERENCES User(id) ON DELETE CASCADE
+    FOREIGN KEY (userId) REFERENCES User(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS AutoTemplate (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (userId) REFERENCES User(id)
   );
 
   CREATE TABLE IF NOT EXISTS AutoTemplateStep (
     id TEXT PRIMARY KEY,
-    autoTemplateId TEXT NOT NULL,
+    templateId TEXT NOT NULL,
     dayOffset INTEGER NOT NULL DEFAULT 0,
-    time TEXT DEFAULT '09:00',
+    time TEXT NOT NULL DEFAULT '09:00',
     status TEXT NOT NULL,
     location TEXT,
     sortOrder INTEGER DEFAULT 0,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (autoTemplateId) REFERENCES AutoTemplate(id) ON DELETE CASCADE
+    FOREIGN KEY (templateId) REFERENCES AutoTemplate(id)
   );
 `);
 
-// Migracao segura: adiciona colunas novas sem quebrar DBs existentes
-const migrate = (sql) => { try { db.exec(sql); } catch(e) {} };
-migrate('ALTER TABLE TrackingCode ADD COLUMN userId TEXT');
-migrate('ALTER TABLE TrackingCode ADD COLUMN description TEXT');
-migrate('ALTER TABLE TrackingCode ADD COLUMN autoTemplateId TEXT');
-migrate('ALTER TABLE TrackingCode ADD COLUMN autoUpdateActive INTEGER DEFAULT 0');
-migrate('ALTER TABLE User ADD COLUMN keyauthKey TEXT');
-migrate('ALTER TABLE AutoTemplateStep ADD COLUMN sortOrder INTEGER DEFAULT 0');
+// Migrations - add columns that might not exist
+const migrations = [
+  'ALTER TABLE Client ADD COLUMN userId TEXT',
+  'ALTER TABLE User ADD COLUMN keyauthKey TEXT',
+  'ALTER TABLE AutoTemplateStep ADD COLUMN sortOrder INTEGER DEFAULT 0',
+  'ALTER TABLE TrackingCode ADD COLUMN autoTemplateId TEXT',
+  'ALTER TABLE TrackingCode ADD COLUMN autoUpdateActive INTEGER DEFAULT 0',
+  'ALTER TABLE TrackingCode ADD COLUMN autoUpdateActivatedAt TEXT',
+  'ALTER TABLE TrackingCode ADD COLUMN autoUpdateLastStepIndex INTEGER DEFAULT -1',
+];
 
-const existing = db.prepare('SELECT id FROM Admin WHERE username = ?').get(
-  process.env.ADMIN_USERNAME || 'foster'
-);
-if (!existing) {
-  const hash = bcrypt.hashSync(process.env.ADMIN_PASSWORD || '3411', 12);
-  const id = require('crypto').randomBytes(12).toString('hex');
-  db.prepare('INSERT INTO Admin (id, username, password) VALUES (?, ?, ?)').run(
-    id, process.env.ADMIN_USERNAME || 'foster', hash
-  );
-  console.log('Admin criado:', process.env.ADMIN_USERNAME || 'foster');
-} else {
-  console.log('Admin ja existe.');
+for (const sql of migrations) {
+  try {
+    db.exec(sql);
+    console.log('Migration applied:', sql);
+  } catch (e) {
+    // Column already exists, ignore
+  }
 }
 
+// Create default admin if not exists
+const adminExists = db.prepare('SELECT id FROM Admin WHERE username = ?').get('admin');
+if (!adminExists) {
+  const bcrypt = require('bcryptjs');
+  const hash = bcrypt.hashSync('admin123', 10);
+  db.prepare('INSERT INTO Admin (id, username, passwordHash) VALUES (?, ?, ?)').run(
+    crypto.randomUUID(),
+    'admin',
+    hash
+  );
+  console.log('Default admin created (admin/admin123)');
+}
+
+console.log('Database setup complete!');
 db.close();
-console.log('Setup concluido!');
