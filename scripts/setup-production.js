@@ -21,7 +21,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS Admin (
     id TEXT PRIMARY KEY,
     username TEXT UNIQUE NOT NULL,
-    passwordHash TEXT NOT NULL,
+    password TEXT NOT NULL,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -29,7 +29,7 @@ db.exec(`
     id TEXT PRIMARY KEY,
     username TEXT UNIQUE NOT NULL,
     email TEXT,
-    passwordHash TEXT NOT NULL,
+    password TEXT NOT NULL,
     keyauthKey TEXT,
     planType TEXT DEFAULT 'free',
     planExpiry DATETIME,
@@ -139,7 +139,7 @@ const adminExists = db.prepare('SELECT id FROM Admin WHERE username = ?').get('a
 if (!adminExists) {
   const bcrypt = require('bcryptjs');
   const hash = bcrypt.hashSync('admin123', 10);
-  db.prepare('INSERT INTO Admin (id, username, passwordHash) VALUES (?, ?, ?)').run(
+  db.prepare('INSERT INTO Admin (id, username, password) VALUES (?, ?, ?)').run(
     crypto.randomUUID(),
     'admin',
     hash
