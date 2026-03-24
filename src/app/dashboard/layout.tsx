@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { MapPin, Package, RefreshCw, LogOut, Menu, X, AlertTriangle, Clock, Headphones, MessageCircle } from 'lucide-react'
+import { MapPin, Package, RefreshCw, LogOut, Menu, X, AlertTriangle, Clock, Headphones, MessageCircle, LayoutDashboard, Users, Zap } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 
 interface UserInfo {
@@ -30,7 +30,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const DISCORD_URL = 'https://discord.gg/VAHMyYGEeU'
 
   const nav = [
-    { href: '/dashboard', label: 'Meus Rastreios', Icon: Package },
+    { href: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
+    { href: '/dashboard/clientes', label: 'Clientes', Icon: Users },
+    { href: '/dashboard/rastreios', label: 'Rastreios', Icon: Package },
+    { href: '/dashboard/automacao', label: 'Automação', Icon: Zap },
     { href: '/dashboard/renovar', label: 'Renovar / Planos', Icon: RefreshCw },
   ]
 
