@@ -5,6 +5,8 @@ import { query } from './db'
  * Called lazily when tracking codes are fetched.
  * Checks each tracking code with auto-update enabled and creates
  * any events that should have fired based on the template schedule.
+ *
+ * All step times are interpreted as Brasília time (UTC-3).
  */
 export function processAutoUpdates(userId: string) {
   try {
@@ -21,9 +23,11 @@ export function processAutoUpdates(userId: string) {
 
       for (const step of steps) {
         const fireDate = new Date(activatedAt)
-        fireDate.setDate(fireDate.getDate() + step.dayOffset)
+        fireDate.setUTCDate(fireDate.getUTCDate() + step.dayOffset)
+
         const [hours, minutes] = (step.time || '08:00').split(':').map(Number)
-        fireDate.setHours(hours, minutes, 0, 0)
+        // Step times are in Brasília (UTC-3), so add 3 hours to convert to UTC
+        fireDate.setUTCHours(hours + 3, minutes, 0, 0)
 
         if (fireDate > now) continue
 
