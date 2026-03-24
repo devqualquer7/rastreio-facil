@@ -2,7 +2,12 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const crypto = require('crypto');
 
-const DB_PATH = process.env.DATABASE_URL || '/tmp/staging.db';
+let DB_PATH = process.env.DATABASE_URL || '/tmp/staging.db';
+
+// Remove file: prefix if present (better-sqlite3 doesn't support it)
+if (DB_PATH.startsWith('file:')) {
+  DB_PATH = DB_PATH.replace('file:', '');
+}
 
 console.log('Setting up production database at:', DB_PATH);
 
