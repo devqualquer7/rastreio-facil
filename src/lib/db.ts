@@ -18,6 +18,8 @@ const migrate = (sql: string) => { try { db.prepare(sql).run(); } catch (_) { /*
 migrate('ALTER TABLE Client ADD COLUMN userId TEXT');
 migrate('ALTER TABLE User ADD COLUMN keyauthKey TEXT');
 migrate('ALTER TABLE AutoTemplateStep ADD COLUMN sortOrder INTEGER DEFAULT 0');
+migrate('ALTER TABLE TrackingCode ADD COLUMN autoTemplateId TEXT');
+migrate('ALTER TABLE TrackingCode ADD COLUMN autoUpdateActive INTEGER DEFAULT 0');
 
 // Create Admin table if it doesn't exist
 try {
@@ -237,6 +239,22 @@ export const query = {
     return { id, ...data };
   },
   deleteAutoTemplateStep: (id: string) => db.prepare('DELETE FROM AutoTemplateStep WHERE id = ?').run(id),
+
+  // --- Auto Update (Tracking Automation) ---
+  activateAutoUpdate: (trackingCodeId: string, templateId: string) => {
+    db.prepare('UPDATE TrackingCode SET autoTemplateId = ?, autoUpdateActive = 1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(templateId, trackingCodeId);
+  },
+  deactivateAutoUpdate: (trackingCodeId: string) => {
+    db.prepare('UPDATE TrackingCode SET autoTemplateId = NULL, autoUpdateActive = 0, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(trackingCodeId);
+  },
+  getActiveAutoUpdates: () => {
+    return db.prepare(`
+      SELECT tc.*, at.name as templateName
+      FROM TrackingCode tc
+      JOIN AutoTemplate at ON tc.autoTemplateId = at.id
+      WHERE tc.autoUpdateActive = 1
+    `).all() as any[];
+  },
 };
 
 export function runTransaction<T>(fn: () => T): T {
