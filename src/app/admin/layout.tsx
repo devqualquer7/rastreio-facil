@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Package, Users, LayoutDashboard, LogOut, Menu, X, Key, UserCog } from 'lucide-react'
+import { Package, Users, LayoutDashboard, LogOut, Menu, X, UserCog } from 'lucide-react'
 import { useState } from 'react'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
