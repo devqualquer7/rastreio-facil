@@ -19,6 +19,19 @@ migrate('ALTER TABLE Client ADD COLUMN userId TEXT');
 migrate('ALTER TABLE User ADD COLUMN keyauthKey TEXT');
 migrate('ALTER TABLE AutoTemplateStep ADD COLUMN sortOrder INTEGER DEFAULT 0');
 
+// Create Admin table if it doesn't exist
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS Admin (
+      id TEXT PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+} catch (_) { /* table already exists */ }
+
 // Create AutoTemplate tables if they don't exist
 try {
   db.exec(`
@@ -49,7 +62,10 @@ function generateId() {
 }
 
 export const query = {
-  // âââ Clients ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // --- Admin ---
+  getAdminByUsername: (username: string) => db.prepare('SELECT * FROM Admin WHERE username = ?').get(username) as any,
+
+  // --- Clients ---
   getClients: () => db.prepare('SELECT * FROM Client ORDER BY createdAt DESC').all(),
   getClientsByUserId: (userId: string) => db.prepare('SELECT * FROM Client WHERE userId = ? ORDER BY createdAt DESC').all(userId),
   getClientById: (id: string) => db.prepare('SELECT * FROM Client WHERE id = ?').get(id),
@@ -62,7 +78,7 @@ export const query = {
   },
   deleteClient: (id: string) => db.prepare('DELETE FROM Client WHERE id = ?').run(id),
 
-  // âââ Tracking Codes âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // --- Tracking Codes ---
   getTrackingCodes: () => {
     const codes = db.prepare(`
       SELECT tc.*, c.name as clientName
@@ -121,7 +137,7 @@ export const query = {
   },
   deleteTrackingCode: (id: string) => db.prepare('DELETE FROM TrackingCode WHERE id = ?').run(id),
 
-  // âââ Tracking Events ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // --- Tracking Events ---
   createTrackingEvent: (data: { trackingCodeId: string; status: string; location?: string | null; date?: string }) => {
     const id = generateId();
     const date = data.date ? new Date(data.date).toISOString() : new Date().toISOString();
@@ -132,7 +148,7 @@ export const query = {
   },
   deleteTrackingEvent: (id: string) => db.prepare('DELETE FROM TrackingEvent WHERE id = ?').run(id),
 
-  // âââ Users ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // --- Users ---
   getUserById: (id: string) => db.prepare('SELECT * FROM User WHERE id = ?').get(id) as any,
   getUserByUsername: (username: string) => db.prepare('SELECT * FROM User WHERE username = ?').get(username) as any,
   getUserByKeyauthKey: (keyauthKey: string) => db.prepare('SELECT * FROM User WHERE keyauthKey = ?').get(keyauthKey) as any,
@@ -156,7 +172,7 @@ export const query = {
   addDaysToUser: (userId: string, days: number) => {
     const user = db.prepare('SELECT expiresAt FROM User WHERE id = ?').get(userId) as any;
     const base = user?.expiresAt ? new Date(user.expiresAt) : new Date();
-    if (base < new Date()) base.setTime(new Date().getTime()); // se expirado, conta da data atual
+    if (base < new Date()) base.setTime(new Date().getTime());
     base.setDate(base.getDate() + days);
     db.prepare('UPDATE User SET expiresAt = ?, active = 1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(base.toISOString(), userId);
   },
@@ -164,7 +180,7 @@ export const query = {
     db.prepare('UPDATE User SET trackingLimit = trackingLimit + ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(amount, userId);
   },
 
-  // âââ Registration Keys ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // --- Registration Keys ---
   getKeyByValue: (key: string) => db.prepare('SELECT * FROM RegistrationKey WHERE key = ?').get(key) as any,
   getAllKeys: () => db.prepare('SELECT * FROM RegistrationKey ORDER BY createdAt DESC').all(),
   createKey: (key: string) => {
@@ -177,7 +193,7 @@ export const query = {
   },
   deleteKey: (id: string) => db.prepare('DELETE FROM RegistrationKey WHERE id = ?').run(id),
 
-  // âââ Payments âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // --- Payments ---
   createPayment: (data: { userId: string; type: string; amount: number; pushinpayId?: string; qrCode?: string; qrCodeBase64?: string; extraTrackings?: number; daysToAdd?: number }) => {
     const id = generateId();
     db.prepare(`
@@ -196,7 +212,7 @@ export const query = {
     return db.prepare("SELECT * FROM Payment WHERE userId = ? AND type = ? AND status = 'pending' ORDER BY createdAt DESC LIMIT 1").get(userId, type) as any;
   },
 
-  // âââ Auto Templates âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // --- Auto Templates ---
   getAutoTemplatesByUserId: (userId: string) => {
     return db.prepare('SELECT * FROM AutoTemplate WHERE userId = ? ORDER BY createdAt DESC').all(userId) as any[];
   },
@@ -228,4 +244,4 @@ export function runTransaction<T>(fn: () => T): T {
   return transaction();
 }
 
-export default db;
+export default query;
