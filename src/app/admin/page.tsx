@@ -34,7 +34,7 @@ export default function AdminDashboard() {
       {/* Header */}
       <div>
         <h1 className="text-xl font-semibold text-white">Dashboard</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Vis\u00e3o geral do sistema</p>
+        <p className="text-sm text-zinc-500 mt-0.5">Visão geral do sistema</p>
       </div>
 
       {/* Stats */}
@@ -47,7 +47,7 @@ export default function AdminDashboard() {
                 <card.icon className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
               </div>
               <span className="text-3xl font-bold text-white">
-                {loading ? '\u2014' : card.value}
+                {loading ? '—' : card.value}
               </span>
             </div>
           </Link>
@@ -74,7 +74,7 @@ export default function AdminDashboard() {
             </div>
             <div className="text-center">
               <p className="text-sm text-zinc-400 font-medium">Nenhum rastreio</p>
-              <p className="text-xs text-zinc-600 mt-0.5">Crie o primeiro para come\u00e7ar</p>
+              <p className="text-xs text-zinc-600 mt-0.5">Crie o primeiro para começar</p>
             </div>
             <Link href="/admin/tracking-codes" className="text-xs font-medium text-violet-400 hover:text-violet-300 transition-colors">
               Criar rastreio
@@ -120,7 +120,7 @@ export default function AdminDashboard() {
           <div className="bg-[#141414] border border-white/[0.06] rounded-xl p-5 hover:border-white/[0.12] transition-colors group flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-white">Novo Rastreio</p>
-              <p className="text-xs text-zinc-500 mt-0.5">Criar c\u00f3digo de rastreamento</p>
+              <p className="text-xs text-zinc-500 mt-0.5">Criar código de rastreamento</p>
             </div>
             <Package className="w-5 h-5 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
           </div>
