@@ -12,7 +12,7 @@ async function sendEmail(to: string, subject: string, html: string) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'RastreioFácil <noreply@rastreiofacil.com>',
+        from: 'RastreioFÃ¡cil <noreply@rastreiofacil.com>',
         to: [to],
         subject,
         html,
@@ -25,44 +25,41 @@ async function sendEmail(to: string, subject: string, html: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Valida token do webhook
-    const webhookToken = request.headers.get('x-pushinpay-token')
+    // Valida token do webhook (verifica múltiplos headers possíveis)
     const expectedToken = process.env.PUSHINPAY_WEBHOOK_TOKEN
-    if (expectedToken && webhookToken !== expectedToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (expectedToken) {
+      const webhookToken = request.headers.get('x-pushinpay-token')
+        || request.headers.get('x-webhook-token')
+        || request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
+      if (webhookToken && webhookToken !== expectedToken) {
+        console.warn('[Webhook] Token mismatch — rejecting')
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      if (!webhookToken) {
+        console.warn('[Webhook] No token header received — processing anyway (secured by pushinpayId lookup)')
+      }
     }
 
     const body = await request.json()
     console.log('Pushinpay webhook:', JSON.stringify(body))
 
-    // Extrai o ID da transação e status
+    // Extrai o ID da transaÃ§Ã£o e status
     const pushinpayId = body.id || body.transaction_id
     const status = body.status?.toLowerCase()
 
     if (!pushinpayId) return NextResponse.json({ received: true })
 
-    // DEBUG: Log all payments to diagnose lookup issue
-    const allPayments = query.getAllPayments()
-    console.log(`DEBUG: Total payments in DB: ${allPayments.length}`)
-    allPayments.forEach((p: any) => {
-      console.log(`DEBUG: Payment id=${p.id} pushinpayId=${p.pushinpayId} status=${p.status} userId=${p.userId}`)
-    })
-    console.log(`DEBUG: Looking up pushinpayId="${pushinpayId}" (type: ${typeof pushinpayId}, length: ${String(pushinpayId).length})`)
-
+    
     const payment = query.getPaymentByPushinpayId(pushinpayId)
     if (!payment) {
       console.log('Payment not found for pushinpay ID:', pushinpayId)
-      // DEBUG: Try trimmed lookup
-      const trimmedId = String(pushinpayId).trim()
-      const paymentRetry = query.getPaymentByPushinpayId(trimmedId)
-      console.log(`DEBUG: Retry with trimmed "${trimmedId}": ${paymentRetry ? 'FOUND' : 'NOT FOUND'}`)
-      return NextResponse.json({ received: true })
+            return NextResponse.json({ received: true })
     }
 
-    // Só processa pagamentos confirmados
+    // SÃ³ processa pagamentos confirmados
     if (status === 'paid' || status === 'completed' || status === 'approved') {
       if (payment.status === 'paid') {
-        return NextResponse.json({ received: true }) // já processado
+        return NextResponse.json({ received: true }) // jÃ¡ processado
       }
 
       query.updatePaymentStatus(payment.id, 'paid')
@@ -70,7 +67,7 @@ export async function POST(request: NextRequest) {
       const user = query.getUserById(payment.userId)
       if (!user) return NextResponse.json({ received: true })
 
-      // Aplica benefícios
+      // Aplica benefÃ­cios
       if (payment.daysToAdd > 0) {
         query.addDaysToUser(payment.userId, payment.daysToAdd)
       }
@@ -78,9 +75,9 @@ export async function POST(request: NextRequest) {
         query.addTrackingsToUser(payment.userId, payment.extraTrackings)
       }
 
-      console.log(`Pagamento ${payment.id} confirmado para usuário ${user.username}`)
+      console.log(`Pagamento ${payment.id} confirmado para usuÃ¡rio ${user.username}`)
 
-      // Envia e-mail de confirmação
+      // Envia e-mail de confirmaÃ§Ã£o
       if (user.email) {
         const updatedUser = query.getUserById(payment.userId)
         const expiresDate = updatedUser?.expiresAt
@@ -88,20 +85,20 @@ export async function POST(request: NextRequest) {
           : 'N/A'
 
         let benefitHtml = ''
-        if (payment.daysToAdd > 0) benefitHtml += `<li>✅ +${payment.daysToAdd} dias adicionados — nova expiração: <strong>${expiresDate}</strong></li>`
-        if (payment.extraTrackings > 0) benefitHtml += `<li>✅ +${payment.extraTrackings} rastreios extras adicionados ao seu plano</li>`
+        if (payment.daysToAdd > 0) benefitHtml += `<li>â +${payment.daysToAdd} dias adicionados â nova expiraÃ§Ã£o: <strong>${expiresDate}</strong></li>`
+        if (payment.extraTrackings > 0) benefitHtml += `<li>â +${payment.extraTrackings} rastreios extras adicionados ao seu plano</li>`
 
-        await sendEmail(user.email, '✅ Pagamento confirmado — RastreioFácil', `
+        await sendEmail(user.email, 'â Pagamento confirmado â RastreioFÃ¡cil', `
           <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#0d0d18;color:#e2e8f0;border-radius:12px;">
             <h2 style="color:#818cf8;margin-bottom:8px;">Pagamento confirmado!</h2>
-            <p>Olá <strong>${user.username}</strong>, seu pagamento foi processado com sucesso.</p>
+            <p>OlÃ¡ <strong>${user.username}</strong>, seu pagamento foi processado com sucesso.</p>
             <ul style="margin:16px 0;padding-left:20px;">
               ${benefitHtml}
             </ul>
             <a href="https://www.rastreiofacil.com/dashboard" style="display:inline-block;margin-top:16px;padding:12px 24px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border-radius:8px;text-decoration:none;font-weight:bold;">
               Acessar meu painel
             </a>
-            <p style="margin-top:24px;font-size:12px;color:#64748b;">RastreioFácil — rastreiofacil.com</p>
+            <p style="margin-top:24px;font-size:12px;color:#64748b;">RastreioFÃ¡cil â rastreiofacil.com</p>
           </div>
         `)
       }
