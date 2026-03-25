@@ -13,14 +13,31 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "RastreioFácil",
-  description: "Rastreamento rápido e gratuito.",
+  title: "RastreioFácil - Acompanhe suas encomendas",
+  description: "Rastreamento rápido e gratuito para encomendas do Mercado Envios. Acompanhe o status em tempo real, sem complicações.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", type: "image/png", sizes: "32x32" },
+    ],
+    apple: { url: "/apple-touch-icon.png", sizes: "180x180" },
+  },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="pt-BR">
-      <body className={`${outfit.variable} ${inter.variable} font-sans antialiased`}>
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </head>
+      <body
+        className={`${outfit.variable} ${inter.variable} font-sans antialiased`}
+      >
         {children}
       </body>
     </html>
