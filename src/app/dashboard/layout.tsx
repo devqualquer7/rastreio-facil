@@ -1,6 +1,7 @@
 'use client'
+
 import { useState, useEffect } from 'react'
-import { MapPin, Package, RefreshCw, LogOut, Menu, X, AlertTriangle, Clock, Headphones, MessageCircle, LayoutDashboard, Users, Zap } from 'lucide-react'
+import { MapPin, Package, RefreshCw, LogOut, Menu, X, AlertTriangle, Clock, Headphones, MessageCircle, LayoutDashboard, Users, Zap, UserCog } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 
 interface UserInfo {
@@ -35,6 +36,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/rastreios', label: 'Rastreios', Icon: Package },
     { href: '/dashboard/automacao', label: 'Automação', Icon: Zap },
     { href: '/dashboard/renovar', label: 'Renovar / Planos', Icon: RefreshCw },
+    { href: '/dashboard/conta', label: 'Minha Conta', Icon: UserCog },
   ]
 
   const isExpiringSoon = user?.daysLeft !== null && user?.daysLeft !== undefined && user.daysLeft <= 7 && user.daysLeft > 0
@@ -46,8 +48,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside className="hidden md:flex flex-col w-60 flex-shrink-0" style={{ background: '#09090f', borderRight: '1px solid rgba(99,102,241,0.12)' }}>
         <div className="p-5 border-b" style={{ borderColor: 'rgba(99,102,241,0.12)' }}>
           <a href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)' }}>
               <MapPin className="w-4 h-4 text-white" />
             </div>
             <span className="font-extrabold text-white text-sm">Rastreio<span style={{ color: '#818cf8' }}>Fácil</span></span>
@@ -76,7 +77,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 color: pathname === href ? '#a5b4fc' : '#94a3b8',
                 border: pathname === href ? '1px solid rgba(99,102,241,0.25)' : '1px solid transparent',
               }}>
-              <Icon className="w-4 h-4" /> {label}
+              <Icon className="w-4 h-4" />
+              {label}
             </a>
           ))}
         </nav>
@@ -87,14 +89,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             style={{ color: '#818cf8' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.1)'; e.currentTarget.style.color = '#a5b4fc' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#818cf8' }}>
-            <Headphones className="w-4 h-4" /> Suporte
+            <Headphones className="w-4 h-4" />
+            Suporte
           </a>
           <button onClick={logout}
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
             style={{ color: '#64748b' }}
             onMouseEnter={e => (e.currentTarget.style.color = '#f1f5f9')}
             onMouseLeave={e => (e.currentTarget.style.color = '#64748b')}>
-            <LogOut className="w-4 h-4" /> Sair
+            <LogOut className="w-4 h-4" />
+            Sair
           </button>
         </div>
       </aside>
@@ -120,17 +124,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {nav.map(({ href, label, Icon }) => (
               <a key={href} href={href} onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium"
-                style={{ background: pathname === href ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.03)', color: pathname === href ? '#a5b4fc' : '#94a3b8' }}>
-                <Icon className="w-4 h-4" /> {label}
+                style={{
+                  background: pathname === href ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.03)',
+                  color: pathname === href ? '#a5b4fc' : '#94a3b8'
+                }}>
+                <Icon className="w-4 h-4" />
+                {label}
               </a>
             ))}
             <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium mt-2"
               style={{ background: 'rgba(99,102,241,0.08)', color: '#818cf8' }}>
-              <Headphones className="w-4 h-4" /> Suporte (Discord)
+              <Headphones className="w-4 h-4" />
+              Suporte (Discord)
             </a>
-            <button onClick={logout} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium mt-1" style={{ color: '#64748b' }}>
-              <LogOut className="w-4 h-4" /> Sair
+            <button onClick={logout}
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium mt-1"
+              style={{ color: '#64748b' }}>
+              <LogOut className="w-4 h-4" />
+              Sair
             </button>
           </nav>
         </div>
