@@ -28,9 +28,8 @@ export async function POST(request: NextRequest) {
     // Log headers para debug
     const contentType = request.headers.get('content-type') || 'none'
     console.log('[Webhook] Content-Type:', contentType)
-    console.log('[Webhook] x-pushinpay-token:', request.headers.get('x-pushinpay-token') ? 'present' : 'absent')
 
-    // Valida token do webhook (verifica múltiplos headers possíveis)
+    // Valida token do webhook
     const expectedToken = process.env.PUSHINPAY_WEBHOOK_TOKEN
     if (expectedToken) {
       const webhookToken = request.headers.get('x-pushinpay-token')
@@ -41,26 +40,30 @@ export async function POST(request: NextRequest) {
         console.warn('[Webhook] Token mismatch — rejecting')
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
-      if (!webhookToken) {
-        console.warn('[Webhook] No token header received — processing anyway (secured by pushinpayId lookup)')
-      }
     }
 
-    // Lê o body como texto primeiro para evitar crash no JSON.parse
+    // Lê o body como texto
+    const rawBody = await request.text()
+    console.log('[Webhook] Raw body:', rawBody.substring(0, 500))
+
+    // Parseia o body — suporta JSON e application/x-www-form-urlencoded
     let body: any
-    try {
-      const rawBody = await request.text()
-      console.log('[Webhook] Raw body:', rawBody)
-      body = JSON.parse(rawBody)
-    } catch (parseErr) {
-      console.error('[Webhook] Failed to parse JSON body:', parseErr)
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+    if (contentType.includes('application/json')) {
+      try {
+        body = JSON.parse(rawBody)
+      } catch (e) {
+        console.error('[Webhook] JSON parse failed:', e)
+        return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+      }
+    } else {
+      // PushinPay envia application/x-www-form-urlencoded
+      const params = new URLSearchParams(rawBody)
+      body = Object.fromEntries(params.entries())
+      console.log('[Webhook] Parsed as form-urlencoded:', JSON.stringify(body))
     }
 
-    console.log('[Webhook] Parsed body keys:', Object.keys(body || {}))
-
-    // Extrai o ID da transação e status — tenta múltiplos campos
-    const pushinpayId = body.id || body.transaction_id || body.txid || body.pix_id
+    // Extrai dados da transação
+    const pushinpayId = body.id || body.transaction_id || body.txid
     const status = (body.status || '').toLowerCase()
 
     console.log('[Webhook] pushinpayId:', pushinpayId, '| status:', status)
@@ -70,37 +73,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true })
     }
 
-    // Busca o pagamento — tenta pelo id principal primeiro, depois pelo transaction_id
+    // Busca o pagamento
     let payment = query.getPaymentByPushinpayId(pushinpayId)
 
-    // Se não encontrou com body.id, tenta com body.transaction_id
+    // Se não encontrou, tenta transaction_id
     if (!payment && body.transaction_id && body.transaction_id !== pushinpayId) {
-      console.log('[Webhook] Trying transaction_id:', body.transaction_id)
       payment = query.getPaymentByPushinpayId(body.transaction_id)
     }
 
-    // Se não encontrou com transaction_id, tenta com body.id separado
-    if (!payment && body.id && body.id !== pushinpayId) {
-      console.log('[Webhook] Trying body.id:', body.id)
-      payment = query.getPaymentByPushinpayId(body.id)
-    }
-
     if (!payment) {
-      console.log('[Webhook] Payment not found for any ID. pushinpayId:', pushinpayId, 'transaction_id:', body.transaction_id)
+      console.log('[Webhook] Payment not found for ID:', pushinpayId)
       return NextResponse.json({ received: true })
     }
 
-    console.log('[Webhook] Found payment:', payment.id, '| current status:', payment.status, '| type:', payment.type)
+    console.log('[Webhook] Found payment:', payment.id, '| current status:', payment.status)
 
-    // Só processa pagamentos confirmados
+    // Processa pagamentos confirmados
     if (status === 'paid' || status === 'completed' || status === 'approved') {
       if (payment.status === 'paid') {
-        console.log('[Webhook] Payment already processed, skipping')
-        return NextResponse.json({ received: true }) // já processado
+        console.log('[Webhook] Payment already processed')
+        return NextResponse.json({ received: true })
       }
 
       query.updatePaymentStatus(payment.id, 'paid')
-      console.log('[Webhook] Payment status updated to paid')
 
       const user = query.getUserById(payment.userId)
       if (!user) {
@@ -108,7 +103,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ received: true })
       }
 
-      // Aplica benefícios
       if (payment.daysToAdd > 0) {
         query.addDaysToUser(payment.userId, payment.daysToAdd)
         console.log('[Webhook] Added', payment.daysToAdd, 'days to user', user.username)
@@ -118,7 +112,7 @@ export async function POST(request: NextRequest) {
         console.log('[Webhook] Added', payment.extraTrackings, 'trackings to user', user.username)
       }
 
-      console.log(`[Webhook] Pagamento ${payment.id} confirmado para usuário ${user.username}`)
+      console.log(`[Webhook] Pagamento ${payment.id} confirmado para ${user.username}`)
 
       // Envia e-mail de confirmação
       if (user.email) {
@@ -129,16 +123,14 @@ export async function POST(request: NextRequest) {
             : 'N/A'
 
           let benefitHtml = ''
-          if (payment.daysToAdd > 0) benefitHtml += `<li>✅ +${payment.daysToAdd} dias adicionados — nova expiração: <strong>${expiresDate}</strong></li>`
-          if (payment.extraTrackings > 0) benefitHtml += `<li>✅ +${payment.extraTrackings} rastreios extras adicionados ao seu plano</li>`
+          if (payment.daysToAdd > 0) benefitHtml += `<li>✅ +${payment.daysToAdd} dias — nova expiração: <strong>${expiresDate}</strong></li>`
+          if (payment.extraTrackings > 0) benefitHtml += `<li>✅ +${payment.extraTrackings} rastreios extras adicionados</li>`
 
           await sendEmail(user.email, '✅ Pagamento confirmado — RastreioFácil', `
             <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#0d0d18;color:#e2e8f0;border-radius:12px;">
               <h2 style="color:#818cf8;margin-bottom:8px;">Pagamento confirmado!</h2>
               <p>Olá <strong>${user.username}</strong>, seu pagamento foi processado com sucesso.</p>
-              <ul style="margin:16px 0;padding-left:20px;">
-                ${benefitHtml}
-              </ul>
+              <ul style="margin:16px 0;padding-left:20px;">${benefitHtml}</ul>
               <a href="https://www.rastreiofacil.com/dashboard" style="display:inline-block;margin-top:16px;padding:12px 24px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border-radius:8px;text-decoration:none;font-weight:bold;">
                 Acessar meu painel
               </a>
@@ -146,15 +138,11 @@ export async function POST(request: NextRequest) {
             </div>
           `)
         } catch (emailErr) {
-          console.error('[Webhook] Email send failed:', emailErr)
-          // Não falha o webhook por causa de email
+          console.error('[Webhook] Email error:', emailErr)
         }
       }
     } else if (status === 'failed' || status === 'cancelled' || status === 'canceled' || status === 'expired') {
       query.updatePaymentStatus(payment.id, 'failed')
-      console.log('[Webhook] Payment marked as failed')
-    } else {
-      console.log('[Webhook] Unknown status:', status, '— ignoring')
     }
 
     return NextResponse.json({ received: true })
