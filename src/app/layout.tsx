@@ -15,13 +15,6 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "RastreioFácil - Acompanhe suas encomendas",
   description: "Rastreamento rápido e gratuito para encomendas do Mercado Envios. Acompanhe o status em tempo real, sem complicações.",
-  icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon.png", type: "image/png", sizes: "32x32" },
-    ],
-    apple: { url: "/apple-touch-icon.png", sizes: "180x180" },
-  },
 };
 
 export default function RootLayout({
