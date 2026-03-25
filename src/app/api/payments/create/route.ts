@@ -8,7 +8,7 @@ const PLANS = {
     label: 'Renovação 30 dias',
     amount: 9990,       // R$ 99,90 em centavos
     daysToAdd: 30,
-    extraTrackings: 0,
+    extraTrackings: 200,
   },
   extra_200: {
     label: '200 Rastreios Extras',
