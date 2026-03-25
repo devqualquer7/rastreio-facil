@@ -22,6 +22,7 @@ migrate('ALTER TABLE Client ADD COLUMN userId TEXT');
 migrate('ALTER TABLE User ADD COLUMN keyauthKey TEXT');
 migrate('ALTER TABLE TrackingCode ADD COLUMN autoTemplateId TEXT');
 migrate('ALTER TABLE TrackingCode ADD COLUMN autoActivatedAt TEXT');
+migrate('ALTER TABLE TrackingCode ADD COLUMN autoUpdateLastStepIndex INTEGER DEFAULT -1');
 
 // Create AutoTemplate tables if they don't exist
 try {
@@ -53,7 +54,7 @@ function generateId() {
 }
 
 export const query = {
-  // ─── Clients ────────────────────────────────────────────────────────────────
+  // âââ Clients ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   getClients: () => db.prepare('SELECT * FROM Client ORDER BY createdAt DESC').all(),
 
   getClientsByUserId: (userId: string) =>
@@ -71,7 +72,7 @@ export const query = {
 
   deleteClient: (id: string) => db.prepare('DELETE FROM Client WHERE id = ?').run(id),
 
-  // ─── Tracking Codes ─────────────────────────────────────────────────────────
+  // âââ Tracking Codes âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   getTrackingCodes: () => {
     const codes = db.prepare(`
       SELECT tc.*, c.name as clientName
@@ -136,7 +137,7 @@ export const query = {
 
   deleteTrackingCode: (id: string) => db.prepare('DELETE FROM TrackingCode WHERE id = ?').run(id),
 
-  // ─── Tracking Events ────────────────────────────────────────────────────────
+  // âââ Tracking Events ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   createTrackingEvent: (data: { trackingCodeId: string; status: string; location?: string | null; date?: string }) => {
     const id = generateId();
     const date = data.date ? new Date(data.date).toISOString() : new Date().toISOString();
@@ -148,7 +149,7 @@ export const query = {
 
   deleteTrackingEvent: (id: string) => db.prepare('DELETE FROM TrackingEvent WHERE id = ?').run(id),
 
-  // ─── Users ──────────────────────────────────────────────────────────────────
+  // âââ Users ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   getUserById: (id: string) => db.prepare('SELECT * FROM User WHERE id = ?').get(id) as any,
 
   getUserByUsername: (username: string) =>
@@ -191,7 +192,7 @@ export const query = {
     db.prepare('UPDATE User SET trackingLimit = trackingLimit + ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(amount, userId);
   },
 
-  // ─── Registration Keys ──────────────────────────────────────────────────────
+  // âââ Registration Keys ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   getKeyByValue: (key: string) => db.prepare('SELECT * FROM RegistrationKey WHERE key = ?').get(key) as any,
 
   getAllKeys: () => db.prepare('SELECT * FROM RegistrationKey ORDER BY createdAt DESC').all(),
@@ -208,7 +209,7 @@ export const query = {
 
   deleteKey: (id: string) => db.prepare('DELETE FROM RegistrationKey WHERE id = ?').run(id),
 
-  // ─── Payments ───────────────────────────────────────────────────────────────
+  // âââ Payments âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   createPayment: (data: { userId: string; type: string; amount: number; pushinpayId?: string; qrCode?: string; qrCodeBase64?: string; extraTrackings?: number; daysToAdd?: number }) => {
     const id = generateId();
     db.prepare(`
@@ -233,7 +234,7 @@ export const query = {
     return db.prepare("SELECT * FROM Payment WHERE userId = ? AND type = ? AND status = 'pending' ORDER BY createdAt DESC LIMIT 1").get(userId, type) as any;
   },
 
-  // ─── Auto Templates ─────────────────────────────────────────────────────────
+  // âââ Auto Templates âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   getAutoTemplatesByUserId: (userId: string) => {
     return db.prepare('SELECT * FROM AutoTemplate WHERe userId = ? ORDER BY createdAt DESC').all(userId) as any[];
   },
@@ -264,11 +265,19 @@ export const query = {
 
   deleteAutoTemplateStep: (id: string) => db.prepare('DELETE FROM AutoTemplateStep WHERE id = ?').run(id),
 
-  // ─── Auto Update (activate/deactivate on tracking codes) ────────────────────
+  // âââ Auto Update (activate/deactivate on tracking codes) ââââââââââââââââââââ
   activateAutoUpdate: (trackingCodeId: string, templateId: string, activatedAt: string) => {
     db.prepare('UPDATE TrackingCode SET autoTemplateId = ?, autoActivatedAt = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(
       templateId, activatedAt, trackingCodeId
     );
+  },
+
+  getActiveAutoUpdates: () => {
+    return db.prepare('SELECT * FROM TrackingCode WHERE autoTemplateId IS NOT NULL AND autoActivatedAt IS NOT NULL').all() as any[];
+  },
+
+  updateAutoUpdateLastStep: (trackingCodeId: string, stepIndex: number) => {
+    db.prepare('UPDATE TrackingCode SET autoUpdateLastStepIndex = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(stepIndex, trackingCodeId);
   },
 
   deactivateAutoUpdate: (trackingCodeId: string) => {
@@ -277,7 +286,7 @@ export const query = {
     );
   },
 
-  // ─── Password ───────────────────────────────────────────────────────────────
+  // âââ Password âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   updateUserPassword: (id: string, hashedPassword: string) => {
     db.prepare('UPDATE User SET password = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(hashedPassword, id);
   },
