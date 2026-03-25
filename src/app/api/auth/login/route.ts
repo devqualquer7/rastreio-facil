@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import db from '@/lib/db'
-import { createSession } from '@/lib/session'
+import db, { query } from '@/lib/db'
+import { createSession, createUserSession } from '@/lib/session'
 
-// Rate limiting: máx 5 tentativas por IP em 15 minutos
+// Rate limiting: mÃ¡x 5 tentativas por IP em 15 minutos
 const attempts = new Map<string, { count: number; resetAt: number }>()
 const MAX_ATTEMPTS = 5
 const WINDOW_MS = 15 * 60 * 1000 // 15 minutos
@@ -69,39 +69,62 @@ export async function POST(request: NextRequest) {
     const password = String(body.password || '').trim()
 
     if (!username || !password) {
-      return NextResponse.json({ error: 'Usuário e senha são obrigatórios' }, { status: 400 })
+      return NextResponse.json({ error: 'UsuÃ¡rio e senha sÃ£o obrigatÃ³rios' }, { status: 400 })
     }
 
-    // Sanitização básica (evita injeção)
+    // SanitizaÃ§Ã£o bÃ¡sica (evita injeÃ§Ã£o)
     if (username.length > 64 || password.length > 128) {
-      return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 })
+      return NextResponse.json({ error: 'Credenciais invÃ¡lidas' }, { status: 401 })
     }
 
-    // Busca no banco - mesmo erro se não existir (evita enumeração de usuários)
-    const admin = db.prepare('SELECT * FROM Admin WHERE username = ?').get(username) as any
-
-    // Sempre compara (tempo constante), mesmo que usuário não exista
+    // Sempre compara (tempo constante), mesmo que usuÃ¡rio nÃ£o exista
     const dummyHash = '$2b$12$invalidhashtopreventtimingattack000000000000000000000'
-    const hashToCompare = admin?.password || dummyHash
-    const valid = await bcrypt.compare(password, hashToCompare)
 
-    if (!admin || !valid) {
-      return NextResponse.json(
-        { error: 'Credenciais inválidas' },
-        {
-          status: 401,
-          headers: {
-            'X-RateLimit-Limit': String(MAX_ATTEMPTS),
-            'X-RateLimit-Remaining': String(remaining - 1),
-          },
-        }
-      )
+    // 1) Tenta Admin
+    const admin = db.prepare('SELECT * FROM Admin WHERE username = ?').get(username) as any
+    if (admin) {
+      const valid = await bcrypt.compare(password, admin.password || dummyHash)
+      if (valid) {
+        clearRateLimit(ip)
+        await createSession(admin.id)
+        return NextResponse.json({ success: true })
+      }
     }
 
-    // Login bem-sucedido: limpa rate limit
-    clearRateLimit(ip)
-    await createSession(admin.id)
-    return NextResponse.json({ success: true })
+    // 2) Tenta User
+    const user = query.getUserByUsername(username) as any
+    if (user) {
+      const valid = await bcrypt.compare(password, user.password || dummyHash)
+      if (valid) {
+        // Verifica se estÃ¡ ativo
+        if (!user.active) {
+          return NextResponse.json(
+            { error: 'Conta desativada. Contate o administrador.' },
+            { status: 403 }
+          )
+        }
+        clearRateLimit(ip)
+        await createUserSession(user.id)
+        return NextResponse.json({ success: true })
+      }
+    }
+
+    // Se nÃ£o encontrou ou senha errada (resposta genÃ©rica para evitar enumeraÃ§Ã£o)
+    // Faz bcrypt.compare com dummy para manter tempo constante se nenhum foi encontrado
+    if (!admin && !user) {
+      await bcrypt.compare(password, dummyHash)
+    }
+
+    return NextResponse.json(
+      { error: 'Credenciais invÃ¡lidas' },
+      {
+        status: 401,
+        headers: {
+          'X-RateLimit-Limit': String(MAX_ATTEMPTS),
+          'X-RateLimit-Remaining': String(remaining - 1),
+        },
+      }
+    )
   } catch {
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })
   }
