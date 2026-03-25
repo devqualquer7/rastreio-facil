@@ -2,10 +2,26 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserSession } from '@/lib/session'
 import { query } from '@/lib/db'
 
+// Planos disponíveis
 const PLANS = {
-  renewal: { label: 'Renovação 30 dias', amount: 9990, daysToAdd: 30, extraTrackings: 0 },
-  extra_200: { label: '200 Rastreios Extras', amount: 5990, daysToAdd: 0, extraTrackings: 200 },
-  bundle: { label: 'Renovação + 200 Extras', amount: 14990, daysToAdd: 30, extraTrackings: 200 },
+  renewal: {
+    label: 'Renovação 30 dias',
+    amount: 9990,       // R$ 99,90 em centavos
+    daysToAdd: 30,
+    extraTrackings: 0,
+  },
+  extra_200: {
+    label: '200 Rastreios Extras',
+    amount: 5990,       // R$ 59,90 em centavos
+    daysToAdd: 0,
+    extraTrackings: 200,
+  },
+  bundle: {
+    label: 'Renovação + 400 Extras',
+    amount: 14990,      // R$ 149,90 em centavos
+    daysToAdd: 30,
+    extraTrackings: 400,
+  },
 }
 
 export async function POST(request: NextRequest) {
@@ -21,14 +37,24 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
 
     const PUSHINPAY_TOKEN = process.env.PUSHINPAY_TOKEN
-    if (!PUSHINPAY_TOKEN) return NextResponse.json({ error: 'Pagamentos temporariamente indisponíveis' }, { status: 503 })
+    if (!PUSHINPAY_TOKEN) {
+      return NextResponse.json({ error: 'Pagamentos temporariamente indisponíveis' }, { status: 503 })
+    }
 
     const webhookUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.rastreiofacil.com'}/api/webhooks/pushinpay`
 
+    // Cria cobrança na Pushinpay
     const pixRes = await fetch('https://api.pushinpay.com.br/api/pix/cashIn', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${PUSHINPAY_TOKEN}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ value: plan.amount, webhook_url: webhookUrl }),
+      headers: {
+        'Authorization': `Bearer ${PUSHINPAY_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        value: plan.amount,
+        webhook_url: webhookUrl,
+      }),
     })
 
     if (!pixRes.ok) {
@@ -39,6 +65,7 @@ export async function POST(request: NextRequest) {
 
     const pixData = await pixRes.json()
 
+    // Salva pagamento pendente no banco
     const payment = query.createPayment({
       userId: session.userId as string,
       type: planType,
@@ -50,7 +77,13 @@ export async function POST(request: NextRequest) {
       daysToAdd: plan.daysToAdd,
     })
 
-    return NextResponse.json({ paymentId: payment.id, qrCode: pixData.qr_code, qrCodeBase64: pixData.qr_code_base64, amount: plan.amount, label: plan.label })
+    return NextResponse.json({
+      paymentId: payment.id,
+      qrCode: pixData.qr_code,
+      qrCodeBase64: pixData.qr_code_base64,
+      amount: plan.amount,
+      label: plan.label,
+    })
   } catch (error) {
     console.error('Payment create error:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
