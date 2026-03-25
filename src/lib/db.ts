@@ -22,7 +22,8 @@ migrate('ALTER TABLE Client ADD COLUMN userId TEXT');
 migrate('ALTER TABLE User ADD COLUMN keyauthKey TEXT');
 migrate('ALTER TABLE TrackingCode ADD COLUMN autoTemplateId TEXT');
 migrate('ALTER TABLE TrackingCode ADD COLUMN autoActivatedAt TEXT');
-*// Create AutoTemplate tables if they don't exist
+
+// Create AutoTemplate tables if they don't exist
 try {
   db.exec(`
     CREATE TABLE IF NOT EXISTS AutoTemplate (
@@ -274,6 +275,11 @@ export const query = {
     db.prepare('UPDATE TrackingCode SET autoTemplateId = NULL, autoActivatedAt = NULL, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(
       trackingCodeId
     );
+  },
+
+  // ─── Password ───────────────────────────────────────────────────────────────
+  updateUserPassword: (id: string, hashedPassword: string) => {
+    db.prepare('UPDATE User SET password = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(hashedPassword, id);
   },
 };
 
