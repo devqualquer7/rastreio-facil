@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { RefreshCw, Package, Zap, Copy, CheckCircle2, Clock, QrCode } from 'lucide-react'
 
-/* ââ Confetti + Checkmark Animation Component ââ */
+/* ── Confetti + Checkmark Animation Component ── */
 function PaymentSuccessAnimation({ onComplete }: { onComplete: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [showCheck, setShowCheck] = useState(false)
@@ -132,7 +132,7 @@ const PLANS = [
   {
     id: 'renewal',
     icon: RefreshCw,
-    title: 'RenovaÃ§Ã£o 30 dias',
+    title: 'Renovação 30 dias',
     desc: '200 rastreios inclusos + 30 dias de acesso',
     price: 'R$ 99,90',
     highlight: true,
@@ -151,7 +151,7 @@ const PLANS = [
     id: 'bundle',
     icon: Zap,
     title: 'Combo Completo',
-    desc: 'RenovaÃ§Ã£o 30 dias + 200 rastreios extras',
+    desc: 'Renovação 30 dias + 400 rastreios extras',
     price: 'R$ 149,90',
     highlight: false,
     color: '#6d28d9',
@@ -184,7 +184,7 @@ export default function RenovarPage() {
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Erro ao gerar PIX'); setLoading(null); return }
       setPayment({ ...data, status: 'pending' })
-    } catch { setError('Erro de conexÃ£o. Tente novamente.') }
+    } catch { setError('Erro de conexão. Tente novamente.') }
     finally { setLoading(null) }
   }
 
@@ -221,10 +221,10 @@ export default function RenovarPage() {
     <div className="max-w-3xl mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-black text-white">Renovar / Planos</h1>
-        <p className="text-sm mt-1" style={{ color: '#64748b' }}>Pagamento via PIX â confirmaÃ§Ã£o instantÃ¢nea</p>
+        <p className="text-sm mt-1" style={{ color: '#64748b' }}>Pagamento via PIX — confirmação instantânea</p>
       </div>
 
-      {/* AnimaÃ§Ã£o de celebraÃ§Ã£o */}
+      {/* Animação de celebração */}
       {showAnimation && <PaymentSuccessAnimation onComplete={() => setShowAnimation(false)} />}
 
       {/* Sucesso */}
@@ -233,7 +233,7 @@ export default function RenovarPage() {
           <CheckCircle2 className="w-8 h-8 flex-shrink-0" style={{ color: '#34d399' }} />
           <div>
             <p className="font-bold text-white">Pagamento confirmado!</p>
-            <p className="text-sm" style={{ color: '#64748b' }}>Seu plano foi atualizado. Acesse seu painel para ver as mudanÃ§as.</p>
+            <p className="text-sm" style={{ color: '#64748b' }}>Seu plano foi atualizado. Acesse seu painel para ver as mudanças.</p>
           </div>
           <a href="/dashboard" className="ml-auto px-4 py-2 rounded-xl text-white text-sm font-semibold flex-shrink-0"
             style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}>Ver painel</a>
@@ -282,7 +282,7 @@ export default function RenovarPage() {
             <p className="text-sm font-semibold" style={{ color: '#818cf8' }}>Aguardando pagamento</p>
           </div>
           <p className="text-xs mb-5" style={{ color: '#64748b' }}>
-            {payment.label} â <strong className="text-white">{formatPrice(payment.amount)}</strong>
+            {payment.label} — <strong className="text-white">{formatPrice(payment.amount)}</strong>
           </p>
 
           {/* QR Code image */}
@@ -292,8 +292,8 @@ export default function RenovarPage() {
             </div>
           )}
 
-          {/* CÃ³digo copia-cola */}
-          <p className="text-xs mb-2 font-semibold uppercase tracking-wide" style={{ color: '#64748b' }}>Ou use o cÃ³digo PIX copia e cola:</p>
+          {/* Código copia-cola */}
+          <p className="text-xs mb-2 font-semibold uppercase tracking-wide" style={{ color: '#64748b' }}>Ou use o código PIX copia e cola:</p>
           <div className="flex items-center gap-2 p-3 rounded-xl mb-4 text-left overflow-hidden"
             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(99,102,241,0.2)' }}>
             <QrCode className="w-4 h-4 flex-shrink-0" style={{ color: '#6366f1' }} />
@@ -305,7 +305,7 @@ export default function RenovarPage() {
           </div>
 
           <p className="text-xs" style={{ color: '#475569' }}>
-            ApÃ³s o pagamento, a confirmaÃ§Ã£o Ã© automÃ¡tica. NÃ£o feche esta janela.
+            Após o pagamento, a confirmação é automática. Não feche esta janela.
           </p>
 
           <button onClick={() => setPayment(null)} className="mt-4 text-xs underline" style={{ color: '#64748b' }}>
