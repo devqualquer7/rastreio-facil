@@ -39,7 +39,7 @@ export async function GET() {
     let totalEventsCreated = 0
 
     for (const tc of activeUpdates) {
-      if (!tc.autoTemplateId || !tc.autoUpdateActivatedAt) continue
+      if (!tc.autoTemplateId || !tc.autoActivatedAt) continue
 
       const steps = query.getAutoTemplateSteps(tc.autoTemplateId) as any[]
       if (steps.length === 0) continue
@@ -51,7 +51,7 @@ export async function GET() {
         if (i <= lastStepIndex) continue
 
         const step = steps[i]
-        const stepDateBrt = getStepDateBrt(tc.autoUpdateActivatedAt, step.dayOffset, step.time)
+        const stepDateBrt = getStepDateBrt(tc.autoActivatedAt, step.dayOffset, step.time)
 
         // Check if it's time for this step (step time has passed)
         if (nowBrt >= stepDateBrt) {
