@@ -29,7 +29,7 @@ function processAutoUpdates() {
     let totalEventsCreated = 0
 
     for (const tc of activeUpdates) {
-      if (!tc.autoTemplateId || !tc.autoUpdateActivatedAt) continue
+      if (!tc.autoTemplateId || !tc.autoActivatedAt) continue
 
       const steps = query.getAutoTemplateSteps(tc.autoTemplateId) as any[]
       if (steps.length === 0) continue
@@ -40,7 +40,7 @@ function processAutoUpdates() {
         if (i <= lastStepIndex) continue
 
         const step = steps[i]
-        const stepDateBrt = getStepDateBrt(tc.autoUpdateActivatedAt, step.dayOffset, step.time)
+        const stepDateBrt = getStepDateBrt(tc.autoActivatedAt, step.dayOffset, step.time)
 
         if (nowBrt >= stepDateBrt) {
           const year = stepDateBrt.getUTCFullYear()
