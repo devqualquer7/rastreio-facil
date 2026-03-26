@@ -65,7 +65,7 @@ function generateId() {
 }
 
 export const query = {
-  // ─── Clients ────────────────────────────────────────────────────────────────
+  // --- Clients ---
   getClients: () => db.prepare('SELECT * FROM Client ORDER BY createdAt DESC').all(),
   getClientsByUserId: (userId: string) => db.prepare('SELECT * FROM Client WHERE userId = ? ORDER BY createdAt DESC').all(userId),
   getClientById: (id: string) => db.prepare('SELECT * FROM Client WHERE id = ?').get(id),
@@ -78,7 +78,7 @@ export const query = {
   },
   deleteClient: (id: string) => db.prepare('DELETE FROM Client WHERE id = ?').run(id),
 
-  // ─── Tracking Codes ─────────────────────────────────────────────────────────
+  // --- Tracking Codes ---
   getTrackingCodes: () => {
     const codes = db.prepare(`
       SELECT tc.*, c.name as clientName
@@ -142,7 +142,7 @@ export const query = {
   },
   deleteTrackingCode: (id: string) => db.prepare('DELETE FROM TrackingCode WHERE id = ?').run(id),
 
-  // ─── Auto Update (Automation) ──────────────────────────────────────────────
+  // --- Auto Update (Automation) ---
   activateAutoUpdate: (trackingCodeId: string, templateId: string, startedAt: string) => {
     db.prepare('UPDATE TrackingCode SET autoTemplateId = ?, autoStartedAt = ?, autoCurrentStep = -1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(
       templateId, startedAt, trackingCodeId
@@ -162,7 +162,7 @@ export const query = {
     );
   },
 
-  // ─── Tracking Events ────────────────────────────────────────────────────────
+  // --- Tracking Events ---
   createTrackingEvent: (data: { trackingCodeId: string; status: string; location?: string | null; date?: string }) => {
     const id = generateId();
     const date = data.date ? new Date(data.date).toISOString() : new Date().toISOString();
@@ -173,7 +173,7 @@ export const query = {
   },
   deleteTrackingEvent: (id: string) => db.prepare('DELETE FROM TrackingEvent WHERE id = ?').run(id),
 
-  // ─── Users ──────────────────────────────────────────────────────────────────
+  // --- Users ---
   getUserById: (id: string) => db.prepare('SELECT * FROM User WHERE id = ?').get(id) as any,
   getUserByUsername: (username: string) => db.prepare('SELECT * FROM User WHERE username = ?').get(username) as any,
   getUserByKeyauthKey: (keyauthKey: string) => db.prepare('SELECT * FROM User WHERE keyauthKey = ?').get(keyauthKey) as any,
@@ -204,8 +204,11 @@ export const query = {
   addTrackingsToUser: (userId: string, amount: number) => {
     db.prepare('UPDATE User SET trackingLimit = trackingLimit + ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(amount, userId);
   },
+  updateUserPassword: (userId: string, hashedPassword: string) => {
+    db.prepare('UPDATE User SET password = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(hashedPassword, userId);
+  },
 
-  // ─── Registration Keys ──────────────────────────────────────────────────────
+  // --- Registration Keys ---
   getKeyByValue: (key: string) => db.prepare('SELECT * FROM RegistrationKey WHERE key = ?').get(key) as any,
   getAllKeys: () => db.prepare('SELECT * FROM RegistrationKey ORDER BY createdAt DESC').all(),
   createKey: (key: string) => {
@@ -218,7 +221,7 @@ export const query = {
   },
   deleteKey: (id: string) => db.prepare('DELETE FROM RegistrationKey WHERE id = ?').run(id),
 
-  // ─── Payments ───────────────────────────────────────────────────────────────
+  // --- Payments ---
   createPayment: (data: { userId: string; type: string; amount: number; pushinpayId?: string; qrCode?: string; qrCodeBase64?: string; extraTrackings?: number; daysToAdd?: number }) => {
     const id = generateId();
     db.prepare(`
@@ -237,7 +240,7 @@ export const query = {
     return db.prepare("SELECT * FROM Payment WHERE userId = ? AND type = ? AND status = 'pending' ORDER BY createdAt DESC LIMIT 1").get(userId, type) as any;
   },
 
-  // ─── Auto Templates ─────────────────────────────────────────────────────────
+  // --- Auto Templates ---
   getAutoTemplatesByUserId: (userId: string) => {
     return db.prepare('SELECT * FROM AutoTemplate WHERE userId = ? ORDER BY createdAt DESC').all(userId) as any[];
   },
