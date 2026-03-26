@@ -31,6 +31,9 @@ const db = new Database(dbPath);
 const migrate = (sql: string) => { try { db.prepare(sql).run(); } catch (_) { /* already exists */ } };
 migrate('ALTER TABLE Client ADD COLUMN userId TEXT');
 migrate('ALTER TABLE User ADD COLUMN keyauthKey TEXT');
+migrate('ALTER TABLE TrackingCode ADD COLUMN autoTemplateId TEXT');
+migrate('ALTER TABLE TrackingCode ADD COLUMN autoStartedAt TEXT');
+migrate('ALTER TABLE TrackingCode ADD COLUMN autoCurrentStep INTEGER DEFAULT 0');
 
 // Create AutoTemplate tables if they don't exist
 try {
@@ -133,6 +136,18 @@ export const query = {
     );
   },
   deleteTrackingCode: (id: string) => db.prepare('DELETE FROM TrackingCode WHERE id = ?').run(id),
+
+  // ─── Auto Update (Automation) ──────────────────────────────────────────────
+  activateAutoUpdate: (trackingCodeId: string, templateId: string, startedAt: string) => {
+    db.prepare('UPDATE TrackingCode SET autoTemplateId = ?, autoStartedAt = ?, autoCurrentStep = 0, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(
+      templateId, startedAt, trackingCodeId
+    );
+  },
+  deactivateAutoUpdate: (trackingCodeId: string) => {
+    db.prepare('UPDATE TrackingCode SET autoTemplateId = NULL, autoStartedAt = NULL, autoCurrentStep = 0, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(
+      trackingCodeId
+    );
+  },
 
   // ─── Tracking Events ────────────────────────────────────────────────────────
   createTrackingEvent: (data: { trackingCodeId: string; status: string; location?: string | null; date?: string }) => {
