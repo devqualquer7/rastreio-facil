@@ -130,6 +130,9 @@ migrate('ALTER TABLE Client ADD COLUMN userId TEXT');
 migrate('ALTER TABLE TrackingCode ADD COLUMN userId TEXT');
 migrate('ALTER TABLE TrackingCode ADD COLUMN description TEXT');
 migrate('ALTER TABLE User ADD COLUMN keyauthKey TEXT');
+migrate('ALTER TABLE TrackingCode ADD COLUMN autoTemplateId TEXT');
+migrate('ALTER TABLE TrackingCode ADD COLUMN autoStartedAt TEXT');
+migrate('ALTER TABLE TrackingCode ADD COLUMN autoCurrentStep INTEGER DEFAULT 0');
 
 const existing = db.prepare('SELECT id FROM Admin WHERE username = ?').get(
   process.env.ADMIN_USERNAME || 'foster'
