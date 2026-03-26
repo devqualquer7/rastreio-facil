@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { MapPin, Package, RefreshCw, LogOut, Menu, X, AlertTriangle, Clock, Headphones, MessageCircle, LayoutDashboard, Users, Zap } from 'lucide-react'
+import { MapPin, Package, RefreshCw, LogOut, Menu, X, AlertTriangle, Clock, Headphones, MessageCircle, LayoutDashboard, Users, Zap, UserCog } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 
 interface UserInfo {
@@ -35,6 +35,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/rastreios', label: 'Rastreios', Icon: Package },
     { href: '/dashboard/automacao', label: 'Automação', Icon: Zap },
     { href: '/dashboard/renovar', label: 'Renovar / Planos', Icon: RefreshCw },
+    { href: '/dashboard/conta', label: 'Minha Conta', Icon: UserCog },
   ]
 
   const isExpiringSoon = user?.daysLeft !== null && user?.daysLeft !== undefined && user.daysLeft <= 7 && user.daysLeft > 0
@@ -147,7 +148,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               style={{
                 background: isExpired ? 'rgba(239,68,68,0.12)' : 'rgba(249,115,22,0.12)',
                 border: `1px solid ${isExpired ? 'rgba(239,68,68,0.3)' : 'rgba(249,115,22,0.3)'}`,
-                color: isExpired? '#fca5a5' : '#fdba74',
+                color: isExpired ? '#fca5a5' : '#fdba74',
               }}>
               {isExpired ? <AlertTriangle className="w-4 h-4 flex-shrink-0" /> : <Clock className="w-4 h-4 flex-shrink-0" />}
               {isExpired
