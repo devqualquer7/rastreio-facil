@@ -34,6 +34,7 @@ migrate('ALTER TABLE User ADD COLUMN keyauthKey TEXT');
 migrate('ALTER TABLE TrackingCode ADD COLUMN autoTemplateId TEXT');
 migrate('ALTER TABLE TrackingCode ADD COLUMN autoStartedAt TEXT');
 migrate('ALTER TABLE TrackingCode ADD COLUMN autoCurrentStep INTEGER DEFAULT 0');
+migrate('ALTER TABLE TrackingCode ADD COLUMN autoActivatedAt TEXT');
 
 // Create AutoTemplate tables if they don't exist
 try {
@@ -65,7 +66,7 @@ function generateId() {
 }
 
 export const query = {
-  // ─── Clients ────────────────────────────────────────────────────────────────
+  // --- Clients ---
   getClients: () => db.prepare('SELECT * FROM Client ORDER BY createdAt DESC').all(),
   getClientsByUserId: (userId: string) => db.prepare('SELECT * FROM Client WHERE userId = ? ORDER BY createdAt DESC').all(userId),
   getClientById: (id: string) => db.prepare('SELECT * FROM Client WHERE id = ?').get(id),
@@ -78,7 +79,7 @@ export const query = {
   },
   deleteClient: (id: string) => db.prepare('DELETE FROM Client WHERE id = ?').run(id),
 
-  // ─── Tracking Codes ─────────────────────────────────────────────────────────
+  // --- Tracking Codes ---
   getTrackingCodes: () => {
     const codes = db.prepare(`
       SELECT tc.*, c.name as clientName
@@ -142,14 +143,14 @@ export const query = {
   },
   deleteTrackingCode: (id: string) => db.prepare('DELETE FROM TrackingCode WHERE id = ?').run(id),
 
-  // ─── Auto Update (Automation) ──────────────────────────────────────────────
+  // --- Auto Update (Automation) ---
   activateAutoUpdate: (trackingCodeId: string, templateId: string, startedAt: string) => {
-    db.prepare('UPDATE TrackingCode SET autoTemplateId = ?, autoStartedAt = ?, autoCurrentStep = -1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(
-      templateId, startedAt, trackingCodeId
+    db.prepare('UPDATE TrackingCode SET autoTemplateId = ?, autoStartedAt = ?, autoActivatedAt = ?, autoCurrentStep = -1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(
+      templateId, startedAt, startedAt, trackingCodeId
     );
   },
   deactivateAutoUpdate: (trackingCodeId: string) => {
-    db.prepare('UPDATE TrackingCode SET autoTemplateId = NULL, autoStartedAt = NULL, autoCurrentStep = -1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(
+    db.prepare('UPDATE TrackingCode SET autoTemplateId = NULL, autoStartedAt = NULL, autoActivatedAt = NULL, autoCurrentStep = -1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(
       trackingCodeId
     );
   },
@@ -165,7 +166,7 @@ export const query = {
     );
   },
 
-  // ─── Tracking Events ────────────────────────────────────────────────────────
+  // --- Tracking Events ---
   createTrackingEvent: (data: { trackingCodeId: string; status: string; location?: string | null; date?: string }) => {
     const id = generateId();
     const date = data.date ? new Date(data.date).toISOString() : new Date().toISOString();
@@ -179,7 +180,7 @@ export const query = {
     return db.prepare('SELECT * FROM TrackingEvent WHERE trackingCodeId = ? ORDER BY date DESC').all(trackingCodeId) as any[];
   },
 
-  // ─── Users ──────────────────────────────────────────────────────────────────
+  // --- Users ---
   getUserById: (id: string) => db.prepare('SELECT * FROM User WHERE id = ?').get(id) as any,
   getUserByUsername: (username: string) => db.prepare('SELECT * FROM User WHERE username = ?').get(username) as any,
   getUserByKeyauthKey: (keyauthKey: string) => db.prepare('SELECT * FROM User WHERE keyauthKey = ?').get(keyauthKey) as any,
@@ -203,7 +204,7 @@ export const query = {
   addDaysToUser: (userId: string, days: number) => {
     const user = db.prepare('SELECT expiresAt FROM User WHERE id = ?').get(userId) as any;
     const base = user?.expiresAt ? new Date(user.expiresAt) : new Date();
-    if (base < new Date()) base.setTime(new Date().getTime()); // se expirado, conta da data atual
+    if (base < new Date()) base.setTime(new Date().getTime());
     base.setDate(base.getDate() + days);
     db.prepare('UPDATE User SET expiresAt = ?, active = 1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(base.toISOString(), userId);
   },
@@ -214,7 +215,7 @@ export const query = {
     db.prepare('UPDATE User SET password = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(hashedPassword, userId);
   },
 
-  // ─── Registration Keys ──────────────────────────────────────────────────────
+  // --- Registration Keys ---
   getKeyByValue: (key: string) => db.prepare('SELECT * FROM RegistrationKey WHERE key = ?').get(key) as any,
   getAllKeys: () => db.prepare('SELECT * FROM RegistrationKey ORDER BY createdAt DESC').all(),
   createKey: (key: string) => {
@@ -227,7 +228,7 @@ export const query = {
   },
   deleteKey: (id: string) => db.prepare('DELETE FROM RegistrationKey WHERE id = ?').run(id),
 
-  // ─── Payments ───────────────────────────────────────────────────────────────
+  // --- Payments ---
   createPayment: (data: { userId: string; type: string; amount: number; pushinpayId?: string; qrCode?: string; qrCodeBase64?: string; extraTrackings?: number; daysToAdd?: number }) => {
     const id = generateId();
     db.prepare(`
@@ -246,7 +247,7 @@ export const query = {
     return db.prepare("SELECT * FROM Payment WHERE userId = ? AND type = ? AND status = 'pending' ORDER BY createdAt DESC LIMIT 1").get(userId, type) as any;
   },
 
-  // ─── Auto Templates ─────────────────────────────────────────────────────────
+  // --- Auto Templates ---
   getAutoTemplatesByUserId: (userId: string) => {
     return db.prepare('SELECT * FROM AutoTemplate WHERE userId = ? ORDER BY createdAt DESC').all(userId) as any[];
   },
