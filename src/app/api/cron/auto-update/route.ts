@@ -25,12 +25,10 @@ function getStepDateBrt(activatedAt: string, dayOffset: number, time: string): D
   return target
 }
 
-// This endpoint should be called every minute by an external cron service
-// or by the app's built-in scheduler
+// This endpoint is called periodically by the built-in scheduler
 export async function GET() {
   try {
     const activeUpdates = query.getActiveAutoUpdates() as any[]
-
     if (activeUpdates.length === 0) {
       return NextResponse.json({ processed: 0, message: 'No active automations' })
     }
@@ -39,19 +37,19 @@ export async function GET() {
     let totalEventsCreated = 0
 
     for (const tc of activeUpdates) {
-      if (!tc.autoTemplateId || !tc.autoActivatedAt) continue
+      if (!tc.autoTemplateId || !tc.autoStartedAt) continue
 
       const steps = query.getAutoTemplateSteps(tc.autoTemplateId) as any[]
       if (steps.length === 0) continue
 
-      const lastStepIndex = tc.autoUpdateLastStepIndex ?? -1
+      const lastStepIndex = tc.autoCurrentStep ?? -1
 
       for (let i = 0; i < steps.length; i++) {
         // Skip already processed steps
         if (i <= lastStepIndex) continue
 
         const step = steps[i]
-        const stepDateBrt = getStepDateBrt(tc.autoActivatedAt, step.dayOffset, step.time)
+        const stepDateBrt = getStepDateBrt(tc.autoStartedAt, step.dayOffset, step.time)
 
         // Check if it's time for this step (step time has passed)
         if (nowBrt >= stepDateBrt) {
@@ -62,6 +60,7 @@ export async function GET() {
           const hrs = String(stepDateBrt.getUTCHours()).padStart(2, '0')
           const mins = String(stepDateBrt.getUTCMinutes()).padStart(2, '0')
           const dateStr = year + '-' + month + '-' + day + 'T' + hrs + ':' + mins + ':00.000-03:00'
+
           const eventDate = new Date(dateStr)
 
           // Create the tracking event
@@ -82,7 +81,8 @@ export async function GET() {
       }
 
       // If all steps have been processed, deactivate the automation
-      const newLastIndex = (query.getTrackingCodeById(tc.id) as any)?.autoUpdateLastStepIndex ?? -1
+      const updated = query.getTrackingCodeById(tc.id) as any
+      const newLastIndex = updated?.autoCurrentStep ?? -1
       if (newLastIndex >= steps.length - 1) {
         query.deactivateAutoUpdate(tc.id)
       }
