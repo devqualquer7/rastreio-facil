@@ -13,11 +13,15 @@ function Particles() {
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
+
     const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight }
     resize()
     window.addEventListener('resize', resize)
+
     const dots: { x: number; y: number; r: number; vx: number; vy: number; o: number }[] = []
-    for (let i = 0; i < 40; i++) dots.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, r: Math.random() * 1.2 + 0.3, vx: (Math.random() - 0.5) * 0.15, vy: (Math.random() - 0.5) * 0.15, o: Math.random() * 0.4 + 0.1 })
+    for (let i = 0; i < 40; i++)
+      dots.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, r: Math.random() * 1.2 + 0.3, vx: (Math.random() - 0.5) * 0.15, vy: (Math.random() - 0.5) * 0.15, o: Math.random() * 0.4 + 0.1 })
+
     let raf: number
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -28,10 +32,11 @@ function Particles() {
         ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
         ctx.fillStyle = `rgba(139,92,246,${d.o})`; ctx.fill()
       })
-      for (let i = 0; i < dots.length; i++) for (let j = i + 1; j < dots.length; j++) {
-        const dx = dots[i].x - dots[j].x, dy = dots[i].y - dots[j].y, dist = Math.sqrt(dx * dx + dy * dy)
-        if (dist < 80) { ctx.beginPath(); ctx.moveTo(dots[i].x, dots[i].y); ctx.lineTo(dots[j].x, dots[j].y); ctx.strokeStyle = `rgba(139,92,246,${0.08 * (1 - dist / 80)})`; ctx.lineWidth = 0.5; ctx.stroke() }
-      }
+      for (let i = 0; i < dots.length; i++)
+        for (let j = i + 1; j < dots.length; j++) {
+          const dx = dots[i].x - dots[j].x, dy = dots[i].y - dots[j].y, dist = Math.sqrt(dx * dx + dy * dy)
+          if (dist < 80) { ctx.beginPath(); ctx.moveTo(dots[i].x, dots[i].y); ctx.lineTo(dots[j].x, dots[j].y); ctx.strokeStyle = `rgba(139,92,246,${0.08 * (1 - dist / 80)})`; ctx.lineWidth = 0.5; ctx.stroke() }
+        }
       raf = requestAnimationFrame(draw)
     }
     draw()
@@ -41,24 +46,24 @@ function Particles() {
 }
 
 const STATUS_PRESETS = [
-  { label: 'Coletado',       value: 'Pedido coletado',                                      color: 'sky'     },
-  { label: 'Chegou ao CD',   value: 'Chegou ao centro de distribuição',                     color: 'violet'  },
-  { label: 'Em Trânsito',    value: 'Objeto em trânsito entre unidades',                    color: 'violet'  },
-  { label: 'Em Processamento', value: 'Objeto em processamento na unidade',                 color: 'violet'  },
-  { label: 'Saiu p/ Entrega', value: 'Objeto saiu para entrega ao destinatário',            color: 'cyan'    },
-  { label: 'Ag. Retirada',   value: 'Aguardando retirada na unidade',                       color: 'amber'   },
-  { label: 'Não Atendido',   value: 'Entregador não foi atendido - nova tentativa prevista', color: 'orange'  },
-  { label: 'Retido',         value: 'Objeto retido para fiscalização ou regularização',      color: 'red'     },
-  { label: 'Entregue',       value: 'Objeto entregue com sucesso',                          color: 'emerald' },
+  { label: 'Coletado', value: 'Pedido coletado', color: 'sky' },
+  { label: 'Chegou ao CD', value: 'Chegou ao centro de distribuição', color: 'violet' },
+  { label: 'Em Trânsito', value: 'Objeto em trânsito entre unidades', color: 'violet' },
+  { label: 'Em Processamento', value: 'Objeto em processamento na unidade', color: 'violet' },
+  { label: 'Saiu p/ Entrega', value: 'Objeto saiu para entrega ao destinatário', color: 'cyan' },
+  { label: 'Ag. Retirada', value: 'Aguardando retirada na unidade', color: 'amber' },
+  { label: 'Não Atendido', value: 'Entregador não foi atendido - nova tentativa prevista', color: 'orange' },
+  { label: 'Retido', value: 'Objeto retido para fiscalização ou regularização', color: 'red' },
+  { label: 'Entregue', value: 'Objeto entregue com sucesso', color: 'emerald' },
 ]
 
 const PRESET_COLORS: Record<string, string> = {
-  sky:     'bg-sky-500/15 border-sky-500/40 text-sky-300 data-[active=true]:bg-sky-500/30 data-[active=true]:border-sky-400/60',
-  violet:  'bg-violet-500/15 border-violet-500/40 text-violet-300 data-[active=true]:bg-violet-500/30 data-[active=true]:border-violet-400/60',
-  cyan:    'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 data-[active=true]:bg-cyan-500/30 data-[active=true]:border-cyan-400/60',
-  amber:   'bg-amber-500/15 border-amber-500/40 text-amber-300 data-[active=true]:bg-amber-500/30 data-[active=true]:border-amber-400/60',
-  orange:  'bg-orange-500/15 border-orange-500/40 text-orange-300 data-[active=true]:bg-orange-500/30 data-[active=true]:border-orange-400/60',
-  red:     'bg-red-500/15 border-red-500/40 text-red-300 data-[active=true]:bg-red-500/30 data-[active=true]:border-red-400/60',
+  sky: 'bg-sky-500/15 border-sky-500/40 text-sky-300 data-[active=true]:bg-sky-500/30 data-[active=true]:border-sky-400/60',
+  violet: 'bg-violet-500/15 border-violet-500/40 text-violet-300 data-[active=true]:bg-violet-500/30 data-[active=true]:border-violet-400/60',
+  cyan: 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 data-[active=true]:bg-cyan-500/30 data-[active=true]:border-cyan-400/60',
+  amber: 'bg-amber-500/15 border-amber-500/40 text-amber-300 data-[active=true]:bg-amber-500/30 data-[active=true]:border-amber-400/60',
+  orange: 'bg-orange-500/15 border-orange-500/40 text-orange-300 data-[active=true]:bg-orange-500/30 data-[active=true]:border-orange-400/60',
+  red: 'bg-red-500/15 border-red-500/40 text-red-300 data-[active=true]:bg-red-500/30 data-[active=true]:border-red-400/60',
   emerald: 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 data-[active=true]:bg-emerald-500/30 data-[active=true]:border-emerald-400/60',
 }
 
@@ -71,11 +76,7 @@ export default function AdminTrackingEvents({ params }: { params: Promise<{ id: 
   const [loading, setLoading] = useState(false)
 
   const fetchDetails = async () => {
-    // Resolve DB id to tracking code string first
-    const tcRes = await fetch(`/api/tracking-codes/${code}`)
-    if (!tcRes.ok) return
-    const { code: trackingCode } = await tcRes.json()
-    const res = await fetch(`/api/track/${trackingCode}`)
+    const res = await fetch(`/api/track/${code}`)
     if (res.ok) setDetails(await res.json())
   }
 
@@ -166,38 +167,21 @@ export default function AdminTrackingEvents({ params }: { params: Promise<{ id: 
           <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 items-end">
             <div className="flex-1 space-y-1.5">
               <label className="text-xs text-zinc-500">Status *</label>
-              <input
-                value={status}
-                onChange={e => setStatus(e.target.value)}
-                required
-                placeholder="Ex: Objeto em trânsito"
-                className="w-full h-10 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50 transition-colors"
-              />
+              <input value={status} onChange={e => setStatus(e.target.value)} required placeholder="Ex: Objeto em trânsito"
+                className="w-full h-10 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50 transition-colors" />
             </div>
             <div className="flex-1 space-y-1.5">
               <label className="text-xs text-zinc-500">Localização</label>
-              <input
-                value={location}
-                onChange={e => setLocation(e.target.value)}
-                placeholder="Ex: São Paulo, SP"
-                className="w-full h-10 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50 transition-colors"
-              />
+              <input value={location} onChange={e => setLocation(e.target.value)} placeholder="Ex: São Paulo, SP"
+                className="w-full h-10 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50 transition-colors" />
             </div>
             <div className="flex-1 space-y-1.5">
               <label className="text-xs text-zinc-500">Data e hora *</label>
-              <input
-                type="datetime-local"
-                value={date}
-                onChange={e => setDate(e.target.value)}
-                required
-                className="w-full h-10 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-zinc-200 focus:outline-none focus:border-violet-500/50 transition-colors"
-              />
+              <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)} required
+                className="w-full h-10 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-zinc-200 focus:outline-none focus:border-violet-500/50 transition-colors" />
             </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="h-10 px-5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap flex-shrink-0"
-            >
+            <button type="submit" disabled={loading}
+              className="h-10 px-5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap flex-shrink-0">
               <Plus className="w-4 h-4" />
               {loading ? 'Salvando...' : 'Registrar'}
             </button>
@@ -213,7 +197,6 @@ export default function AdminTrackingEvents({ params }: { params: Promise<{ id: 
           <span className="text-xs font-medium text-zinc-600 uppercase tracking-wider">Localização</span>
           <span className="text-xs font-medium text-zinc-600 uppercase tracking-wider text-right">Ação</span>
         </div>
-
         {!details.events || details.events.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center">
@@ -223,10 +206,7 @@ export default function AdminTrackingEvents({ params }: { params: Promise<{ id: 
           </div>
         ) : (
           details.events.map((ev: TrackingEvent, i: number) => (
-            <div
-              key={ev.id}
-              className={`grid grid-cols-[140px_1fr_1fr_60px] items-center px-5 py-3.5 hover:bg-white/[0.02] transition-colors ${i < details.events.length - 1 ? 'border-b border-white/[0.04]' : ''}`}
-            >
+            <div key={ev.id} className={`grid grid-cols-[140px_1fr_1fr_60px] items-center px-5 py-3.5 hover:bg-white/[0.02] transition-colors ${i < details.events.length - 1 ? 'border-b border-white/[0.04]' : ''}`}>
               <div className="flex items-center gap-1.5 text-xs text-zinc-600 font-mono">
                 <Clock className="w-3 h-3 flex-shrink-0" />
                 {new Date(ev.date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
@@ -239,10 +219,8 @@ export default function AdminTrackingEvents({ params }: { params: Promise<{ id: 
                 {ev.location || <span className="text-zinc-700">—</span>}
               </div>
               <div className="flex justify-end">
-                <button
-                  onClick={() => handleDelete(ev.id)}
-                  className="h-7 w-7 rounded-md hover:bg-red-500/10 flex items-center justify-center transition-colors text-zinc-600 hover:text-red-400"
-                >
+                <button onClick={() => handleDelete(ev.id)}
+                  className="h-7 w-7 rounded-md hover:bg-red-500/10 flex items-center justify-center transition-colors text-zinc-600 hover:text-red-400">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
