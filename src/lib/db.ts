@@ -139,13 +139,21 @@ export const query = {
 
   // ─── Auto Update (Automation) ──────────────────────────────────────────────
   activateAutoUpdate: (trackingCodeId: string, templateId: string, startedAt: string) => {
-    db.prepare('UPDATE TrackingCode SET autoTemplateId = ?, autoStartedAt = ?, autoCurrentStep = 0, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(
+    db.prepare('UPDATE TrackingCode SET autoTemplateId = ?, autoStartedAt = ?, autoCurrentStep = -1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(
       templateId, startedAt, trackingCodeId
     );
   },
   deactivateAutoUpdate: (trackingCodeId: string) => {
-    db.prepare('UPDATE TrackingCode SET autoTemplateId = NULL, autoStartedAt = NULL, autoCurrentStep = 0, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(
+    db.prepare('UPDATE TrackingCode SET autoTemplateId = NULL, autoStartedAt = NULL, autoCurrentStep = -1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(
       trackingCodeId
+    );
+  },
+  getActiveAutoUpdates: () => {
+    return db.prepare('SELECT * FROM TrackingCode WHERE autoTemplateId IS NOT NULL').all() as any[];
+  },
+  updateAutoUpdateLastStep: (trackingCodeId: string, stepIndex: number) => {
+    db.prepare('UPDATE TrackingCode SET autoCurrentStep = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(
+      stepIndex, trackingCodeId
     );
   },
 
