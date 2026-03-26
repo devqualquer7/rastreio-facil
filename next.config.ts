@@ -26,18 +26,13 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   serverExternalPackages: ['@prisma/client', 'prisma', 'better-sqlite3'],
+  instrumentationHook: true,
 
-  // Remove informaÃ§Ãµes do servidor nos headers
+  // Remove informações do servidor nos headers
   poweredByHeader: false,
 
-  // Headers de seguranÃ§a em todas as rotas
+  // Headers de segurança em todas as rotas
   async headers() {
     return [
       {
