@@ -173,12 +173,12 @@ export const query = {
   getUserByUsername: (username: string) => db.prepare('SELECT * FROM User WHERE username = ?').get(username) as any,
   getUserByKeyauthKey: (keyauthKey: string) => db.prepare('SELECT * FROM User WHERE keyauthKey = ?').get(keyauthKey) as any,
   getAllUsers: () => db.prepare('SELECT id, username, email, expiresAt, trackingLimit, trackingUsed, active, createdAt FROM User ORDER BY createdAt DESC').all(),
-  createUser: (data: { username: string; email?: string; password: string; registrationKeyId?: string; expiresAt?: string }) => {
+  createUser: (data: { username: string; email?: string; password: string; registrationKeyId?: string; expiresAt?: string; keyauthKey?: string }) => {
     const id = generateId();
     db.prepare(`
-      INSERT INTO User (id, username, email, password, registrationKeyId, expiresAt)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(id, data.username, data.email || null, data.password, data.registrationKeyId || null, data.expiresAt || null);
+      INSERT INTO User (id, username, email, password, registrationKeyId, expiresAt, keyauthKey)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(id, data.username, data.email || null, data.password, data.registrationKeyId || null, data.expiresAt || null, data.keyauthKey || null);
     return { id, ...data };
   },
   updateUser: (id: string, data: Partial<{ active: number; expiresAt: string; trackingLimit: number; trackingUsed: number }>) => {
@@ -234,7 +234,7 @@ export const query = {
 
   // ─── Auto Templates ─────────────────────────────────────────────────────────
   getAutoTemplatesByUserId: (userId: string) => {
-    return db.prepare('SELECT * FROM AutoTemplate WHERE userId = ? ORDER BY createdAt DESC').all(userId) as any[];
+    return db.prepare('SELECT * FROM AutoTemplate WHERe userId = ? ORDER BY createdAt DESC').all(userId) as any[];
   },
   getAutoTemplateById: (id: string) => {
     return db.prepare('SELECT * FROM AutoTemplate WHERE id = ?').get(id) as any;
