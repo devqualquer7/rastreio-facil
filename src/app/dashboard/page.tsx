@@ -1,4 +1,5 @@
 'use client'
+
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Package, Users, Calendar, Clock, AlertTriangle, LayoutDashboard, ArrowRight } from 'lucide-react'
@@ -15,18 +16,15 @@ interface UserData {
 
 export default function DashboardPage() {
   const [user, setUser] = useState<UserData | null>(null)
-  const [trackingsCount, setTrackingsCount] = useState<number | null>(null)
   const [clientsCount, setClientsCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([
       fetch('/api/user/me').then(r => r.json()),
-      fetch('/api/user/tracking-codes').then(r => r.json()),
       fetch('/api/user/clients').then(r => r.json()).catch(() => []),
-    ]).then(([userData, codes, clients]) => {
+    ]).then(([userData, clients]) => {
       if (!userData.error) setUser(userData)
-      setTrackingsCount(Array.isArray(codes) ? codes.length : 0)
       setClientsCount(Array.isArray(clients) ? clients.length : 0)
       setLoading(false)
     }).catch(() => setLoading(false))
@@ -78,11 +76,11 @@ export default function DashboardPage() {
                   </div>
                   <span style={S({ fontSize: 13, color: '#94a3b8' })}>Rastreios</span>
                 </div>
-                <p style={S({ margin: 0, fontSize: 28, fontWeight: 700, color: '#f1f5f9' })}>{trackingsCount ?? '—'}</p>
+                <p style={S({ margin: 0, fontSize: 28, fontWeight: 700, color: '#f1f5f9' })}>{user?.trackingUsed ?? '—'}</p>
                 <p style={S({ margin: '4px 0 0', fontSize: 12, color: '#64748b' })}>{'de ' + (user?.trackingLimit ?? '—') + ' disponíveis'}</p>
-                {user && trackingsCount !== null && user.trackingLimit > 0 && (
+                {user && user.trackingLimit > 0 && (
                   <div style={S({ marginTop: 12, height: 4, borderRadius: 4, background: 'rgba(99,102,241,0.15)', overflow: 'hidden' })}>
-                    <div style={S({ height: '100%', borderRadius: 4, background: '#6366f1', width: Math.min(100, (trackingsCount / user.trackingLimit) * 100) + '%' })} />
+                    <div style={S({ height: '100%', borderRadius: 4, background: '#6366f1', width: Math.min(100, (user.trackingUsed / user.trackingLimit) * 100) + '%' })} />
                   </div>
                 )}
               </div>
@@ -120,6 +118,7 @@ export default function DashboardPage() {
             </div>
 
             <h2 style={S({ margin: '0 0 16px', fontSize: 13, fontWeight: 600, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' })}>Acesso Rápido</h2>
+
             <div style={S({ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12 })}>
               {[
                 { href: '/dashboard/rastreios', Icon: Package, color: '#6366f1', bg: 'rgba(99,102,241,0.07)', bd: 'rgba(99,102,241,0.15)', label: 'Rastreios', desc: 'Gerenciar códigos de rastreio' },
