@@ -27,7 +27,6 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ['@prisma/client', 'prisma', 'better-sqlite3'],
-  instrumentationHook: true,
 
   // Remove informações do servidor nos headers
   poweredByHeader: false,
