@@ -130,10 +130,15 @@ export const query = {
     );
     return { id, ...data };
   },
-  updateTrackingCode: (id: string, data: { description?: string }) => {
-    db.prepare('UPDATE TrackingCode SET description = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(
-      data.description || null, id
-    );
+  updateTrackingCode: (id: string, data: { description?: string; clientId?: string | null }) => {
+    const sets: string[] = [];
+    const values: any[] = [];
+    if ('description' in data) { sets.push('description = ?'); values.push(data.description || null); }
+    if ('clientId' in data) { sets.push('clientId = ?'); values.push(data.clientId || null); }
+    if (sets.length > 0) {
+      values.push(id);
+      db.prepare(`UPDATE TrackingCode SET ${sets.join(', ')}, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`).run(...values);
+    }
   },
   deleteTrackingCode: (id: string) => db.prepare('DELETE FROM TrackingCode WHERE id = ?').run(id),
 
@@ -234,7 +239,7 @@ export const query = {
 
   // ─── Auto Templates ─────────────────────────────────────────────────────────
   getAutoTemplatesByUserId: (userId: string) => {
-    return db.prepare('SELECT * FROM AutoTemplate WHERe userId = ? ORDER BY createdAt DESC').all(userId) as any[];
+    return db.prepare('SELECT * FROM AutoTemplate WHERE userId = ? ORDER BY createdAt DESC').all(userId) as any[];
   },
   getAutoTemplateById: (id: string) => {
     return db.prepare('SELECT * FROM AutoTemplate WHERE id = ?').get(id) as any;
