@@ -1,311 +1,254 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { Package, Plus, Trash2, Loader2, MapPin, X, ChevronDown, ChevronUp, Clock, Calendar, Pencil, Check } from 'lucide-react'
 
-function fixEnc(s: string): string {
-  if (!s) return s
-  try { return new TextDecoder('utf-8').decode(new Uint8Array(s.split('').map(c => c.charCodeAt(0) & 0xff))) } catch { return s }
+import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
+import { Package, Trash2, Search, Plus, ChevronDown } from 'lucide-react'
+
+type Client = { id: string; name: string }
+type TrackingCode = { id: string; code: string; client: Client | null; createdAt: string; events: any[] }
+
+// Lightweight canvas particles
+function Particles() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const resize = () => {
+      canvas.width = canvas.offsetWidth
+      canvas.height = canvas.offsetHeight
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    const dots: { x: number; y: number; r: number; vx: number; vy: number; o: number }[] = []
+    for (let i = 0; i < 40; i++) {
+      dots.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.2 + 0.3,
+        vx: (Math.random() - 0.5) * 0.15,
+        vy: (Math.random() - 0.5) * 0.15,
+        o: Math.random() * 0.4 + 0.1,
+      })
+    }
+
+    let raf: number
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      dots.forEach(d => {
+        d.x += d.vx
+        d.y += d.vy
+        if (d.x < 0) d.x = canvas.width
+        if (d.x > canvas.width) d.x = 0
+        if (d.y < 0) d.y = canvas.height
+        if (d.y > canvas.height) d.y = 0
+        ctx.beginPath()
+        ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(139,92,246,${d.o})`
+        ctx.fill()
+      })
+      // lines between close dots
+      for (let i = 0; i < dots.length; i++) {
+        for (let j = i + 1; j < dots.length; j++) {
+          const dx = dots[i].x - dots[j].x
+          const dy = dots[i].y - dots[j].y
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          if (dist < 80) {
+            ctx.beginPath()
+            ctx.moveTo(dots[i].x, dots[i].y)
+            ctx.lineTo(dots[j].x, dots[j].y)
+            ctx.strokeStyle = `rgba(139,92,246,${0.08 * (1 - dist / 80)})`
+            ctx.lineWidth = 0.5
+            ctx.stroke()
+          }
+        }
+      }
+      raf = requestAnimationFrame(draw)
+    }
+    draw()
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize) }
+  }, [])
+
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 }
 
-interface TrackingEvent { id: string; status: string; location?: string; date: string }
-interface Client { id: string; name: string }
-interface TrackingCode {
-  id: string; code: string; clientId?: string; client?: { id: string; name: string } | null
-  events: TrackingEvent[]; createdAt: string
-}
-
-export default function TrackingCodesPage() {
+export default function AdminTrackingCodes() {
   const [codes, setCodes] = useState<TrackingCode[]>([])
   const [clients, setClients] = useState<Client[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [customCode, setCustomCode] = useState('')
-  const [clientId, setClientId] = useState('')
-  const [deliveryDate, setDeliveryDate] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [expanded, setExpanded] = useState<string | null>(null)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editClientId, setEditClientId] = useState('')
-  const [editDeliveryDate, setEditDeliveryDate] = useState('')
-  const [editSaving, setEditSaving] = useState(false)
-  const [showEventFormFor, setShowEventFormFor] = useState<string | null>(null)
-  const [newEvtStatus, setNewEvtStatus] = useState('')
-  const [newEvtLocation, setNewEvtLocation] = useState('')
-  const [newEvtDate, setNewEvtDate] = useState('')
-  const [savingEvent, setSavingEvent] = useState(false)
+  const [newCode, setNewCode] = useState('')
+  const [selectedClientId, setSelectedClientId] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [search, setSearch] = useState('')
 
-  const load = async () => {
+  const fetchData = async () => {
+    try {
+      const [codesRes, clientsRes] = await Promise.all([
+        fetch('/api/tracking-codes'),
+        fetch('/api/clients'),
+      ])
+      if (codesRes.ok) setCodes(await codesRes.json())
+      if (clientsRes.ok) setClients(await clientsRes.json())
+    } catch (e) { console.error(e) }
+  }
+
+  useEffect(() => { fetchData() }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     setLoading(true)
     try {
-      const [rc, rclients] = await Promise.all([
-        fetch('/api/tracking-codes'),
-        fetch('/api/clients')
-      ])
-      const dc = await rc.json()
-      const dclients = await rclients.json()
-      setCodes(Array.isArray(dc) ? dc : (dc.codes || []))
-      setClients(Array.isArray(dclients) ? dclients : (dclients.clients || []))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { load() }, [])
-
-  const create = async () => {
-    setSaving(true)
-    try {
-      const finalCode = customCode.trim().toUpperCase() || undefined
-      const r = await fetch('/api/tracking-codes', {
+      await fetch('/api/tracking-codes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: finalCode, clientId: clientId || undefined })
+        body: JSON.stringify({ code: newCode, clientId: selectedClientId || null }),
       })
-      const d = await r.json()
-      if (!r.ok) { alert(d.error || 'Erro ao criar rastreio'); return }
-      if (deliveryDate && d.id) {
-        const dateFormatted = new Date(deliveryDate).toLocaleDateString('pt-BR')
-        await fetch('/api/tracking-events', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            trackingCodeId: d.id,
-            status: `Previsão de entrega: ${dateFormatted}`,
-            date: new Date(deliveryDate).toISOString()
-          })
-        })
-      }
-      setCustomCode(''); setClientId(''); setDeliveryDate(''); setShowForm(false); load()
-    } finally { setSaving(false) }
+      setNewCode(''); setSelectedClientId('')
+      fetchData()
+    } finally { setLoading(false) }
   }
 
-  const startEdit = (tc: TrackingCode) => {
-    setEditingId(tc.id)
-    setEditClientId(tc.clientId || '')
-    const previsaoEvt = tc.events.find(e => e.status.toLowerCase().startsWith('previs'))
-    if (previsaoEvt) {
-      const d = new Date(previsaoEvt.date)
-      const yyyy = d.getFullYear()
-      const mm = String(d.getMonth() + 1).padStart(2, '0')
-      const dd = String(d.getDate()).padStart(2, '0')
-      setEditDeliveryDate(`${yyyy}-${mm}-${dd}`)
-    } else {
-      setEditDeliveryDate('')
-    }
-  }
-
-  const saveEdit = async (id: string) => {
-    setEditSaving(true)
-    try {
-      const r = await fetch(`/api/tracking-codes/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId: editClientId || null, deliveryDate: editDeliveryDate || null })
-      })
-      if (!r.ok) { const d = await r.json(); alert(d.error || 'Erro ao editar'); return }
-      setEditingId(null); load()
-    } finally { setEditSaving(false) }
-  }
-
-  const remove = async (id: string) => {
-    if (!confirm('Remover este rastreio e todos os seus eventos?')) return
+  const handleDelete = async (id: string) => {
+    if (!confirm('Todos os eventos deste rastreio também serão deletados. Continuar?')) return
     await fetch(`/api/tracking-codes/${id}`, { method: 'DELETE' })
-    load()
+    fetchData()
   }
 
-  const inp: React.CSSProperties = {
-    background: 'rgba(15,15,30,0.6)', border: '1px solid rgba(99,102,241,0.2)',
-    borderRadius: '0.5rem', padding: '0.5625rem 0.75rem', color: '#f1f5f9',
-    fontSize: '0.875rem', outline: 'none', width: '100%', boxSizing: 'border-box'
-  }
-  const sel: React.CSSProperties = { ...inp, cursor: 'pointer' }
-
-  const addEvent = async (trackingCodeId: string) => {
-    if (!newEvtStatus.trim()) return
-    setSavingEvent(true)
-    try {
-      await fetch('/api/tracking-events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackingCodeId, status: newEvtStatus.trim(), location: newEvtLocation.trim(), date: newEvtDate || new Date().toISOString() }),
-      })
-      setNewEvtStatus(''); setNewEvtLocation(''); setNewEvtDate('')
-      setShowEventFormFor(null)
-      await load()
-    } finally { setSavingEvent(false) }
-  }
-
-  const deleteEvent = async (eventId: string) => {
-    if (!confirm('Remover este evento?')) return
-    await fetch(`/api/tracking-events/${eventId}`, { method: 'DELETE' })
-    await load()
-  }
+  const filtered = codes.filter(c =>
+    c.code.toLowerCase().includes(search.toLowerCase()) ||
+    (c.client?.name && c.client.name.toLowerCase().includes(search.toLowerCase()))
+  )
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ width: '2.25rem', height: '2.25rem', borderRadius: '0.625rem', background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Package size={16} color="#818cf8" />
-          </div>
-          <div>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f1f5f9', margin: 0 }}>Rastreios</h1>
-            <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: 0 }}>{codes.length} código{codes.length !== 1 ? 's' : ''}</p>
-          </div>
+    <div className="max-w-5xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-white">Rastreios</h1>
+          <p className="text-sm text-zinc-500 mt-0.5">Gerencie os códigos de rastreamento</p>
         </div>
-        <button onClick={() => setShowForm(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.625rem', padding: '0.5rem 1rem', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
-          {showForm ? <X size={14} /> : <Plus size={14} />}
-          {showForm ? 'Cancelar' : 'Novo rastreio'}
-        </button>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar código ou cliente..."
+            className="h-9 pl-9 pr-4 bg-[#141414] border border-white/[0.06] rounded-lg text-sm text-zinc-300 placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 transition-colors w-64"
+          />
+        </div>
       </div>
 
-      {showForm && (
-        <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)', borderRadius: '0.875rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Cliente (opcional)
-              </label>
-              <select value={clientId} onChange={e => setClientId(e.target.value)} style={sel}>
-                <option value="">— Sem cliente vinculado —</option>
-                {clients.map(c => <option key={c.id} value={c.id}>{fixEnc(c.name)}</option>)}
+      {/* Glass form card with particles */}
+      <div className="relative rounded-2xl overflow-hidden">
+        {/* Particles layer */}
+        <div className="absolute inset-0 bg-[#0d0d14]">
+          <Particles />
+        </div>
+        {/* Glass overlay */}
+        <div className="relative z-10 border border-violet-500/20 rounded-2xl bg-violet-950/10 backdrop-blur-sm p-6">
+          <p className="text-xs font-medium text-violet-400 uppercase tracking-widest mb-4">Novo Rastreio</p>
+          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 items-end">
+            <div className="flex-1 space-y-1.5">
+              <label className="text-xs text-zinc-500">Código (deixe vazio para gerar automaticamente)</label>
+              <input
+                value={newCode}
+                onChange={e => setNewCode(e.target.value.toUpperCase())}
+                placeholder="Ex: BR123456789"
+                className="w-full h-10 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm font-mono text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50 transition-colors tracking-widest"
+              />
+            </div>
+            <div className="flex-1 space-y-1.5">
+              <label className="text-xs text-zinc-500">Cliente (opcional)</label>
+              <select
+                value={selectedClientId}
+                onChange={e => setSelectedClientId(e.target.value)}
+                className="w-full h-10 px-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-zinc-400 focus:outline-none focus:border-violet-500/50 transition-colors appearance-none cursor-pointer"
+              >
+                <option value="" className="bg-[#1a1a1a]">Sem cliente</option>
+                {clients.map(c => <option key={c.id} value={c.id} className="bg-[#1a1a1a]">{c.name}</option>)}
               </select>
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Calendar size={11} /> Previsão de entrega</span>
-              </label>
-              <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} style={inp} />
-            </div>
-          </div>
-          <div style={{ marginBottom: '0.75rem' }}>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Código personalizado (opcional)
-            </label>
-            <input
-              type="text"
-              value={customCode}
-              onChange={e => setCustomCode(e.target.value.toUpperCase())}
-              placeholder="Deixe em branco para gerar automaticamente (LT...BR)"
-              style={inp}
-            />
-          </div>
-          <p style={{ fontSize: '0.75rem', color: '#475569', margin: '0 0 0.75rem' }}>
-            {customCode.trim() ? `Código: ${customCode.trim().toUpperCase()}` : 'O código será gerado automaticamente no formato LT...BR.'}
-          </p>
-          <button onClick={create} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: saving ? 'rgba(79,70,229,0.4)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: 600, fontSize: '0.875rem', cursor: saving ? 'not-allowed' : 'pointer' }}>
-            {saving ? <Loader2 size={14} /> : <Plus size={14} />}
-            Criar rastreio
-          </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="h-10 px-5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap flex-shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              {loading ? 'Criando...' : 'Criar Rastreio'}
+            </button>
+          </form>
         </div>
-      )}
+      </div>
 
-      {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem', color: '#64748b' }}><Loader2 size={24} /></div>
-      ) : codes.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '3rem', color: '#475569' }}>
-          <Package size={32} style={{ margin: '0 auto 0.75rem', display: 'block', opacity: 0.4 }} />
-          <p style={{ margin: 0 }}>Nenhum rastreio cadastrado</p>
+      {/* Table */}
+      <div className="bg-[#141414] border border-white/[0.06] rounded-xl overflow-hidden">
+        {/* Table header */}
+        <div className="grid grid-cols-[1fr_1fr_120px_220px] px-5 py-3 border-b border-white/[0.06]">
+          <span className="text-xs font-medium text-zinc-600 uppercase tracking-wider">Código</span>
+          <span className="text-xs font-medium text-zinc-600 uppercase tracking-wider">Cliente</span>
+          <span className="text-xs font-medium text-zinc-600 uppercase tracking-wider">Data</span>
+          <span className="text-xs font-medium text-zinc-600 uppercase tracking-wider text-right">Ações</span>
         </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {codes.map(tc => {
-            const isEditing = editingId === tc.id
-            const previsaoEvt = tc.events.find(e => e.status.toLowerCase().startsWith('previs'))
-            const realEvents = tc.events.filter(e => !e.status.toLowerCase().startsWith('previs'))
-            return (
-              <div key={tc.id} style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '0.75rem', overflow: 'hidden' }}>
-                {isEditing ? (
-                  <div style={{ padding: '0.875rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    <p style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.9375rem', margin: 0, fontFamily: 'monospace' }}>{tc.code}</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Cliente</label>
-                        <select value={editClientId} onChange={e => setEditClientId(e.target.value)} style={sel}>
-                          <option value="">— Sem cliente —</option>
-                          {clients.map(c => <option key={c.id} value={c.id}>{fixEnc(c.name)}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Previsão de entrega</label>
-                        <input type="date" value={editDeliveryDate} onChange={e => setEditDeliveryDate(e.target.value)} style={inp} />
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={() => saveEdit(tc.id)} disabled={editSaving} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontWeight: 600, fontSize: '0.8125rem', cursor: editSaving ? 'not-allowed' : 'pointer' }}>
-                        {editSaving ? <Loader2 size={12} /> : <Check size={12} />} Salvar
-                      </button>
-                      <button onClick={() => setEditingId(null)} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'rgba(100,116,139,0.15)', color: '#94a3b8', border: '1px solid rgba(100,116,139,0.2)', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontWeight: 600, fontSize: '0.8125rem', cursor: 'pointer' }}>
-                        <X size={12} /> Cancelar
-                      </button>
-                    </div>
-                  </div>
+
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center">
+              <Package className="w-5 h-5 text-zinc-600" />
+            </div>
+            <p className="text-sm text-zinc-500">
+              {search ? 'Nenhum resultado encontrado' : 'Nenhum rastreio cadastrado'}
+            </p>
+            {search && (
+              <button onClick={() => setSearch('')} className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
+                Limpar busca
+              </button>
+            )}
+          </div>
+        ) : (
+          filtered.map((tc, i) => (
+            <div
+              key={tc.id}
+              className={`grid grid-cols-[1fr_1fr_120px_220px] items-center px-5 py-3.5 hover:bg-white/[0.02] transition-colors ${i < filtered.length - 1 ? 'border-b border-white/[0.04]' : ''}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-md bg-violet-600/10 border border-violet-500/20 flex items-center justify-center flex-shrink-0">
+                  <Package className="w-3 h-3 text-violet-400" />
+                </div>
+                <span className="text-sm font-mono font-medium text-zinc-200 tracking-wider">{tc.code}</span>
+              </div>
+              <div>
+                {tc.client ? (
+                  <span className="text-sm text-zinc-400">{tc.client.name}</span>
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', padding: '0.875rem 1rem' }}>
-                    <div style={{ width: '2rem', height: '2rem', borderRadius: '0.5rem', background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <MapPin size={13} color="#818cf8" />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.9375rem', margin: 0, fontFamily: 'monospace' }}>{tc.code}</p>
-                      {tc.client && <p style={{ color: '#64748b', fontSize: '0.8125rem', margin: '0.125rem 0 0' }}>Cliente: {fixEnc(tc.client.name)}</p>}
-                      {previsaoEvt && <p style={{ color: '#64748b', fontSize: '0.75rem', margin: '0.125rem 0 0' }}>{previsaoEvt.status}</p>}
-                    </div>
-                    <span style={{ fontSize: '0.75rem', color: '#475569', flexShrink: 0 }}>{realEvents.length} evento{realEvents.length !== 1 ? 's' : ''}</span>
-                    {realEvents.length > 0 && (
-                      <button onClick={() => setExpanded(expanded === tc.id ? null : tc.id)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '0.25rem', display: 'flex' }}>
-                        {expanded === tc.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      </button>
-                    )}
-                    <button onClick={() => startEdit(tc)} style={{ width: '1.875rem', height: '1.875rem', borderRadius: '0.5rem', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', color: '#818cf8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Pencil size={13} />
-                    </button>
-                    <button onClick={() => remove(tc.id)} style={{ width: '1.875rem', height: '1.875rem', borderRadius: '0.5rem', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                )}
-                {!isEditing && expanded === tc.id && realEvents.length > 0 && (
-                  <div style={{ borderTop: '1px solid rgba(99,102,241,0.1)', padding: '0.75rem 1rem 0.75rem 3.875rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {realEvents.map(ev => (
-                      <div key={ev.id} style={{ fontSize: '0.8125rem', display: 'flex', gap: '0.5rem', alignItems: 'baseline', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline', flexWrap: 'wrap', flex: 1 }}>
-                          <span style={{ fontWeight: 600, color: '#94a3b8' }}>{ev.status}</span>
-                          {ev.location && <span style={{ color: '#64748b' }}>{ev.location}</span>}
-                          <span style={{ color: '#475569', fontSize: '0.75rem' }}>{ev.date ? new Date(ev.date).toLocaleDateString('pt-BR') : ''}</span>
-                        </div>
-                        <button onClick={() => deleteEvent(ev.id)} title="Remover evento"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '0 2px', fontSize: '0.75rem', lineHeight: 1 }}>
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  
-                    <button
-                      onClick={() => setShowEventFormFor(showEventFormFor === tc.id ? null : tc.id)}
-                      style={{ marginTop: '0.5rem', fontSize: '0.75rem', padding: '2px 8px', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '0.375rem', color: '#a5b4fc', cursor: 'pointer' }}>
-                      {showEventFormFor === tc.id ? '✕ Fechar' : '+ Adicionar Evento'}
-                    </button>
-                    {showEventFormFor === tc.id && (
-                      <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-                        <input placeholder="Status do evento" value={newEvtStatus} onChange={e => setNewEvtStatus(e.target.value)}
-                          style={{ ...inp, fontSize: '0.8125rem', padding: '4px 8px' }} />
-                        <input placeholder="Local (opcional)" value={newEvtLocation} onChange={e => setNewEvtLocation(e.target.value)}
-                          style={{ ...inp, fontSize: '0.8125rem', padding: '4px 8px' }} />
-                        <input type="datetime-local" value={newEvtDate} onChange={e => setNewEvtDate(e.target.value)}
-                          style={{ ...inp, fontSize: '0.8125rem', padding: '4px 8px' }} />
-                        <button onClick={() => addEvent(tc.id)} disabled={savingEvent || !newEvtStatus.trim()}
-                          style={{ padding: '4px 12px', borderRadius: '0.375rem', fontSize: '0.8125rem', cursor: 'pointer', background: savingEvent ? 'rgba(99,102,241,0.3)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: 'white', border: 'none', fontWeight: 600 }}>
-                          {savingEvent ? 'Salvando...' : 'Salvar Evento'}
-                        </button>
-                      </div>
-                    )}
-                    </div>
+                  <span className="text-sm text-zinc-600 italic">Sem cliente</span>
                 )}
               </div>
-            )
-          })}
-        </div>
-      )}
+              <span className="text-xs text-zinc-600 font-mono">
+                {new Date(tc.createdAt).toLocaleDateString('pt-BR')}
+              </span>
+              <div className="flex items-center justify-end gap-1.5">
+                <span className="text-xs px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] text-zinc-500 tabular-nums">
+                  {tc.events.length} evento{tc.events.length !== 1 ? 's' : ''}
+                </span>
+                <Link href={`/admin/tracking-codes/${tc.code}`}>
+                  <button className="h-7 px-2.5 rounded-md bg-violet-600/10 hover:bg-violet-600/20 border border-violet-500/20 flex items-center gap-1 transition-colors text-violet-400 text-xs font-semibold">
+                    Gerenciar <ChevronDown className="w-3 h-3" />
+                  </button>
+                </Link>
+                <button
+                  onClick={() => handleDelete(tc.id)}
+                  className="h-7 w-7 rounded-md hover:bg-red-500/10 flex items-center justify-center transition-colors text-zinc-600 hover:text-red-400"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   )
 }
