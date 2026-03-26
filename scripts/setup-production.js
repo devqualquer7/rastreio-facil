@@ -7,12 +7,23 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 
-const dbPath = process.env.DATABASE_URL
+// Resolve DB path: use DATABASE_URL if set, fallback to local prisma/dev.db
+let dbPath = process.env.DATABASE_URL
   ? process.env.DATABASE_URL.replace('file:', '')
   : path.join(__dirname, '..', 'prisma', 'dev.db');
 
-const dbDir = path.dirname(dbPath);
-if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+// During build on Render, /data (Persistent Disk) is not mounted.
+// Fall back to an ephemeral path so postinstall can complete.
+try {
+  const dbDir = path.dirname(dbPath);
+  if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+} catch {
+  console.log('Aviso: não foi possível acessar', path.dirname(dbPath), '(provável fase de build).');
+  console.log('Usando caminho alternativo para build...');
+  dbPath = path.join(__dirname, '..', 'prisma', 'dev.db');
+  const fallbackDir = path.dirname(dbPath);
+  if (!fs.existsSync(fallbackDir)) fs.mkdirSync(fallbackDir, { recursive: true });
+}
 
 const db = new Database(dbPath);
 console.log('Banco:', dbPath);
@@ -115,6 +126,7 @@ db.exec(`
 
 // Migração segura: adiciona colunas novas sem quebrar DBs existentes
 const migrate = (sql) => { try { db.exec(sql); } catch(e) {} };
+migrate('ALTER TABLE Client ADD COLUMN userId TEXT');
 migrate('ALTER TABLE TrackingCode ADD COLUMN userId TEXT');
 migrate('ALTER TABLE TrackingCode ADD COLUMN description TEXT');
 migrate('ALTER TABLE User ADD COLUMN keyauthKey TEXT');
