@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     if (expectedToken) {
       const webhookToken = request.headers.get('x-pushinpay-token')
         || request.headers.get('x-webhook-token')
-        || request.headers.get('authorization')?.replace(/^Bearer\\s+/i, '')
+        || request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
       if (webhookToken && webhookToken !== expectedToken) {
         console.warn('[Webhook] Token mismatch — rejecting')
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
