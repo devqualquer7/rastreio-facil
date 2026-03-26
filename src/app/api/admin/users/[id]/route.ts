@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
 import { query } from '@/lib/db'
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -25,10 +24,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       query.updateUser(id, { trackingLimit: newLimit })
     } else if (action === 'set_expiry' && body.expiresAt) {
       query.updateUser(id, { expiresAt: new Date(body.expiresAt).toISOString() })
-    } else if (action === 'reset_password') {
-      const hashed = await bcrypt.hash('123456', 12)
-      query.updateUserPassword(id, hashed)
-      return NextResponse.json({ success: true, message: 'Senha resetada para 123456' })
     }
 
     const updated = query.getUserById(id)
