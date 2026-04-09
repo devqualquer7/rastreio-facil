@@ -77,7 +77,7 @@ export default function GenerateLinksPFPage() {
         setResults(prev => [...newResults, ...prev])
       }
     } catch {
-      setError('Erro de conex\u00e3o. Tente novamente.')
+      setError('Erro de conexão. Tente novamente.')
     } finally {
       setLoading(false)
     }
@@ -97,7 +97,7 @@ export default function GenerateLinksPFPage() {
         </div>
         <div>
           <h1 className="text-xl font-bold text-white">Links de Pagamento - PF</h1>
-          <p className="text-sm text-zinc-500">Gere cobran\u00e7as PIX com valor personalizado (Pessoa F\u00edsica)</p>
+          <p className="text-sm text-zinc-500">Gere cobranças PIX com valor personalizado (Pessoa Física)</p>
         </div>
       </div>
 
@@ -129,7 +129,7 @@ export default function GenerateLinksPFPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-1.5">Descri\u00e7\u00e3o <span className="text-zinc-600">(opcional)</span></label>
+            <label className="block text-sm font-medium text-zinc-300 mb-1.5">Descrição <span className="text-zinc-600">(opcional)</span></label>
             <input
               type="text"
               value={description}
@@ -160,7 +160,7 @@ export default function GenerateLinksPFPage() {
       {results.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">C\u00f3digos Gerados ({results.length})</h2>
+            <h2 className="text-lg font-semibold text-white">Códigos Gerados ({results.length})</h2>
             <button
               onClick={checkStatuses}
               className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition-colors"
@@ -194,7 +194,7 @@ export default function GenerateLinksPFPage() {
                   <button
                     onClick={() => handleCopy(pix.qrCode, pix.id)}
                     className="flex-shrink-0 p-2 hover:bg-white/[0.06] rounded-md transition-colors"
-                    title="Copiar c\u00f3digo PIX"
+                    title="Copiar código PIX"
                   >
                     {copiedId === pix.id ? (
                       <Check className="w-4 h-4 text-emerald-400" />
