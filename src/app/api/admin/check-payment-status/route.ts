@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const statuses = await Promise.all(
       ids.map(async (id: string) => {
         try {
-          const res = await fetch(`https://api.pushinpay.com.br/api/pix/cashIn/${id}`, {
+          const res = await fetch(`https://api.pushinpay.com.br/api/transactions/${id}`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Accept': 'application/json',
@@ -36,20 +36,8 @@ export async function POST(request: NextRequest) {
             const data = await res.json()
             console.log(`[CheckStatus] ID: ${id} | Response:`, JSON.stringify(data).substring(0, 500))
 
-            // Check multiple possible status field locations
-            const status = (
-              data.status ||
-              data.payment_status ||
-              data.situation ||
-              (data.data && data.data.status) ||
-              (data.transaction && data.transaction.status) ||
-              (data.pix && data.pix.status) ||
-              ''
-            ).toString().toLowerCase()
-
-            // end_to_end_id presence means PIX was received
+            const status = (data.status || '').toString().toLowerCase()
             const hasEndToEnd = !!(data.end_to_end_id || data.endToEndId || data.e2e_id)
-
             const isPaid = hasEndToEnd || ['paid', 'completed', 'approved', 'confirmed', 'received'].includes(status)
 
             console.log(`[CheckStatus] ID: ${id} | status: ${status} | hasEndToEnd: ${hasEndToEnd} | isPaid: ${isPaid}`)
