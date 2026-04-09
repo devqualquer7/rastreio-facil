@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Package, Users, LayoutDashboard, LogOut, Menu, X, UserCog } from 'lucide-react'
+import { Package, Users, LayoutDashboard, LogOut, Menu, X, UserCog , LinkIcon} from 'lucide-react'
 import { useState } from 'react'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -23,6 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/clients', icon: Users, label: 'Clientes' },
     { href: '/admin/tracking-codes', icon: Package, label: 'Rastreios' },
     { href: '/admin/users', icon: UserCog, label: 'Usuários' },
+    { href: '/admin/generate-links', icon: LinkIcon, label: 'Gerar Links' },
   ]
 
   return (
