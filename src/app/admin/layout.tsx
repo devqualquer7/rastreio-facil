@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Package, Users, LayoutDashboard, LogOut, Menu, X, UserCog, LinkIcon } from 'lucide-react'
+import { Package, Users, LayoutDashboard, LogOut, Menu, X, UserCog, LinkIcon, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -25,23 +25,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/users', icon: UserCog, label: 'Usuários' },
     { href: '/admin/generate-links', icon: LinkIcon, label: 'Links PF' },
     { href: '/admin/generate-links-pj', icon: LinkIcon, label: 'Links PJ' },
+    { href: '/admin/links-paradise', icon: Sparkles, label: 'Links Paradise' },
   ]
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-zinc-100 flex">
-      {/* Mobile overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-30 bg-black/60 md:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
-      {/* Sidebar */}
       <aside className={`
-        fixed inset-y-0 left-0 z-40 w-56 bg-[#0f0f0f] border-r border-white/[0.06] flex flex-col
-        transition-transform duration-200 md:translate-x-0
-        ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
+        fixed inset-y-0 left-0 z-40 w-56 bg-[#0f0f0f] border-r border-white/[0.06]
+        flex flex-col transition-transform duration-200
+        md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         md:static md:flex
       `}>
-        {/* Logo */}
         <div className="h-14 flex items-center px-5 border-b border-white/[0.06]">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center flex-shrink-0">
@@ -51,7 +49,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           {navItems.map((item) => {
             const isActive = pathname === item.href
@@ -73,7 +70,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
 
-        {/* Footer */}
         <div className="px-3 pb-4 border-t border-white/[0.06] pt-3">
           <button
             onClick={handleLogout}
@@ -85,9 +81,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile topbar */}
         <div className="md:hidden h-14 border-b border-white/[0.06] flex items-center justify-between px-4 bg-[#0f0f0f]">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md bg-violet-600 flex items-center justify-center">
