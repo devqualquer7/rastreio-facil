@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
         amount: valueInCents,
         description: description || 'Pagamento PIX',
         reference,
-        source: 'api_externa',
+        productHash: 'prod_41f8d604222951de',
         customer: {
           name: 'Cliente',
           email: 'cliente@pagamento.com',
