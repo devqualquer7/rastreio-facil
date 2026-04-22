@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const reference = \`RF-\${randomUUID().substring(0, 8).toUpperCase()}\`
+    const reference = 'RF-' + randomUUID().substring(0, 8).toUpperCase()
 
     const pixRes = await fetch('https://multi.paradisepags.com/api/v1/transaction.php', {
       method: 'POST',
