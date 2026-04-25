@@ -50,6 +50,11 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith('/api/admin')) {
+    // Bypass session check for /api/admin/generate-batch
+    // (it has its own Bearer token authentication)
+    if (pathname === '/api/admin/generate-batch') {
+      return response
+    }
     const cookie = request.cookies.get('session')
     if (!cookie) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     const session = await verifyToken(cookie.value)
