@@ -50,9 +50,9 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith('/api/admin')) {
-    // Bypass session check for /api/admin/generate-batch
-    // (it has its own Bearer token authentication)
-    if (pathname === '/api/admin/generate-batch') {
+    // Bypass session check for /api/admin/generate-batch and /api/admin/check-batch-status
+    // (they have their own Bearer token authentication)
+    if (pathname === '/api/admin/generate-batch' || pathname === '/api/admin/check-batch-status') {
       return response
     }
     const cookie = request.cookies.get('session')
