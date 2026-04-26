@@ -50,9 +50,17 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith('/api/admin')) {
-    // Bypass session check for /api/admin/generate-batch and /api/admin/check-batch-status
-    // (they have their own Bearer token authentication)
-    if (pathname === '/api/admin/generate-batch' || pathname === '/api/admin/check-batch-status') {
+    // Bypass session check for endpoints that have their own auth:
+    //  - generate-batch, check-batch-status: Bearer token (BATCH_API_TOKEN)
+    //  - bridge-auth: signed by desktop with BRIDGE_HMAC_SECRET (or admin session for mobile)
+    //  - bridge-callback: signed by desktop with BRIDGE_HMAC_SECRET
+    // NOTE: /api/admin/mobile/* still uses the admin session cookie (it's user-facing)
+    if (
+      pathname === '/api/admin/generate-batch' ||
+      pathname === '/api/admin/check-batch-status' ||
+      pathname === '/api/admin/bridge-auth' ||
+      pathname === '/api/admin/bridge-callback'
+    ) {
       return response
     }
     const cookie = request.cookies.get('session')
