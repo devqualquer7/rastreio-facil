@@ -156,11 +156,22 @@ export default function MobilePage() {
     }
   }
 
+  const [activeSlot, setActiveSlot] = useState<number | null>(null)
+
   // Load creds
   async function loadCreds() {
     try {
       const data = await sendCommand('mp:list-creds')
-      setCreds(Array.isArray(data) ? data : [])
+      // Handler returns { creds: [...], activeSlot } — but be defensive against
+      // older versions returning a bare array.
+      if (Array.isArray(data)) {
+        setCreds(data)
+      } else if (data && Array.isArray(data.creds)) {
+        setCreds(data.creds)
+        if (typeof data.activeSlot === 'number') setActiveSlot(data.activeSlot)
+      } else {
+        setCreds([])
+      }
     } catch (e: any) {
       showToast('Não foi possível carregar contas: ' + e.message, 'err')
     }
@@ -263,6 +274,7 @@ export default function MobilePage() {
         {tab === 'gerar' && (
           <GerarTab
             creds={creds}
+            activeSlot={activeSlot}
             online={status === 'online'}
             sendCommand={sendCommand}
             showToast={showToast}
@@ -404,9 +416,10 @@ function TabBtn({ active, onClick, icon, children }: any) {
 // ─── Gerar tab ──────────────────────────────────────────
 
 function GerarTab({
-  creds, online, sendCommand, showToast, onReloadCreds
+  creds, activeSlot, online, sendCommand, showToast, onReloadCreds
 }: {
   creds: Cred[]
+  activeSlot: number | null
   online: boolean
   sendCommand: (cmd: string, args?: any) => Promise<any>
   showToast: (m: string, t?: any) => void
@@ -420,6 +433,13 @@ function GerarTab({
   const [generating, setGenerating] = useState(false)
   const [generated, setGenerated]   = useState<GeneratedLink | null>(null)
   const [copied, setCopied] = useState(false)
+
+  // Preselect the active slot when creds load
+  useEffect(() => {
+    if (selectedSlot === null && activeSlot && creds.some(c => c.slot === activeSlot && !c.banned)) {
+      setSelectedSlot(activeSlot)
+    }
+  }, [creds, activeSlot])
 
   const selectedCred = creds.find(c => c.slot === selectedSlot)
 
@@ -687,6 +707,11 @@ function GerarTab({
                       <div className="flex-1 text-left min-w-0">
                         <div className="font-mono text-sm font-bold truncate">{c.name}</div>
                       </div>
+                      {activeSlot === c.slot && (
+                        <span className="text-[8px] font-mono font-bold tracking-widest text-yellow-400 bg-yellow-400/10 border border-yellow-400/30 rounded px-1.5 py-0.5 flex-shrink-0">
+                          ATIVA
+                        </span>
+                      )}
                       {selectedSlot === c.slot && (
                         <Check size={14} className="text-[#ff2b4a] flex-shrink-0" />
                       )}
