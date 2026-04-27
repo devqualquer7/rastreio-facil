@@ -428,7 +428,7 @@ function GerarTab({
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
   const [accountPicker, setAccountPicker] = useState(false)
   const [search, setSearch] = useState('')
-  const [title, setTitle]   = useState('')
+  const [title, setTitle]   = useState('Antonio Auto Peças LTDA - CNPJ 27.340.074/0001-23')
   const [amount, setAmount] = useState('')
   const [generating, setGenerating] = useState(false)
   const [generated, setGenerated]   = useState<GeneratedLink | null>(null)
@@ -505,7 +505,7 @@ function GerarTab({
 
   function reset() {
     setGenerated(null)
-    setTitle('')
+    setTitle('Antonio Auto Peças LTDA - CNPJ 27.340.074/0001-23')
     setAmount('')
   }
 
