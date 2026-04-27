@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Package, Users, LayoutDashboard, LogOut, Menu, X, UserCog, LinkIcon, Sparkles } from 'lucide-react'
+import { Package, Users, LayoutDashboard, LogOut, Menu, X, UserCog, LinkIcon, Sparkles, Smartphone } from 'lucide-react'
 import { useState } from 'react'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -11,6 +11,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [mobileOpen, setMobileOpen] = useState(false)
 
   if (pathname === '/admin/login') return <>{children}</>
+  if (pathname === '/admin/mobile') return <>{children}</>
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -26,6 +27,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/generate-links', icon: LinkIcon, label: 'Links PF' },
     { href: '/admin/generate-links-pj', icon: LinkIcon, label: 'Links PJ' },
     { href: '/admin/links-paradise', icon: Sparkles, label: 'Links Paradise' },
+    { href: '/admin/mobile', icon: Smartphone, label: 'Mobile' },
   ]
 
   return (
