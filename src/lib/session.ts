@@ -1,7 +1,9 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 
-const secretKey = process.env.SESSION_SECRET || 'super-secret-key-that-should-be-in-env'
+const secretKey = process.env.SESSION_SECRET
+if (!secretKey) throw new Error('SESSION_SECRET env var is required')
+
 const key = new TextEncoder().encode(secretKey)
 
 export async function encrypt(payload: any, expiresIn = '24h') {
@@ -39,30 +41,7 @@ export async function deleteSession() {
 
 export async function getSession() {
   const cookieStore = await cookies()
-  const sessionCookie = cookieStore.get('session')
-  if (!sessionCookie) return null
-  return await decrypt(sessionCookie.value)
-}
-
-export async function createUserSession(userId: string) {
-  const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-  const session = await encrypt({ userId, expires }, '7d')
-  const cookieStore = await cookies()
-  cookieStore.set('user-session', session, {
-    expires, httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax', path: '/',
-  })
-}
-
-export async function deleteUserSession() {
-  const cookieStore = await cookies()
-  cookieStore.delete('user-session')
-}
-
-export async function getUserSession() {
-  const cookieStore = await cookies()
-  const sessionCookie = cookieStore.get('user-session')
-  if (!sessionCookie) return null
-  return await decrypt(sessionCookie.value)
+  const session = cookieStore.get('session')?.value
+  if (!session) return null
+  return await decrypt(session)
 }
