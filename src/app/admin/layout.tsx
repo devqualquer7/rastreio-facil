@@ -8,7 +8,7 @@ import { useState } from 'react'
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [mobileOpen, setMobileOpen] = useState(false)h
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   if (pathname === '/admin/login') return <>{children}</>
   if (pathname === '/admin/mobile') return <>{children}</>
@@ -27,7 +27,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/generate-links', icon: LinkIcon, label: 'Links PF' },
     { href: '/admin/generate-links-pj', icon: LinkIcon, label: 'Links PJ' },
     { href: '/admin/links-paradise', icon: Sparkles, label: 'Links Paradise' },
-    { href: '/admin/mobile', icon: Smartphone, label: 'Mobile' },    { hhref: '/admin/pixgate', icon: DollarSign, label: 'PixGate' },
+    { href: '/admin/mobile', icon: Smartphone, label: 'Mobile' },
+    { href: '/admin/pixgate', icon: DollarSign, label: 'PixGate' },
   ]
 
   return (
