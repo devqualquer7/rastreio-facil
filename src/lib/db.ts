@@ -8,7 +8,7 @@ const resolvedDbPath = process.env.DATABASE_URL
   ? process.env.DATABASE_URL.replace('file:', '')
   : path.join(process.cwd(), 'prisma', 'dev.db');
 
-// During Next.js build on Render, /data (Persistent Disk) is not mounted.
+// During Next.js build on Render, /data (Persistent Disk) is not mounted.h
 // Fall back to an ephemeral path so the build can complete.
 let dbPath = resolvedDbPath;
 try {
@@ -240,6 +240,7 @@ export const query = {
   getAllPayments: () => db.prepare('SELECT * FROM Payment ORDER BY createdAt DESC').all(),
   getPaymentById: (id: string) => db.prepare('SELECT * FROM Payment WHERE id = ?').get(id) as any,
   getPaymentByPushinpayId: (pushinpayId: string) => db.prepare('SELECT * FROM Payment WHERE pushinpayId = ?').get(pushinpayId) as any,
+    getPaymentByPixgateId: (pixgateId: string) => db.prepare('SELECT * FROM Payment WHERE pushinpayId = ?').get(pixgateId) as any,
   updatePaymentStatus: (id: string, status: string) => {
     db.prepare('UPDATE Payment SET status = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?').run(status, id);
   },
