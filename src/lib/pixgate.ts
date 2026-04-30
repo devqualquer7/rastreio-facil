@@ -108,7 +108,12 @@ export async function getTransaction(transactionId: string): Promise<PixGateTran
   return response.json()
 }
 
-export async function listTransactions(params) {
+export async function listTransactions(params?: {
+  page?: number
+  limit?: number
+  status?: string
+  type?: string
+}): Promise<any> {
   const searchParams = new URLSearchParams()
   if (params?.page) searchParams.set('page', String(params.page))
   if (params?.limit) searchParams.set('limit', String(params.limit))
@@ -145,7 +150,11 @@ export async function getBalance(): Promise<PixGateBalanceResponse> {
   return response.json()
 }
 
-export function validateWebhookSignature(payload, signature, timestamp) {
+export function validateWebhookSignature(
+  payload: any,
+  signature: string,
+  timestamp: string
+): boolean {
   const crypto = require('crypto')
   const secret = process.env.PIXGATE_SECRET_KEY
   if (!secret) return false
