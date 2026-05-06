@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
+import { getDb } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,43 +15,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'IDs sao obrigatorios' }, { status: 400 })
     }
 
-    const publicKey = process.env.PIXGATE_PUBLIC_KEY
-    const secretKey = process.env.PIXGATE_SECRET_KEY
-    if (!publicKey || !secretKey) {
-      return NextResponse.json({ error: 'PixGate nao configurado' }, { status: 503 })
-    }
+    const db = getDb()
 
-    const statuses = await Promise.all(
-      ids.map(async (id: string) => {
-        try {
-          const res = await fetch(
-            `https://api.pixgateip.com/api/payments/transactions/${id}`,
-            {
-              headers: {
-                'X-API-Public-Key': publicKey,
-                'X-API-Secret-Key': secretKey,
-                'Accept': 'application/json',
-              },
-            }
-          )
-          if (res.ok) {
-            const data = await res.json()
-            console.log(`[PixGateCheck] ID: ${id} | Response:`, JSON.stringify(data).substring(0, 500))
-            const status = (data.data?.status || '').toString().toLowerCase()
-            const isPaid = ['paid', 'approved', 'completed'].includes(status)
-            console.log(`[PixGateCheck] ID: ${id} | status: ${status} | isPaid: ${isPaid}`)
-            return { id, status: isPaid ? 'paid' : status || 'pending', paid: isPaid }
-          } else {
-            const errText = await res.text()
-            console.error(`[PixGateCheck] ID: ${id} | HTTP ${res.status} | Error: ${errText.substring(0, 200)}`)
-            return { id, status: 'pending', paid: false }
-          }
-        } catch (err) {
-          console.error(`[PixGateCheck] ID: ${id} | Exception:`, err)
-          return { id, status: 'error', paid: false }
+    const statuses = ids.map((id: string) => {
+      try {
+        const row = db.prepare(
+          'SELECT status FROM payments WHERE pixgate_id = ? OR gateway_id = ?'
+        ).get(id, id) as { status?: string } | undefined
+
+        if (row) {
+          const status = (row.status || '').toLowerCase()
+          const isPaid = ['paid', 'approved', 'completed'].includes(status)
+          return { id, status: isPaid ? 'paid' : status || 'pending', paid: isPaid }
         }
-      })
-    )
+        return { id, status: 'pending', paid: false }
+      } catch {
+        return { id, status: 'pending', paid: false }
+      }
+    })
 
     return NextResponse.json({ statuses })
 
