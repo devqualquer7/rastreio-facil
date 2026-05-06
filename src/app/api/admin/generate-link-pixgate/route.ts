@@ -11,14 +11,13 @@ export async function POST(request: NextRequest) {
 
     const { value, description } = await request.json()
 
-    const valueInCents = Math.round(Number(value) * 100)
-    if (!valueInCents || valueInCents < 100) {
+    const numValue = Number(String(value).replace(',', '.'))
+    if (!numValue || numValue < 1) {
       return NextResponse.json({ error: 'Valor minimo e R$ 1,00' }, { status: 400 })
     }
 
-    const PIXGATE_PUBLIC_KEY = process.env.PIXGATE_PUBLIC_KEY
-    const PIXGATE_SECRET_KEY = process.env.PIXGATE_SECRET_KEY
-    if (!PIXGATE_PUBLIC_KEY || !PIXGATE_SECRET_KEY) {
+    const PIXGATE_API_KEY = process.env.PIXGATE_API_KEY
+    if (!PIXGATE_API_KEY) {
       return NextResponse.json(
         { error: 'PixGate nao configurado' },
         { status: 503 }
@@ -26,36 +25,20 @@ export async function POST(request: NextRequest) {
     }
 
     const uid = randomUUID().substring(0, 8).toUpperCase()
-    const reference = 'RF-' + uid
-
-    const uniqueEmail = 'cliente' + uid + '@pagamento.com'
     const uniqueDoc = String(10000000000 + Math.floor(Math.random() * 89999999999))
-    const uniquePhone = '11' + String(900000000 + Math.floor(Math.random() * 99999999))
 
-    const pixRes = await fetch('https://api.pixgateip.com/api/payments/pix', {
+    const pixRes = await fetch('https://app.pixgateip.com/api/v1/cashin', {
       method: 'POST',
       headers: {
-        'X-API-Public-Key': PIXGATE_PUBLIC_KEY,
-        'X-API-Secret-Key': PIXGATE_SECRET_KEY,
+        'Apikey': PIXGATE_API_KEY,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        amount: valueInCents,
-        sellerExternalRef: reference,
-        customer: {
-          name: 'Cliente ' + uid,
-          email: uniqueEmail,
-          phone: uniquePhone,
-          documentType: 'CPF',
-          document: uniqueDoc,
-        },
-        items: [{
-          title: description || 'Pagamento PIX',
-          quantity: 1,
-          amount: valueInCents,
-          tangible: false,
-        }],
-        postbackUrl: (process.env.NEXT_PUBLIC_BASE_URL || 'https://www.rastreiofacil.com') + '/api/webhooks/pixgateip',
+        nome: 'Cliente ' + uid,
+        cpf: uniqueDoc,
+        valor: numValue.toFixed(2),
+        descricao: description || 'Pagamento PIX',
+        postback: (process.env.NEXT_PUBLIC_BASE_URL || 'https://www.rastreiofacil.com') + '/api/webhooks/pixgateip',
       }),
     })
 
@@ -69,12 +52,13 @@ export async function POST(request: NextRequest) {
     }
 
     const pixData = await pixRes.json()
+    console.log('[PixGate] Cashin response:', JSON.stringify(pixData).substring(0, 500))
 
     return NextResponse.json({
-      id: String(pixData.data.id),
-      qrCode: pixData.data.pix.copyPaste,
-      qrCodeBase64: pixData.data.pix.qrcode,
-      value: valueInCents,
+      id: String(pixData.id),
+      qrCode: pixData.pix,
+      qrCodeBase64: '',
+      value: Math.round(numValue * 100),
     })
 
   } catch (error) {
