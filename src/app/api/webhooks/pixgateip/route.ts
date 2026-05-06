@@ -22,29 +22,6 @@ async function sendEmail(to: string, subject: string, html: string) {
     console.error('Email error:', e)
   }
 }
-import { query } from '@/lib/db'
-
-async function sendEmail(to: string, subject: string, html: string) {
-  const RESEND_KEY = process.env.RESEND_API_KEY
-  if (!RESEND_KEY || !to) return
-  try {
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'RastreioFacil <noreply@rastreiofacil.com>',
-        to: [to],
-        subject,
-        html,
-      }),
-    })
-  } catch (e) {
-    console.error('Email error:', e)
-  }
-}
 
 export async function POST(request: NextRequest) {
   try {
