@@ -1,12 +1,10 @@
 generator client {
   provider = "prisma-client-js"
 }
-
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
-
 model Admin {
   id        String   @id @default(cuid())
   username  String   @unique
@@ -14,7 +12,6 @@ model Admin {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-
 model Client {
   id            String         @id @default(cuid())
   name          String
@@ -24,7 +21,6 @@ model Client {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
-
 model TrackingCode {
   id        String          @id @default(cuid())
   code      String          @unique
@@ -34,7 +30,6 @@ model TrackingCode {
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 }
-
 model TrackingEvent {
   id             String       @id @default(cuid())
   status         String
@@ -44,4 +39,27 @@ model TrackingEvent {
   trackingCode   TrackingCode @relation(fields: [trackingCodeId], references: [id], onDelete: Cascade)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+}
+
+// PixgatePayment — stores webhook events from PIXGATE.
+// Since PIXGATE has no public status-query endpoint, we rely on their
+// "postback" webhook to notify us when a payment is confirmed. We store
+// the result here so the desktop software can query later via
+// /api/admin/check-batch-status.
+model PixgatePayment {
+  id            String   @id @default(cuid())
+  // PIXGATE's transaction_id (the "id" returned from /api/v1/cashin)
+  transactionId String   @unique
+  // 'PAID' | 'PENDING' | 'CANCELLED' | 'REVERSED' — see PIXGATE docs
+  status        String
+  // Amount as reported by PIXGATE (typically net after fees)
+  amount        Float?
+  // Acquirer used by PIXGATE (e.g. "TURBOSCASH")
+  acquirer      String?
+  // Webhook event name (e.g. "transaction.paid")
+  event         String?
+  // First time we received a webhook for this transaction
+  receivedAt    DateTime @default(now())
+  // Last time we received any webhook for this transaction (for retries / chargebacks)
+  updatedAt     DateTime @updatedAt
 }
