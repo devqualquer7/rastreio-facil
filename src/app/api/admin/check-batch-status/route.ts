@@ -5,8 +5,8 @@
  * Authenticated via Bearer token (same as generate-batch).
  *
  * For Pushin/Paradise: queries each gateway's API directly.
- * For PixGate: queries our internal DB (populated via /api/webhooks/pixgate).
- *   This is because PIXGATE has no public status-query endpoint.
+ * For PixGate: queries our internal Payment table (populated via webhook
+ *   at /api/webhooks/pixgate). PIXGATE has no public status-query API.
  *
  * Request:
  *   POST /api/admin/check-batch-status
@@ -29,7 +29,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { query } from '@/lib/db'
 
 type Gateway = 'pushin_pf' | 'pushin_pj' | 'paradise' | 'pixgate'
 
@@ -40,11 +40,6 @@ type StatusResult = {
   status: string   // 'paid' | 'pending' | 'expired' | 'error' | etc
   paid: boolean
 }
-
-// Shared Prisma client
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient }
-const prisma = globalForPrisma.prisma ?? new PrismaClient()
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 // ─────────────────────────────────────────────────────────────
 // Single status check (per ID, in parallel via Promise.all)
@@ -110,38 +105,42 @@ async function checkParadiseStatus(id: string, apiKey: string): Promise<StatusRe
 }
 
 /**
- * PIXGATE has no public status-query API. We rely on webhook events that
- * arrive at /api/webhooks/pixgate and are stored in PixgatePayment.
- * Here we just look up the stored status.
+ * PIXGATE has no public status-query API. Webhooks at /api/webhooks/pixgate
+ * write into the Payment table (using `pushinpayId` column to store the
+ * PIXGATE transaction_id). Here we look up each id in that table.
  */
-async function checkPixgateStatuses(ids: string[]): Promise<StatusResult[]> {
-  // Fetch all matching records in ONE query (faster than per-id round-trips)
-  const records = await prisma.pixgatePayment.findMany({
-    where: { transactionId: { in: ids } },
-    select: { transactionId: true, status: true },
-  })
-
-  const byId = new Map(records.map(r => [r.transactionId, r.status.toUpperCase()]))
-
+function checkPixgateStatuses(ids: string[]): StatusResult[] {
   return ids.map(id => {
-    const status = byId.get(id)
-    if (!status) {
-      // Never received a webhook for this id → still pending
+    try {
+      const payment = query.getPaymentByPixgateId(id)
+
+      if (!payment) {
+        // No webhook received yet → still pending
+        return { id, status: 'pending', paid: false }
+      }
+
+      // payment.status is one of: 'pending' | 'paid' | 'expired' | 'reversed'
+      // (set by /api/webhooks/pixgate)
+      const dbStatus = String(payment.status || '').toLowerCase()
+
+      if (dbStatus === 'paid') {
+        return { id, status: 'paid', paid: true }
+      }
+      if (dbStatus === 'expired' || dbStatus === 'cancelled' || dbStatus === 'canceled') {
+        return { id, status: 'expired', paid: false }
+      }
+      if (dbStatus === 'reversed') {
+        // Chargeback — was paid, now reversed. Surface as 'error' so the
+        // desktop won't double-credit; user can investigate.
+        return { id, status: 'error', paid: false }
+      }
+      // Anything else → pending
       return { id, status: 'pending', paid: false }
-    }
-    if (status === 'PAID') {
-      return { id, status: 'paid', paid: true }
-    }
-    if (status === 'CANCELLED' || status === 'CANCELED') {
-      return { id, status: 'expired', paid: false }
-    }
-    if (status === 'REVERSED') {
-      // Chargeback — was paid, now reversed. We surface this as "error"
-      // so the desktop won't double-credit, and the user can investigate.
+
+    } catch (e) {
+      console.error('[check-batch-status:pixgate] db error for id', id, e)
       return { id, status: 'error', paid: false }
     }
-    // PENDING or anything else → pending
-    return { id, status: 'pending', paid: false }
   })
 }
 
@@ -212,8 +211,8 @@ export async function POST(request: NextRequest) {
     let statuses: StatusResult[]
 
     if (gateway === 'pixgate') {
-      // PIXGATE → query internal DB (populated via webhook)
-      statuses = await checkPixgateStatuses(validIds)
+      // PIXGATE → query internal DB (populated via webhook). Synchronous.
+      statuses = checkPixgateStatuses(validIds)
     } else {
       // Other gateways → call their APIs in parallel
       let checker: (id: string) => Promise<StatusResult>
