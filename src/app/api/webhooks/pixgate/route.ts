@@ -3,20 +3,9 @@
  *
  * PIXGATE doesn't have a public status-query endpoint — they only notify
  * us when a payment is confirmed via this webhook (called "postback" in
- * their docs). We persist the event so the desktop software can later
- * query via /api/admin/check-batch-status.
- *
- * This route is PUBLIC (no admin session) — accessible by PIXGATE's
- * servers. We protect it by:
- *   1. Validating that the request actually contains a transaction_id
- *      that was previously created by us (via /api/admin/generate-batch).
- *   2. (Optionally) HMAC verification using PIXGATE_SECRET_KEY — see note
- *      at the bottom; PIXGATE doesn't document signature headers, so we
- *      rely on the obscurity of the URL path + transaction_id existence
- *      check. To harden, you can add an IP allowlist for PIXGATE servers.
- *
- * IMPORTANT: This path needs to be added to the middleware bypass list
- * (or placed under /api/webhooks/* which is typically already public).
+ * their docs). We persist the event into the existing Payment table
+ * (using `pushinpayId` field to store the PIXGATE transaction_id, since
+ * the codebase already treats this column as a generic "external txid").
  *
  * Configure in PIXGATE dashboard:
  *   Postback URL: https://www.rastreiofacil.com/api/webhooks/pixgate
@@ -34,12 +23,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { query } from '@/lib/db'
 
-// Reuse Prisma client across requests (avoids exhausting connections)
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient }
-const prisma = globalForPrisma.prisma ?? new PrismaClient()
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+// Sentinel values used when a PIXGATE webhook arrives but no Payment row
+// exists yet (e.g. links generated via /api/admin/generate-batch don't
+// pre-create a Payment row). The Payment table requires userId/type, so
+// we use these placeholders to keep the row valid.
+const BATCH_USER_ID = 'pixgate-batch'
+const BATCH_TYPE    = 'pixgate-batch'
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,8 +38,6 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json()
     } catch {
-      // PIXGATE expects 200 even on bad payloads (otherwise they retry forever)
-      // — but we log and return ok so the queue clears
       console.warn('[pixgate-webhook] invalid JSON body')
       return NextResponse.json({ ok: true, note: 'invalid body, ignored' })
     }
@@ -57,42 +46,66 @@ export async function POST(request: NextRequest) {
 
     const transactionId = String(body?.transaction_id || '').trim()
     const status        = String(body?.status || '').trim().toUpperCase()
-    const event         = String(body?.event || '').trim()
-    const amount        = body?.amount != null ? Number(body.amount) : null
-    const acquirer      = body?.acquirer ? String(body.acquirer).trim() : null
+    const amountRaw     = body?.amount
+    const amount        = amountRaw != null && isFinite(Number(amountRaw)) ? Number(amountRaw) : 0
 
     if (!transactionId || !status) {
       console.warn('[pixgate-webhook] missing transaction_id or status')
       return NextResponse.json({ ok: true, note: 'missing fields' })
     }
 
-    // Upsert: insert if new, update status if exists
-    // This handles retries (PIXGATE may send the same event multiple times)
-    // AND chargebacks (PAID → REVERSED)
-    await prisma.pixgatePayment.upsert({
-      where: { transactionId },
-      create: {
-        transactionId,
-        status,
-        amount: isFinite(amount as number) ? amount : null,
-        acquirer,
-        event,
-      },
-      update: {
-        status,
-        amount: isFinite(amount as number) ? amount : undefined,
-        acquirer: acquirer || undefined,
-        event,
-      },
-    })
+    // Map PIXGATE status to our internal Payment status
+    // PIXGATE: PAID | PENDING | CANCELLED | REVERSED
+    // Our DB:  paid | pending | expired   | reversed
+    let internalStatus: string
+    if (status === 'PAID') {
+      internalStatus = 'paid'
+    } else if (status === 'CANCELLED' || status === 'CANCELED') {
+      internalStatus = 'expired'
+    } else if (status === 'REVERSED') {
+      internalStatus = 'reversed'
+    } else {
+      internalStatus = 'pending'
+    }
 
-    console.log(`[pixgate-webhook] ✓ recorded ${transactionId} as ${status}`)
+    // Check if we already have a Payment row for this transaction_id
+    // (using pushinpayId column — it's a generic external_txid in this codebase)
+    const existing = query.getPaymentByPixgateId(transactionId)
+
+    if (existing) {
+      // Update status (handles retries + chargebacks PAID→REVERSED)
+      query.updatePaymentStatus(existing.id, internalStatus)
+      console.log(`[pixgate-webhook] ✓ updated ${transactionId} → ${internalStatus}`)
+    } else {
+      // First time we see this transaction → create a new Payment row.
+      // The Payment table requires userId + type; we use sentinel values
+      // since this payment came from a batch saque (not a user purchase).
+      // Amount in DB is INTEGER (cents) — convert from PIXGATE's REAIS.
+      const amountInCents = Math.round(amount * 100)
+
+      query.createPayment({
+        userId:      BATCH_USER_ID,
+        type:        BATCH_TYPE,
+        amount:      amountInCents,
+        pushinpayId: transactionId,
+      })
+
+      // createPayment forces status='pending', so update if needed
+      if (internalStatus !== 'pending') {
+        const created = query.getPaymentByPixgateId(transactionId)
+        if (created) {
+          query.updatePaymentStatus(created.id, internalStatus)
+        }
+      }
+
+      console.log(`[pixgate-webhook] ✓ created ${transactionId} → ${internalStatus}`)
+    }
+
     return NextResponse.json({ ok: true })
 
   } catch (error: any) {
     console.error('[pixgate-webhook] error:', error)
     // Always return 200 to PIXGATE so they don't keep retrying.
-    // We logged the error; we'll fix on our end.
     return NextResponse.json({ ok: true, note: 'handled with error' })
   }
 }
