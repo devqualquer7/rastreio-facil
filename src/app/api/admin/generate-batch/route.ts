@@ -1,7 +1,7 @@
 /**
  * Batch PIX Link Generator
  *
- * Generates N PIX links in parallel for one of the 3 supported gateways.
+ * Generates N PIX links in parallel for one of the supported gateways.
  * Authenticated via Bearer token (separate from admin session).
  *
  * This route is CONSUMED by the EncryptedSoftware desktop app to automate
@@ -11,10 +11,10 @@
  *   POST /api/admin/generate-batch
  *   Authorization: Bearer <BATCH_API_TOKEN>
  *   Content-Type: application/json
- *   Body: { gateway: 'pushin_pf' | 'pushin_pj' | 'paradise', value: 425.30, count: 5, description?: string }
+ *   Body: { gateway: 'pushin_pf' | 'pushin_pj' | 'paradise' | 'pixgate', value: 425.30, count: 5, description?: string }
  *
  * Response (200):
- *   { ok: true, gateway: 'pushin_pj', count: 5, value: 425.30, links: [...], failed: [] }
+ *   { ok: true, gateway: 'pixgate', count: 5, value: 425.30, links: [...], failed: [] }
  *
  * Response (4xx/5xx):
  *   { ok: false, error: '...' }
@@ -23,15 +23,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 
-const PUSHIN_API_URL  = 'https://api.pushinpay.com.br/api/pix/cashIn'
+const PUSHIN_API_URL   = 'https://api.pushinpay.com.br/api/pix/cashIn'
 const PARADISE_API_URL = 'https://multi.paradisepags.com/api/v1/transaction.php'
+const PIXGATE_API_URL  = 'https://app.pixgateip.com/api/v1/cashin'
 const PARADISE_PRODUCT_HASH = 'prod_41f8d604222951de'
 
 const MAX_COUNT  = 50            // safety: max 50 links per call
 const MIN_VALUE  = 1.00          // R$ 1,00 minimum
 const MAX_VALUE  = 500.00        // R$ 500,00 maximum (Pushin limit)
 
-type Gateway = 'pushin_pf' | 'pushin_pj' | 'paradise'
+type Gateway = 'pushin_pf' | 'pushin_pj' | 'paradise' | 'pixgate'
 
 type LinkResult = {
   id: string
@@ -122,6 +123,58 @@ async function generateParadise(
   }
 }
 
+async function generatePixgate(
+  valueInCents: number,
+  description: string | undefined,
+  apiKey: string
+): Promise<LinkResult> {
+  // PIXGATE requires nome + cpf — generate uniques to avoid dedup across batch
+  const uid = randomUUID().substring(0, 8).toUpperCase()
+  const uniqueDoc = String(10000000000 + Math.floor(Math.random() * 89999999999))
+
+  // PIXGATE wants "valor" in REAIS as string (e.g. "100.00"), NOT cents
+  const valueInReais = (valueInCents / 100).toFixed(2)
+
+  const res = await fetch(PIXGATE_API_URL, {
+    method: 'POST',
+    headers: {
+      'Apikey': apiKey,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({
+      nome:      'Cliente ' + uid,
+      cpf:       uniqueDoc,
+      valor:     valueInReais,
+      ...(description ? { descricao: description } : {}),
+    }),
+  })
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '')
+    throw new Error(`PixGate HTTP ${res.status}: ${errText.slice(0, 200)}`)
+  }
+
+  const data = await res.json()
+
+  // PixGate returns { statusCode, id, pix, value, status, acquirer_used }
+  // Defensive: also accept "qr_code" / "qrCode" if API ever changes shape
+  const qrCode = data.pix || data.qr_code || data.qrCode
+  if (!qrCode) {
+    throw new Error('PixGate: campo "pix" ausente na resposta')
+  }
+  if (!data.id) {
+    throw new Error('PixGate: campo "id" ausente na resposta')
+  }
+
+  return {
+    id:     String(data.id),
+    qrCode,
+    // PixGate doesn't return base64 — leave undefined; client renders QR from qrCode string
+    value:  valueInCents / 100,
+  }
+}
+
 // ─────────────────────────────────────────────────────────────
 // Route handler
 // ─────────────────────────────────────────────────────────────
@@ -161,9 +214,10 @@ export async function POST(request: NextRequest) {
     const { gateway, value, count, description } = body || {}
 
     // 3. Validate gateway
-    if (!gateway || !['pushin_pf', 'pushin_pj', 'paradise'].includes(gateway)) {
+    const validGateways: Gateway[] = ['pushin_pf', 'pushin_pj', 'paradise', 'pixgate']
+    if (!gateway || !validGateways.includes(gateway)) {
       return NextResponse.json(
-        { ok: false, error: 'Gateway inválido. Use: pushin_pf, pushin_pj ou paradise.' },
+        { ok: false, error: 'Gateway inválido. Use: pushin_pf, pushin_pj, paradise ou pixgate.' },
         { status: 400 }
       )
     }
@@ -219,8 +273,7 @@ export async function POST(request: NextRequest) {
         )
       }
       generator = () => generatePushin(valueInCents, desc, token)
-    } else {
-      // paradise
+    } else if (gateway === 'paradise') {
       const apiKey = process.env.PARADISE_API_KEY
       if (!apiKey) {
         return NextResponse.json(
@@ -229,6 +282,16 @@ export async function POST(request: NextRequest) {
         )
       }
       generator = () => generateParadise(valueInCents, desc, apiKey)
+    } else {
+      // pixgate
+      const apiKey = process.env.PIXGATE_API_KEY
+      if (!apiKey) {
+        return NextResponse.json(
+          { ok: false, error: 'PIXGATE_API_KEY não configurado.' },
+          { status: 503 }
+        )
+      }
+      generator = () => generatePixgate(valueInCents, desc, apiKey)
     }
 
     // 8. Generate N links in parallel using Promise.allSettled
