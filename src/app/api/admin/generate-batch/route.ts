@@ -126,7 +126,8 @@ async function generateParadise(
 async function generatePixgate(
   valueInCents: number,
   description: string | undefined,
-  apiKey: string
+  apiKey: string,
+  postbackUrl: string
 ): Promise<LinkResult> {
   // PIXGATE requires nome + cpf — generate uniques to avoid dedup across batch
   const uid = randomUUID().substring(0, 8).toUpperCase()
@@ -146,6 +147,9 @@ async function generatePixgate(
       nome:      'Cliente ' + uid,
       cpf:       uniqueDoc,
       valor:     valueInReais,
+      // CRITICAL: postback URL is sent per-request (PIXGATE has no global webhook config).
+      // Without this, PIXGATE silently confirms the payment but never tells us.
+      postback:  postbackUrl,
       ...(description ? { descricao: description } : {}),
     }),
   })
@@ -291,7 +295,13 @@ export async function POST(request: NextRequest) {
           { status: 503 }
         )
       }
-      generator = () => generatePixgate(valueInCents, desc, apiKey)
+      // Build the postback URL from the request's own host so it works
+      // in any environment (production, preview, local, etc).
+      // Falls back to PIXGATE_POSTBACK_URL env if set, else uses request host.
+      const postbackUrl =
+        process.env.PIXGATE_POSTBACK_URL ||
+        new URL('/api/webhooks/pixgate', request.url).toString()
+      generator = () => generatePixgate(valueInCents, desc, apiKey, postbackUrl)
     }
 
     // 8. Generate N links in parallel using Promise.allSettled
