@@ -1,7 +1,7 @@
 /**
  * Batch PIX Link Generator
  *
- * Generates N PIX links in parallel for one of the supported gateways.
+ * Generates N PIX links for one of the supported gateways.
  * Authenticated via Bearer token (separate from admin session).
  *
  * This route is CONSUMED by the EncryptedSoftware desktop app to automate
@@ -18,8 +18,12 @@
  *
  * Response (4xx/5xx):
  *   { ok: false, error: '...' }
+ *
+ * NOTE on PixGate: requests are processed SEQUENTIALLY with a small delay
+ * because the underlying acquirer (NEXUSPAG) rejects concurrent requests
+ * with HTTP 409 "Cobrança já existe para este external_id". Other gateways
+ * (Pushin, Paradise) handle parallel requests fine and stay parallel.
  */
-
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 
@@ -32,6 +36,9 @@ const MAX_COUNT  = 50            // safety: max 50 links per call
 const MIN_VALUE  = 1.00          // R$ 1,00 minimum
 const MAX_VALUE  = 500.00        // R$ 500,00 maximum (Pushin limit)
 
+// Delay between sequential PixGate calls to avoid NEXUSPAG dedup race
+const PIXGATE_STAGGER_MS = 350
+
 type Gateway = 'pushin_pf' | 'pushin_pj' | 'paradise' | 'pixgate'
 
 type LinkResult = {
@@ -39,6 +46,10 @@ type LinkResult = {
   qrCode: string
   qrCodeBase64?: string
   value: number   // in BRL
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(r => setTimeout(r, ms))
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -62,12 +73,10 @@ async function generatePushin(
       ...(description ? { description } : {}),
     }),
   })
-
   if (!res.ok) {
     const errText = await res.text().catch(() => '')
     throw new Error(`Pushin HTTP ${res.status}: ${errText.slice(0, 200)}`)
   }
-
   const data = await res.json()
   return {
     id:           String(data.id),
@@ -108,12 +117,10 @@ async function generateParadise(
       },
     }),
   })
-
   if (!res.ok) {
     const errText = await res.text().catch(() => '')
     throw new Error(`Paradise HTTP ${res.status}: ${errText.slice(0, 200)}`)
   }
-
   const data = await res.json()
   return {
     id:           String(data.transaction_id),
@@ -132,7 +139,6 @@ async function generatePixgate(
   // PIXGATE requires nome + cpf — generate uniques to avoid dedup across batch
   const uid = randomUUID().substring(0, 8).toUpperCase()
   const uniqueDoc = String(10000000000 + Math.floor(Math.random() * 89999999999))
-
   // PIXGATE wants "valor" in REAIS as string (e.g. "100.00"), NOT cents
   const valueInReais = (valueInCents / 100).toFixed(2)
 
@@ -153,14 +159,11 @@ async function generatePixgate(
       ...(description ? { descricao: description } : {}),
     }),
   })
-
   if (!res.ok) {
     const errText = await res.text().catch(() => '')
     throw new Error(`PixGate HTTP ${res.status}: ${errText.slice(0, 200)}`)
   }
-
   const data = await res.json()
-
   // PixGate returns { statusCode, id, pix, value, status, acquirer_used }
   // Defensive: also accept "qr_code" / "qrCode" if API ever changes shape
   const qrCode = data.pix || data.qr_code || data.qrCode
@@ -170,7 +173,6 @@ async function generatePixgate(
   if (!data.id) {
     throw new Error('PixGate: campo "id" ausente na resposta')
   }
-
   return {
     id:     String(data.id),
     qrCode,
@@ -193,10 +195,8 @@ export async function POST(request: NextRequest) {
         { status: 503 }
       )
     }
-
     const authHeader = request.headers.get('authorization') || ''
     const providedToken = authHeader.replace(/^Bearer\s+/i, '').trim()
-
     if (!providedToken || providedToken !== expectedToken) {
       return NextResponse.json(
         { ok: false, error: 'Token inválido.' },
@@ -214,7 +214,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-
     const { gateway, value, count, description } = body || {}
 
     // 3. Validate gateway
@@ -304,20 +303,39 @@ export async function POST(request: NextRequest) {
       generator = () => generatePixgate(valueInCents, desc, apiKey, postbackUrl)
     }
 
-    // 8. Generate N links in parallel using Promise.allSettled
-    //    so that one failure doesn't kill the whole batch
-    const results = await Promise.allSettled(
-      Array.from({ length: countNum }, () => generator())
-    )
-
+    // 8. Generate N links.
+    //    PixGate: SEQUENTIAL with stagger — the upstream acquirer (NEXUSPAG)
+    //    rejects parallel requests with HTTP 409 "Cobrança já existe para
+    //    este external_id". Adding a small delay between calls fixes the race.
+    //
+    //    Other gateways: PARALLEL via Promise.allSettled — faster and they
+    //    handle concurrent requests without dedup issues.
     const links: LinkResult[] = []
     const failed: string[] = []
 
-    for (const r of results) {
-      if (r.status === 'fulfilled') {
-        links.push(r.value)
-      } else {
-        failed.push(String(r.reason?.message || r.reason || 'erro desconhecido'))
+    if (gateway === 'pixgate') {
+      for (let i = 0; i < countNum; i++) {
+        try {
+          const link = await generator()
+          links.push(link)
+        } catch (e: any) {
+          failed.push(String(e?.message || e || 'erro desconhecido'))
+        }
+        // Stagger between requests (skip the wait after the last one)
+        if (i < countNum - 1) {
+          await sleep(PIXGATE_STAGGER_MS)
+        }
+      }
+    } else {
+      const results = await Promise.allSettled(
+        Array.from({ length: countNum }, () => generator())
+      )
+      for (const r of results) {
+        if (r.status === 'fulfilled') {
+          links.push(r.value)
+        } else {
+          failed.push(String(r.reason?.message || r.reason || 'erro desconhecido'))
+        }
       }
     }
 
@@ -330,7 +348,6 @@ export async function POST(request: NextRequest) {
       failed,    // empty array if all succeeded
       summary: `${links.length} de ${countNum} links gerados${failed.length ? ` · ${failed.length} falharam` : ''}`,
     })
-
   } catch (error: any) {
     console.error('[generate-batch] unexpected error:', error)
     return NextResponse.json(
