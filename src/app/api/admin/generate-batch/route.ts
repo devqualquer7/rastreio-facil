@@ -12,10 +12,12 @@
  *           value: 425.30, count: 5, description?: string }
  *
  * NOTE on PixGate: requests are processed SEQUENTIALLY with a small delay
- * because the underlying acquirer (NEXUSPAG) rejects concurrent requests
- * with HTTP 409 "Cobrança já existe para este external_id".
+ * because the underlying acquirers can reject concurrent requests
+ * (NEXUSPAG → HTTP 409 "external_id já existe").
  *
  * NOTE on PixGate Premium: separate account/Apikey, link limit up to R$ 15.000.
+ * The acquirer behind it (POSEIDONPAY) VALIDATES the CPF check digits
+ * (NEXUSPAG didn't), so we generate a mathematically valid CPF.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
@@ -37,7 +39,7 @@ const MAX_VALUE_BY_GATEWAY: Record<Gateway, number> = {
   pixgate_premium: 15_000,
 }
 
-// Delay between sequential PixGate calls to avoid NEXUSPAG dedup race
+// Delay between sequential PixGate calls to avoid acquirer dedup race
 const PIXGATE_STAGGER_MS = 350
 
 type Gateway = 'pushin_pf' | 'pushin_pj' | 'paradise' | 'pixgate' | 'pixgate_premium'
@@ -51,6 +53,40 @@ type LinkResult = {
 
 function sleep(ms: number): Promise<void> {
   return new Promise(r => setTimeout(r, ms))
+}
+
+/**
+ * Generate a mathematically valid CPF (11 digits, with correct check digits).
+ * Required by POSEIDONPAY (the acquirer behind PixGate Premium) — it rejects
+ * random 11-digit numbers with HTTP 422 "Documento inválido".
+ *
+ * Algorithm:
+ *   1. Generate 9 random digits.
+ *   2. Compute first check digit: sum of d[i] * (10 - i) for i in 0..8, mod 11.
+ *      If result < 2 → digit = 0; else digit = 11 - result.
+ *   3. Compute second check digit: sum of d[i] * (11 - i) for i in 0..9, mod 11.
+ *      Same rule.
+ *   4. Concatenate all 11 digits.
+ */
+function generateValidCpf(): string {
+  const d: number[] = []
+  for (let i = 0; i < 9; i++) d.push(Math.floor(Math.random() * 10))
+
+  // First check digit
+  let sum = 0
+  for (let i = 0; i < 9; i++) sum += d[i] * (10 - i)
+  let v1 = sum % 11
+  v1 = v1 < 2 ? 0 : 11 - v1
+  d.push(v1)
+
+  // Second check digit
+  sum = 0
+  for (let i = 0; i < 10; i++) sum += d[i] * (11 - i)
+  let v2 = sum % 11
+  v2 = v2 < 2 ? 0 : 11 - v2
+  d.push(v2)
+
+  return d.join('')
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -95,7 +131,7 @@ async function generateParadise(
   const uid = randomUUID().substring(0, 8).toUpperCase()
   const reference = 'RF-BATCH-' + uid
   const uniqueEmail = 'cliente' + uid + '@pagamento.com'
-  const uniqueDoc   = String(10000000000 + Math.floor(Math.random() * 89999999999))
+  const uniqueDoc   = generateValidCpf()
   const uniquePhone = '11' + String(900000000 + Math.floor(Math.random() * 99999999))
 
   const res = await fetch(PARADISE_API_URL, {
@@ -137,7 +173,10 @@ async function generatePixgate(
   postbackUrl: string
 ): Promise<LinkResult> {
   const uid = randomUUID().substring(0, 8).toUpperCase()
-  const uniqueDoc = String(10000000000 + Math.floor(Math.random() * 89999999999))
+  // POSEIDONPAY (PixGate Premium acquirer) validates CPF check digits.
+  // NEXUSPAG (PixGate regular) doesn't — but we use a valid CPF for both
+  // so the same code path works for both variants.
+  const validCpf = generateValidCpf()
   const valueInReais = (valueInCents / 100).toFixed(2)
 
   const res = await fetch(PIXGATE_API_URL, {
@@ -149,7 +188,7 @@ async function generatePixgate(
     },
     body: JSON.stringify({
       nome:      'Cliente ' + uid,
-      cpf:       uniqueDoc,
+      cpf:       validCpf,
       valor:     valueInReais,
       postback:  postbackUrl,
       ...(description ? { descricao: description } : {}),
@@ -302,7 +341,7 @@ export async function POST(request: NextRequest) {
 
     // 8. Generate N links.
     //    PixGate (both variants): SEQUENTIAL with stagger — the upstream
-    //    acquirer (NEXUSPAG) rejects parallel requests with HTTP 409.
+    //    acquirers can reject parallel requests.
     //    Other gateways: PARALLEL via Promise.allSettled.
     const links: LinkResult[] = []
     const failed: string[] = []
