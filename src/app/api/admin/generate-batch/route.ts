@@ -8,7 +8,7 @@
  *   POST /api/admin/generate-batch
  *   Authorization: Bearer <BATCH_API_TOKEN>
  *   Content-Type: application/json
- *   Body: { gateway: 'pushin_pf' | 'pushin_pj' | 'paradise' | 'pixgate' | 'pixgate_premium',
+ *   Body: { gateway: 'pushin_pf' | 'pushin_pj' | 'paradise' | 'pixgate' | 'pixgate_premium' | 'pixgate_r7',
  *           value: 425.30, count: 5, description?: string }
  *
  * NOTE on PixGate: requests are processed SEQUENTIALLY with a small delay
@@ -35,14 +35,15 @@ const MAX_VALUE_BY_GATEWAY: Record<Gateway, number> = {
   pushin_pf:       500,
   pushin_pj:       500,
   paradise:        500,
-  pixgate:         500,
+  pixgate:         1_000,
   pixgate_premium: 15_000,
+  pixgate_r7:      1_000,
 }
 
 // Delay between sequential PixGate calls to avoid acquirer dedup race
 const PIXGATE_STAGGER_MS = 350
 
-type Gateway = 'pushin_pf' | 'pushin_pj' | 'paradise' | 'pixgate' | 'pixgate_premium'
+type Gateway = 'pushin_pf' | 'pushin_pj' | 'paradise' | 'pixgate' | 'pixgate_premium' | 'pixgate_r7'
 
 type LinkResult = {
   id: string
@@ -249,10 +250,10 @@ export async function POST(request: NextRequest) {
     const { gateway, value, count, description } = body || {}
 
     // 3. Validate gateway
-    const validGateways: Gateway[] = ['pushin_pf', 'pushin_pj', 'paradise', 'pixgate', 'pixgate_premium']
+    const validGateways: Gateway[] = ['pushin_pf', 'pushin_pj', 'paradise', 'pixgate', 'pixgate_premium', 'pixgate_r7']
     if (!gateway || !validGateways.includes(gateway)) {
       return NextResponse.json(
-        { ok: false, error: 'Gateway inválido. Use: pushin_pf, pushin_pj, paradise, pixgate ou pixgate_premium.' },
+        { ok: false, error: 'Gateway inválido. Use: pushin_pf, pushin_pj, paradise, pixgate, pixgate_premium ou pixgate_r7.' },
         { status: 400 }
       )
     }
@@ -318,9 +319,12 @@ export async function POST(request: NextRequest) {
         )
       }
       generator = () => generateParadise(valueInCents, desc, apiKey)
-    } else if (gateway === 'pixgate' || gateway === 'pixgate_premium') {
-      // Pick the right Apikey based on the variant
-      const envName = gateway === 'pixgate_premium' ? 'PIXGATE_PREMIUM_API_KEY' : 'PIXGATE_API_KEY'
+    } else if (gateway === 'pixgate' || gateway === 'pixgate_premium' || gateway === 'pixgate_r7') {
+      // Pick the right Apikey based on the variant (3 separate PixGate accounts)
+      const envName =
+        gateway === 'pixgate_premium' ? 'PIXGATE_PREMIUM_API_KEY' :
+        gateway === 'pixgate_r7'      ? 'PIXGATE_R7_API_KEY'      :
+                                        'PIXGATE_API_KEY'
       const apiKey = process.env[envName]
       if (!apiKey) {
         return NextResponse.json(
@@ -346,7 +350,7 @@ export async function POST(request: NextRequest) {
     const links: LinkResult[] = []
     const failed: string[] = []
 
-    if (gateway === 'pixgate' || gateway === 'pixgate_premium') {
+    if (gateway === 'pixgate' || gateway === 'pixgate_premium' || gateway === 'pixgate_r7') {
       for (let i = 0; i < countNum; i++) {
         try {
           const link = await generator()
