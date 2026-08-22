@@ -1,9 +1,9 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Wallet, RefreshCw, Check, ChevronDown, Trash2,
-  Eye, EyeOff, Save, Zap, QrCode, Copy, AlertCircle
+  Eye, EyeOff, Save, Zap, QrCode, Copy, AlertCircle, Download
 } from 'lucide-react'
 import { SectionTitle, Button } from '@/components/ec/ui/Base'
 import { useApp } from '@/lib/ec-store'
@@ -32,12 +32,9 @@ function buildPixPayload(key: string, name: string, city: string, amount?: numbe
   const safeName = safe(name) || 'BENEFICIARIO'
   const safeCity = safe(city) || 'SAO PAULO'
 
-  const pixKey = `0014BR.GOV.BCB.PIX01${String(safeKey.length).padStart(2,'0')}${safeKey}`
   const merchantName = safeName.toUpperCase()
   const merchantCity = safeCity.toUpperCase()
   const txid = '***'
-
-  const gui = `0014BR.GOV.BCB.PIX${pixKey.length > 0 ? '' : ''}` // simplified
 
   function tlv(tag: string, value: string): string {
     return `${tag}${String(value.length).padStart(2,'0')}${value}`
@@ -68,6 +65,107 @@ function buildPixPayload(key: string, name: string, city: string, amount?: numbe
   return full + crc.toString(16).toUpperCase().padStart(4, '0')
 }
 
+// QR image panel — shows large scannable QR + copy/download buttons
+function QRImagePanel({ payload, name, onCopy }: {
+  payload: string
+  name: string
+  onCopy: () => void
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [dataUrl, setDataUrl] = useState('')
+  const [generating, setGenerating] = useState(true)
+
+  useEffect(() => {
+    if (!payload) return
+    setGenerating(true)
+    // Dynamic import to avoid SSR issues
+    import('qrcode').then(QRCode => {
+      QRCode.toDataURL(payload, {
+        width: 340,
+        margin: 2,
+        color: { dark: '#000000', light: '#ffffff' },
+        errorCorrectionLevel: 'M',
+      }).then(url => {
+        setDataUrl(url)
+        setGenerating(false)
+      }).catch(() => setGenerating(false))
+    }).catch(() => setGenerating(false))
+  }, [payload])
+
+  function downloadQR() {
+    if (!dataUrl) return
+    const a = document.createElement('a')
+    a.href = dataUrl
+    a.download = `qr-pix-${name.replace(/\s+/g, '-').toLowerCase()}.png`
+    a.click()
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+      className="mt-3 rounded-2xl overflow-hidden border border-white/[0.08] bg-[#0c0c14]">
+
+      {/* QR image area */}
+      <div className="flex flex-col items-center py-6 px-4 gap-4">
+        {generating ? (
+          <div className="w-56 h-56 flex items-center justify-center">
+            <RefreshCw size={24} className="animate-spin text-purple-400" />
+          </div>
+        ) : dataUrl ? (
+          <div className="relative">
+            {/* White card behind QR for scanning clarity */}
+            <div className="bg-white rounded-2xl p-3 shadow-[0_0_40px_rgba(255,255,255,0.12)]">
+              <img
+                src={dataUrl}
+                alt="QR Code PIX"
+                className="w-52 h-52 sm:w-60 sm:h-60 block"
+                style={{ imageRendering: 'pixelated' }}
+              />
+            </div>
+            {/* Subtle glow behind QR */}
+            <div className="absolute inset-0 rounded-2xl pointer-events-none"
+              style={{ boxShadow: '0 0 60px rgba(168,85,247,0.2)' }} />
+          </div>
+        ) : (
+          <div className="w-56 h-56 flex items-center justify-center">
+            <div className="text-[10px] font-mono text-red-400">Erro ao gerar QR</div>
+          </div>
+        )}
+
+        <div className="text-center">
+          <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.3em]">PIX ESTÁTICO</div>
+          <div className="text-xs font-bold text-zinc-300 mt-0.5">{name || 'Beneficiário'}</div>
+          <div className="text-[9px] font-mono text-zinc-700 mt-0.5">Escaneie com qualquer app de pagamento</div>
+        </div>
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex gap-2 px-4 pb-4">
+        <button
+          onClick={onCopy}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-purple-500/15 border border-purple-500/25 text-purple-300 hover:bg-purple-500/25 text-[11px] font-mono font-bold tracking-wider uppercase transition-all">
+          <Copy size={12} /> Copiar código
+        </button>
+        {dataUrl && (
+          <button
+            onClick={downloadQR}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.10] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.08] text-[11px] font-mono font-bold tracking-wider uppercase transition-all">
+            <Download size={12} />
+          </button>
+        )}
+      </div>
+
+      {/* Copia e cola text */}
+      <div className="border-t border-white/[0.06] px-4 py-3">
+        <div className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest mb-1.5">Copia e cola PIX</div>
+        <div className="text-[10px] font-mono text-zinc-500 break-all leading-relaxed max-h-20 overflow-y-auto custom-scrollbar">
+          {payload}
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
 export function Gateways() {
   const { creds, toast } = useApp()
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
@@ -79,6 +177,7 @@ export function Gateways() {
   const [saving, setSaving] = useState(false)
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({})
   const [pixPayload, setPixPayload] = useState('')
+  const [showQR, setShowQR] = useState(false)
 
   useEffect(() => {
     if (creds.length > 0 && selectedSlot === null) {
@@ -103,16 +202,16 @@ export function Gateways() {
 
   function startEdit(gw: Gateway) {
     setEditing(gw.id)
-    // Pre-fill form — secrets show blank (user must re-type to change)
     const vals: Record<string, string> = {}
     for (const f of gw.fields) {
       vals[f.key] = f.secret ? '' : (gw.redacted[f.key] ?? '')
     }
     setFormValues(vals)
     setPixPayload('')
+    setShowQR(false)
   }
 
-  function cancelEdit() { setEditing(null); setFormValues({}); setPixPayload('') }
+  function cancelEdit() { setEditing(null); setFormValues({}); setPixPayload(''); setShowQR(false) }
 
   async function save(gw: Gateway, setActive: boolean) {
     if (selectedSlot === null) return
@@ -151,7 +250,9 @@ export function Gateways() {
     const name = formValues['beneficiary'] || ''
     const city = formValues['city'] || ''
     if (!key) { toast('error', 'Chave PIX obrigatória'); return }
-    setPixPayload(buildPixPayload(key, name, city))
+    const payload = buildPixPayload(key, name, city)
+    setPixPayload(payload)
+    setShowQR(true)
   }
 
   const selectedCred = creds.find(c => c.slot === selectedSlot)
@@ -302,24 +403,27 @@ export function Gateways() {
                         </div>
                       ))}
 
-                      {/* PIX QR preview for pix_estatico */}
+                      {/* PIX QR section — image + copia e cola */}
                       {gw.id === 'pix_estatico' && (
                         <div>
-                          <button onClick={generatePixQR}
-                            className="flex items-center gap-2 text-[11px] font-mono text-cyan-400 hover:text-cyan-300 transition px-3 py-2 rounded-xl bg-cyan-500/8 border border-cyan-500/20 hover:bg-cyan-500/12 w-full justify-center">
-                            <QrCode size={13} /> Gerar código PIX copia e cola
+                          <button
+                            onClick={generatePixQR}
+                            className="flex items-center gap-2 text-[11px] font-mono text-cyan-400 hover:text-cyan-300 transition px-3 py-2.5 rounded-xl bg-cyan-500/8 border border-cyan-500/20 hover:bg-cyan-500/12 w-full justify-center font-bold tracking-wider uppercase">
+                            <QrCode size={14} /> Gerar QR code + copia e cola
                           </button>
-                          {pixPayload && (
-                            <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-                              className="mt-3 bg-white/[0.02] border border-white/[0.08] rounded-xl p-4">
-                              <div className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest mb-2">Copia e cola PIX</div>
-                              <div className="text-[10px] font-mono text-zinc-400 break-all leading-relaxed">{pixPayload}</div>
-                              <button onClick={() => { navigator.clipboard.writeText(pixPayload); toast('success', 'Copiado!') }}
-                                className="mt-2 flex items-center gap-1.5 text-[10px] font-mono text-purple-400 hover:text-purple-300 transition">
-                                <Copy size={11} /> Copiar código
-                              </button>
-                            </motion.div>
-                          )}
+
+                          <AnimatePresence>
+                            {showQR && pixPayload && (
+                              <QRImagePanel
+                                payload={pixPayload}
+                                name={formValues['beneficiary'] || ''}
+                                onCopy={() => {
+                                  navigator.clipboard.writeText(pixPayload)
+                                  toast('success', 'Código copiado!')
+                                }}
+                              />
+                            )}
+                          </AnimatePresence>
                         </div>
                       )}
 
