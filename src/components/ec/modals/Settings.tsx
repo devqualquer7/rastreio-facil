@@ -58,7 +58,7 @@ export function SettingsModal() {
     finally { setSaving(false) }
   }
 
-  const oauthPageUrl = `${origin}/checkout/oauth`
+  const oauthPageUrl = `${origin}/key`
   const callbackUrl = `${origin}/api/ec/oauth/callback`
 
   return (
