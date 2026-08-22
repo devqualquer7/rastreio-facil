@@ -34,7 +34,7 @@ export async function getSession(): Promise<{ username: string } | null> {
 
 export async function requireSession(): Promise<{ username: string }> {
   const session = await getSession()
-  if (!session) throw new Error('Unauthorized')
+  if (!session) throw new Error('UNAUTHORIZED')
   return session
 }
 
