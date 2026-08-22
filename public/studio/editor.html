@@ -558,6 +558,48 @@ input[type=color] {
 <input type="file" id="inputImagem" accept="image/*" style="display:none">
 <input type="file" id="inputHtml" accept=".html" style="display:none">
 
+<!-- =========================================================
+     MODAL: PREVIEW HTML IMPORTADO
+     ========================================================= -->
+<div id="modalHtmlPreview" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.88);align-items:center;justify-content:center;padding:16px">
+  <div style="background:#14171f;border:1px solid #262b38;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;width:100%;max-width:440px;max-height:92vh">
+    <!-- cabeçalho -->
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #262b38;flex-shrink:0">
+      <div style="flex:1;min-width:0">
+        <div id="mhpNome" style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e7eaf2"></div>
+        <div style="font-size:10px;color:#8b94a8;margin-top:2px;letter-spacing:.5px">HTML IMPORTADO</div>
+      </div>
+      <button id="mhpFechar" style="background:none;border:none;color:#8b94a8;cursor:pointer;font-size:20px;line-height:1;padding:4px 6px;border-radius:6px;transition:color .15s" title="Fechar">✕</button>
+    </div>
+    <!-- corpo: preview + ações -->
+    <div style="display:flex;gap:0;overflow:hidden;flex:1">
+      <!-- iframe preview (escalonado) -->
+      <div style="flex-shrink:0;width:190px;overflow:hidden;border-right:1px solid #262b38;background:#fff;position:relative">
+        <div style="width:190px;height:100%;overflow:hidden;position:relative">
+          <iframe id="mhpFrame" sandbox="allow-scripts allow-same-origin" scrolling="no"
+            style="width:390px;height:844px;transform:scale(0.487);transform-origin:top left;border:none;display:block;pointer-events:none"></iframe>
+        </div>
+        <div style="position:absolute;inset:0;cursor:default"></div>
+      </div>
+      <!-- ações -->
+      <div style="flex:1;display:flex;flex-direction:column;gap:10px;padding:16px;justify-content:center">
+        <div>
+          <div id="mhpDesc" style="font-size:11px;color:#4a5268;line-height:1.5;word-break:break-word"></div>
+        </div>
+        <button id="mhpBtnCopiar" style="padding:10px 14px;border-radius:8px;border:1px solid #262b38;background:#1a1e28;color:#e7eaf2;cursor:pointer;font-weight:600;font-size:11px;display:flex;align-items:center;gap:7px;justify-content:center;transition:background .15s">
+          📋 Copiar HTML
+        </button>
+        <button id="mhpBtnDuplicar" style="padding:10px 14px;border-radius:8px;border:1px solid rgba(62,155,255,.35);background:rgba(27,78,245,.15);color:#3E9BFF;cursor:pointer;font-weight:600;font-size:11px;display:flex;align-items:center;gap:7px;justify-content:center;transition:background .15s">
+          ⊕ Duplicar modelo
+        </button>
+        <button id="mhpBtnApagar" style="padding:10px 14px;border-radius:8px;border:1px solid rgba(255,84,112,.25);background:rgba(255,84,112,.08);color:#ff5470;cursor:pointer;font-weight:600;font-size:11px;display:flex;align-items:center;gap:7px;justify-content:center;transition:background .15s">
+          🗑 Apagar da nuvem
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 /* =========================================================
    1. CONSTANTES
@@ -1722,23 +1764,91 @@ $('galeriaNuvem').addEventListener('click', function (e) {
         return;
     }
     var no = e.target.closest('.modelo'); if (!no) return;
-    // raw_html models: clicking card also copies HTML
+    // raw_html models: open preview modal
     if (no.dataset.rawHtml) {
-        var m = modelosNuvem[+no.dataset.nuvem];
-        if (m && m.dados && m.dados.html) {
-            navigator.clipboard.writeText(m.dados.html).then(function () {
-                toast('HTML copiado!', 'ok');
-            }).catch(function () {
-                var ta = document.createElement('textarea');
-                ta.value = m.dados.html;
-                document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
-                toast('HTML copiado!', 'ok');
-            });
-        }
+        abrirModalHtmlPreview(+no.dataset.nuvem);
         return;
     }
     var m = modelosNuvem[+no.dataset.nuvem];
     if (m && m.dados) aplicarProjeto(m.dados, m.nome);
+});
+
+/* =========================================================
+   MODAL HTML PREVIEW
+   ========================================================= */
+var _mhpIdx = -1;
+
+function abrirModalHtmlPreview(idx) {
+    var m = modelosNuvem[idx];
+    if (!m || !m.dados) return;
+    _mhpIdx = idx;
+    $('mhpNome').textContent = m.nome || 'HTML importado';
+    $('mhpDesc').textContent = m.desc || '';
+    var frame = $('mhpFrame');
+    frame.srcdoc = m.dados.html || '';
+    var modal = $('modalHtmlPreview');
+    modal.style.display = 'flex';
+}
+
+function fecharModalHtmlPreview() {
+    var modal = $('modalHtmlPreview');
+    modal.style.display = 'none';
+    $('mhpFrame').srcdoc = '';
+    _mhpIdx = -1;
+}
+
+$('mhpFechar').addEventListener('click', fecharModalHtmlPreview);
+
+// Fechar clicando no overlay
+$('modalHtmlPreview').addEventListener('click', function (e) {
+    if (e.target === this) fecharModalHtmlPreview();
+});
+
+// Fechar com Esc
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && $('modalHtmlPreview').style.display === 'flex') fecharModalHtmlPreview();
+});
+
+$('mhpBtnCopiar').addEventListener('click', function () {
+    var m = modelosNuvem[_mhpIdx];
+    if (!m || !m.dados || !m.dados.html) return;
+    navigator.clipboard.writeText(m.dados.html).then(function () {
+        toast('HTML copiado!', 'ok');
+    }).catch(function () {
+        var ta = document.createElement('textarea');
+        ta.value = m.dados.html;
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+        toast('HTML copiado!', 'ok');
+    });
+});
+
+$('mhpBtnDuplicar').addEventListener('click', function () {
+    var m = modelosNuvem[_mhpIdx];
+    if (!m || !m.dados || !m.dados.html) return;
+    var novoNome = prompt('Nome para a cópia:', (m.nome || 'HTML') + ' — cópia');
+    if (!novoNome || !novoNome.trim()) return;
+    fetch('/api/studio/modelos', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ nome: novoNome.trim(), desc: m.desc || '', dados: { type: 'raw_html', html: m.dados.html } })
+    }).then(function (r) {
+        if (r.ok) { toast('Cópia salva na nuvem!', 'ok'); fecharModalHtmlPreview(); carregarModelosNuvem(); }
+        else toast('Falha ao duplicar', 'erro');
+    }).catch(function () { toast('Erro de rede', 'erro'); });
+});
+
+$('mhpBtnApagar').addEventListener('click', function () {
+    var m = modelosNuvem[_mhpIdx];
+    if (!m) return;
+    if (!confirm('Apagar "' + (m.nome || 'este modelo') + '" da nuvem? Isso afeta todo mundo.')) return;
+    fetch('/api/studio/modelos/' + m.id, { method: 'DELETE', credentials: 'same-origin' })
+        .then(function (r) {
+            if (r.status === 401) return toast('Sessão expirada', 'erro');
+            toast('Modelo apagado', 'ok');
+            fecharModalHtmlPreview();
+            carregarModelosNuvem();
+        });
 });
 
 /* =========================================================
