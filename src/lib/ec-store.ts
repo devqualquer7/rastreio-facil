@@ -45,6 +45,8 @@ interface AppState {
   // User
   username: string | null
   setUsername: (u: string) => void
+  isAdmin: boolean
+  setIsAdmin: (v: boolean) => void
 
   // Credentials
   creds: Credential[]
@@ -80,6 +82,8 @@ export const useApp = create<AppState>((set, get) => ({
   // User
   username: null,
   setUsername: (username) => set({ username }),
+  isAdmin: false,
+  setIsAdmin: (isAdmin) => set({ isAdmin }),
 
   // Credentials
   creds: [],

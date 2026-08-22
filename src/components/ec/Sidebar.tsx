@@ -7,15 +7,15 @@ import { useApp, Screen } from '@/lib/ec-store'
 
 export function Sidebar() {
   const router = useRouter()
-  const { screen, setScreen, openModal, activeCred } = useApp()
+  const { screen, setScreen, openModal, activeCred, isAdmin } = useApp()
 
-  const nav: { id: Screen; icon: any; label: string }[] = [
+  const nav: { id: Screen; icon: any; label: string; adminOnly?: boolean }[] = [
     { id: 'dashboard',   icon: LayoutDashboard, label: 'Dashboard' },
     { id: 'credentials', icon: Key,             label: 'Credenciais' },
     { id: 'gateways',    icon: CreditCard,      label: 'Gateways PIX' },
     { id: 'extrato',     icon: Receipt,         label: 'Extrato MP' },
     { id: 'logs',        icon: ScrollText,      label: 'Logs' },
-    { id: 'users',       icon: Users,           label: 'Usuários' },
+    { id: 'users',       icon: Users,           label: 'Usuários', adminOnly: true },
   ]
 
   async function logout() {
@@ -54,7 +54,7 @@ export function Sidebar() {
       {/* Nav */}
       <nav className="px-3 flex-1 space-y-1">
         <div className="text-[9px] font-mono text-zinc-700 tracking-[0.3em] px-3 mb-3 uppercase">Navegação</div>
-        {nav.map(item => {
+        {nav.filter(item => !item.adminOnly || isAdmin).map(item => {
           const Icon = item.icon; const active = screen === item.id
           return (
             <button key={item.id} onClick={() => setScreen(item.id)}
@@ -107,10 +107,12 @@ export function Sidebar() {
 
       {/* Ações */}
       <div className="p-3 border-t border-purple-500/10 flex gap-1.5">
-        <button onClick={() => openModal('settings')}
-          className="flex-1 py-2.5 rounded-xl text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300 flex items-center justify-center gap-2 font-mono text-[10px] tracking-[0.2em] transition uppercase">
-          <Settings2 size={12} /> Config
-        </button>
+        {isAdmin && (
+          <button onClick={() => openModal('settings')}
+            className="flex-1 py-2.5 rounded-xl text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300 flex items-center justify-center gap-2 font-mono text-[10px] tracking-[0.2em] transition uppercase">
+            <Settings2 size={12} /> Config
+          </button>
+        )}
         <button onClick={logout}
           className="px-4 py-2.5 rounded-xl text-zinc-500 hover:bg-red-500/10 hover:text-red-400 transition flex items-center justify-center" title="Sair">
           <LogOut size={12} />
@@ -122,16 +124,16 @@ export function Sidebar() {
 
 // Mobile top bar
 export function MobileTopBar() {
-  const { screen, setScreen, openModal } = useApp()
+  const { screen, setScreen, openModal, isAdmin } = useApp()
   const router = useRouter()
 
-  const nav: { id: Screen; icon: any }[] = [
+  const nav: { id: Screen; icon: any; adminOnly?: boolean }[] = [
     { id: 'dashboard',   icon: LayoutDashboard },
     { id: 'credentials', icon: Key },
     { id: 'gateways',    icon: CreditCard },
     { id: 'extrato',     icon: Receipt },
     { id: 'logs',        icon: ScrollText },
-    { id: 'users',       icon: Users },
+    { id: 'users',       icon: Users, adminOnly: true },
   ]
 
   async function logout() {
@@ -154,7 +156,7 @@ export function MobileTopBar() {
         </div>
       </div>
       <div className="flex border-b border-[#1a1a28] bg-[#0a0a0f]">
-        {nav.map(item => {
+        {nav.filter(item => !item.adminOnly || isAdmin).map(item => {
           const Icon = item.icon; const active = screen === item.id
           return (
             <button key={item.id} onClick={() => setScreen(item.id)}

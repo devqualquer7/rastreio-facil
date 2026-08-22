@@ -27,7 +27,7 @@ const SCREENS: Record<string, React.ComponentType> = {
 }
 
 export default function CheckoutPage() {
-  const { screen, modal, closeModal, setUsername, refreshCreds, username, pushPayment } = useApp()
+  const { screen, modal, closeModal, setUsername, setIsAdmin, refreshCreds, username, pushPayment } = useApp()
   const lastStatusRef = useRef<Map<number, string>>(new Map())
   const initializedRef = useRef(false)
 
@@ -35,7 +35,7 @@ export default function CheckoutPage() {
     // Load user + creds on mount
     fetch('/api/ec/me')
       .then(r => r.json())
-      .then(d => { if (d.ok) setUsername(d.username) })
+      .then(d => { if (d.ok) { setUsername(d.username); setIsAdmin(d.is_admin ?? false) } })
       .catch(() => {})
     refreshCreds()
   }, [])

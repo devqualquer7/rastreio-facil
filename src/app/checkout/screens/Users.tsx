@@ -105,7 +105,8 @@ export function Users() {
         toast('success', 'Nova chave gerada')
         loadKeys()
       } else toast('error', d.error || 'Falha')
-    } finally { setGenerating(false) }
+    } catch { toast('error', 'Erro ao gerar chave') }
+    finally { setGenerating(false) }
   }
 
   async function revokeKey(token: string) {

@@ -32,7 +32,7 @@ function levelStyle(level: string) {
 }
 
 export function Logs() {
-  const { toast } = useApp()
+  const { toast, isAdmin } = useApp()
   const [logs, setLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [tab, setTab] = useState<TabId>('todos')
@@ -81,7 +81,7 @@ export function Logs() {
 
       {/* Tabs */}
       <div className="flex items-center gap-1 flex-wrap mb-5 bg-white/[0.02] border border-white/[0.06] rounded-2xl p-1.5">
-        {TABS.map(t => {
+        {TABS.filter(t => t.id !== 'logins' || isAdmin).map(t => {
           const Icon = t.icon
           const active = tab === t.id
           return (

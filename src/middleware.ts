@@ -160,6 +160,7 @@ export async function middleware(request: NextRequest) {
   // Public checkout pages — no session required
   if (pathname === '/checkout/oauth') return response
   if (pathname === '/checkout/register') return response
+  if (pathname === '/key') return response
 
   if (pathname.startsWith('/checkout')) {
     const cookie = request.cookies.get('ec_session')
@@ -196,5 +197,6 @@ export const config = {
     '/checkout/:path*',
     '/api/checkout/:path*',
     '/api/ec/:path*',
+    '/key',
   ],
 }

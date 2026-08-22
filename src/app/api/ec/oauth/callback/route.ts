@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   const errorParam = searchParams.get('error')
 
   const errorPage = (msg: string) =>
-    NextResponse.redirect(`${origin}/checkout/oauth?error=${encodeURIComponent(msg)}`)
+    NextResponse.redirect(`${origin}/key?error=${encodeURIComponent(msg)}`)
 
   if (errorParam) return errorPage('Autorização negada no Mercado Pago')
   if (!code || !state) return errorPage('Parâmetros inválidos')
@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
       `slot #${slot}`
     ).catch(() => {})
 
-    return NextResponse.redirect(`${origin}/checkout/oauth?success=1&name=${encodeURIComponent(credName)}`)
+    return NextResponse.redirect(`${origin}/key?success=1&name=${encodeURIComponent(credName)}`)
   } catch (e: any) {
     console.error('[ec/oauth/callback]', e)
     return errorPage('Erro interno ao salvar credencial')
