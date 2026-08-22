@@ -1,120 +1,76 @@
 'use client'
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { useEffect } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Sidebar, MobileTopBar } from '@/components/ec/Sidebar'
+import { Dashboard } from '@/app/checkout/screens/Dashboard'
+import { Credentials } from '@/app/checkout/screens/Credentials'
+import { Extrato } from '@/app/checkout/screens/Extrato'
+import { Logs } from '@/app/checkout/screens/Logs'
+import { GenerateModal } from '@/components/ec/modals/Generate'
+import { SwitchAccountModal } from '@/components/ec/modals/SwitchAccount'
+import { SettingsModal } from '@/components/ec/modals/Settings'
+import { ToastStack, PaymentNotifications } from '@/components/ec/Toast'
+import { useApp } from '@/lib/ec-store'
 
-interface MPAccount {
-  slot: number
-  mp_user_id: string
-  public_key: string
-  is_active: boolean
-  connected: boolean
+const SCREENS: Record<string, React.ComponentType> = {
+  dashboard:   Dashboard,
+  credentials: Credentials,
+  extrato:     Extrato,
+  logs:        Logs,
 }
 
-export default function CheckoutDashboard() {
-  const [txs, setTxs] = useState<any[]>([])
-  const [mpAccounts, setMpAccounts] = useState<MPAccount[]>([])
-  const [loading, setLoading] = useState(true)
+export default function CheckoutPage() {
+  const { screen, modal, closeModal, setUsername, refreshCreds } = useApp()
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/checkout/transactions').then(r => r.json()),
-      fetch('/api/checkout/mp-accounts').then(r => r.json()),
-    ]).then(([t, m]) => {
-      setTxs(Array.isArray(t) ? t : [])
-      setMpAccounts(Array.isArray(m) ? m : [])
-    }).finally(() => setLoading(false))
+    // Load user + creds on mount
+    fetch('/api/ec/me')
+      .then(r => r.json())
+      .then(d => { if (d.ok) setUsername(d.username) })
+      .catch(() => {})
+    refreshCreds()
   }, [])
 
-  const stats = txs.reduce((acc, tx) => {
-    acc.total++
-    acc.totalAmount += tx.amount ?? 0
-    if (tx.status === 'paid') { acc.paid++; acc.paidAmount += tx.amount ?? 0 }
-    else acc.pending++
-    return acc
-  }, { total: 0, paid: 0, pending: 0, totalAmount: 0, paidAmount: 0 })
-
-  const fmt = (cents: number) =>
-    (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-
-  const recent = txs.slice(0, 10)
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-48">
-        <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
-      </div>
-    )
-  }
+  const Screen = SCREENS[screen] || Dashboard
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-white">Dashboard</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Visão geral do seu painel</p>
+    <div className="h-screen flex flex-col md:flex-row bg-[#09090f] overflow-hidden">
+      {/* Ambient bg */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] rounded-full bg-purple-900/20 blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full bg-cyan-900/15 blur-[100px]" />
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { label: 'Total Transações', value: stats.total.toString() },
-          { label: 'Pagas', value: stats.paid.toString(), sub: fmt(stats.paidAmount) },
-          { label: 'Pendentes', value: stats.pending.toString() },
-          { label: 'Volume Total', value: fmt(stats.totalAmount) },
-        ].map(s => (
-          <div key={s.label} className="bg-[#141414] border border-white/[0.06] rounded-xl p-4">
-            <p className="text-xs text-zinc-500 mb-1">{s.label}</p>
-            <p className="text-xl font-semibold text-white">{s.value}</p>
-            {s.sub && <p className="text-xs text-emerald-400 mt-0.5">{s.sub}</p>}
-          </div>
-        ))}
+      {/* Sidebar (desktop) */}
+      <Sidebar />
+
+      {/* Main */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <MobileTopBar />
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={screen}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}>
+              <Screen />
+            </motion.div>
+          </AnimatePresence>
+        </main>
       </div>
 
-      {mpAccounts.length > 0 && (
-        <div className="bg-[#141414] border border-white/[0.06] rounded-xl p-4">
-          <h2 className="text-sm font-medium text-white mb-3">Contas Mercado Pago Globais</h2>
-          <div className="space-y-2">
-            {mpAccounts.map(acc => (
-              <div key={acc.slot} className="flex items-center gap-3 py-2 border-b border-white/[0.04] last:border-0">
-                <span className="w-6 h-6 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center text-xs font-semibold">
-                  {acc.slot}
-                </span>
-                <span className="text-sm text-zinc-300 font-mono truncate flex-1">{acc.mp_user_id}</span>
-                <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">Ativa</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Modals */}
+      <AnimatePresence>
+        {modal === 'generate'       && <GenerateModal />}
+        {modal === 'switch-account' && <SwitchAccountModal />}
+        {modal === 'settings'       && <SettingsModal />}
+      </AnimatePresence>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Link href="/checkout/gateways" className="bg-[#141414] border border-white/[0.06] rounded-xl p-4 hover:border-white/10 transition-colors">
-          <p className="text-sm font-medium text-white mb-1">Configurar Gateways</p>
-          <p className="text-xs text-zinc-500">Configure suas credenciais de pagamento</p>
-        </Link>
-        <Link href="/checkout/transactions" className="bg-[#141414] border border-white/[0.06] rounded-xl p-4 hover:border-white/10 transition-colors">
-          <p className="text-sm font-medium text-white mb-1">Gerar PIX</p>
-          <p className="text-xs text-zinc-500">Crie novas cobranças PIX</p>
-        </Link>
-      </div>
-
-      {recent.length > 0 && (
-        <div className="bg-[#141414] border border-white/[0.06] rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-white/[0.06]">
-            <h2 className="text-sm font-medium text-white">Transações Recentes</h2>
-          </div>
-          <div className="divide-y divide-white/[0.04]">
-            {recent.map(tx => (
-              <div key={tx.id} className="flex items-center gap-3 px-4 py-3">
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${tx.status === 'paid' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-zinc-500/10 text-zinc-400'}`}>
-                  {tx.status === 'paid' ? 'PAGO' : 'PENDENTE'}
-                </span>
-                <span className="text-sm text-zinc-300 font-mono flex-1 truncate">{tx.external_id ?? tx.id}</span>
-                <span className="text-sm text-white font-medium">{fmt(tx.amount)}</span>
-                <span className="text-xs text-zinc-600 capitalize">{tx.gateway}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Toasts & payment notifications */}
+      <ToastStack />
+      <PaymentNotifications />
     </div>
   )
 }

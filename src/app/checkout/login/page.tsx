@@ -1,89 +1,89 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { Sparkles, Lock, User } from 'lucide-react'
 
-export default function CheckoutLogin() {
+export default function ECLoginPage() {
   const router = useRouter()
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const [u, setU] = useState('')
+  const [p, setP] = useState('')
+  const [err, setErr] = useState('')
   const [loading, setLoading] = useState(false)
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
-    setLoading(true)
+    setLoading(true); setErr('')
     try {
-      const res = await fetch('/api/checkout/auth/login', {
+      const r = await fetch('/api/ec/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ username: u, password: p })
       })
-      const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Erro ao entrar'); return }
-      router.push('/checkout')
-    } catch {
-      setError('Erro de conexão')
-    } finally {
-      setLoading(false)
-    }
+      const d = await r.json()
+      if (!d.ok) { setErr(d.error || 'Credenciais inválidas'); return }
+      router.push('/checkout'); router.refresh()
+    } finally { setLoading(false) }
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Checkout Panel</h1>
-          <p className="text-sm text-zinc-500 mt-1">Faça login para continuar</p>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#09090f] relative">
+      {/* Ambient */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute top-0 left-1/3 w-[500px] h-[500px] rounded-full bg-purple-900/25 blur-[120px]" />
+        <div className="absolute bottom-0 right-1/3 w-[400px] h-[400px] rounded-full bg-cyan-900/15 blur-[100px]" />
+      </div>
+
+      <form onSubmit={submit} className="w-full max-w-sm relative z-10">
+        {/* Brand */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="relative w-20 h-20 mb-5">
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-violet-700 via-purple-500/50 to-cyan-400 opacity-50 blur-2xl animate-pulse" />
+            <div className="relative w-full h-full rounded-3xl bg-gradient-to-br from-violet-800 to-purple-600 flex items-center justify-center text-white font-black text-3xl border border-purple-400/20 shadow-[0_0_40px_rgba(168,85,247,.4)]">
+              E
+            </div>
+          </div>
+          <div className="font-black text-2xl tracking-tight ec-shimmer-text">ENCRYPTED</div>
+          <div className="text-[10px] font-mono text-zinc-600 tracking-[0.35em] mt-1 uppercase">
+            Checkout · Web · v2
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">Usuário</label>
-            <input
-              type="text"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              required
-              autoComplete="username"
-              className="w-full bg-[#141414] border border-white/[0.08] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/10 transition-colors"
-              placeholder="seu_usuario"
-            />
+        {/* Card */}
+        <div className="relative bg-gradient-to-b from-[#0d0d18]/90 to-[#09090f]/90 backdrop-blur-xl border border-purple-500/20 rounded-3xl p-7 overflow-hidden shadow-[0_0_60px_rgba(168,85,247,.15)]">
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
+          <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-purple-500/15 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-48 h-48 rounded-full bg-cyan-400/10 blur-3xl pointer-events-none" />
+
+          <div className="relative space-y-5">
+            <div>
+              <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.25em] mb-2 flex items-center gap-1.5">
+                <User size={10} /> Usuário
+              </div>
+              <input value={u} onChange={e => setU(e.target.value)} autoComplete="username"
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm font-mono text-zinc-100 outline-none focus:border-purple-500/50 focus:bg-purple-500/[0.04] focus:shadow-[0_0_0_4px_rgba(168,85,247,.12)] transition-all"
+              />
+            </div>
+            <div>
+              <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.25em] mb-2 flex items-center gap-1.5">
+                <Lock size={10} /> Senha
+              </div>
+              <input type="password" value={p} onChange={e => setP(e.target.value)} autoComplete="current-password"
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm font-mono text-zinc-100 outline-none focus:border-purple-500/50 focus:bg-purple-500/[0.04] focus:shadow-[0_0_0_4px_rgba(168,85,247,.12)] transition-all"
+              />
+              {err && <div className="text-[11px] font-mono text-red-400 mt-2">{err}</div>}
+            </div>
+            <button disabled={loading} type="submit"
+              className="relative w-full py-3.5 rounded-xl bg-gradient-to-br from-violet-700 via-purple-500 to-cyan-300 text-white font-black tracking-wide text-sm shadow-[0_0_25px_rgba(168,85,247,.45)] hover:shadow-[0_0_40px_rgba(168,85,247,.6)] active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2 uppercase">
+              <Sparkles size={14} />
+              {loading ? 'Entrando…' : 'Entrar'}
+            </button>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">Senha</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              className="w-full bg-[#141414] border border-white/[0.08] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/10 transition-colors"
-              placeholder="••••••••"
-            />
-          </div>
+        </div>
 
-          {error && (
-            <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-white text-black font-medium text-sm rounded-lg py-2.5 hover:bg-zinc-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Entrando...' : 'Entrar'}
-          </button>
-        </form>
-
-        <p className="text-center text-xs text-zinc-600 mt-6">
-          Não tem conta?{' '}
-          <Link href="/checkout/register" className="text-zinc-400 hover:text-white transition-colors">
-            Cadastre-se com uma chave
-          </Link>
-        </p>
-      </div>
+        <div className="text-center mt-6 text-[10px] font-mono text-zinc-800 tracking-[0.35em] uppercase">
+          Anti-Detect · IP Cloud · v2
+        </div>
+      </form>
     </div>
   )
 }

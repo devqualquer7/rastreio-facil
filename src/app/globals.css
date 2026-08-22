@@ -142,3 +142,64 @@
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }
 }
+
+/* ── EncryptedCheckout panel custom classes ─────────────────────────────── */
+
+@keyframes ec-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+@keyframes ec-shine-sweep {
+  0%   { transform: translateX(-100%) skewX(-15deg); opacity: 0; }
+  40%  { opacity: 0.6; }
+  100% { transform: translateX(200%) skewX(-15deg); opacity: 0; }
+}
+
+/* Animated gradient text used in the ENCRYPTED logo / sidebar */
+.ec-shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #a855f7 0%,
+    #c084fc 20%,
+    #e879f9 40%,
+    #22d3ee 60%,
+    #c084fc 80%,
+    #a855f7 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: ec-shimmer 4s linear infinite;
+}
+
+/* Shine overlay sweep — add as a ::after on a relative container */
+.ec-shine {
+  position: relative;
+  overflow: hidden;
+}
+.ec-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 60%
+  );
+  animation: ec-shine-sweep 3.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Glow shadow utilities */
+.ec-glow-purple {
+  box-shadow: 0 0 20px 4px rgba(168, 85, 247, 0.35);
+}
+.ec-glow-cyan {
+  box-shadow: 0 0 20px 4px rgba(34, 211, 238, 0.3);
+}
+.ec-glow-emerald {
+  box-shadow: 0 0 20px 4px rgba(52, 211, 153, 0.3);
+}
