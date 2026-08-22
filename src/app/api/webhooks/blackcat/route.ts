@@ -5,22 +5,33 @@ export async function POST(request: NextRequest) {
   try {
     const event = request.headers.get('x-webhook-event') || ''
     const body = await request.json()
-    console.log('[BlackCat Webhook] Event:', event, '| Body:', JSON.stringify(body).substring(0, 1000))
+    console.log('[BlackCat Webhook] Event:', event, '| Body:', JSON.stringify(body).substring(0, 2000))
 
-    const transactionId = body.transaction_id || body.id || body.txid
+    const transactionId = body.transaction_id ?? body.id ?? body.txid
     const status = (body.status || '').toString().toLowerCase()
 
-    console.log(`[BlackCat Webhook] Transaction: ${transactionId} | Status: ${status} | Event: ${event}`)
+    console.log(`[BlackCat Webhook] transactionId: ${transactionId} | status: ${status} | event: ${event}`)
 
     const isPaid = event === 'transaction.paid' || status === 'paid' || status === 'completed' || status === 'approved'
 
-    if (isPaid && transactionId) {
-      try {
-        await db.markSaquePaymentPaid(String(transactionId))
-        console.log(`[BlackCat Webhook] Saque marked paid for ${transactionId}`)
-      } catch (e) {
-        console.error('[BlackCat Webhook] Failed to mark saque paid:', e)
+    if (isPaid) {
+      const ids = [
+        transactionId ? String(transactionId) : null,
+        body.id ? String(body.id) : null,
+        body.sale_id ? String(body.sale_id) : null,
+      ].filter(Boolean) as string[]
+      const uniqueIds = [...new Set(ids)]
+      console.log('[BlackCat Webhook] Trying markSaquePaymentPaid for IDs:', uniqueIds)
+      for (const id of uniqueIds) {
+        try {
+          const marked = await db.markSaquePaymentPaid(id)
+          if (marked) console.log(`[BlackCat Webhook] Saque marked paid for ID: ${id}`)
+        } catch (e) {
+          console.error(`[BlackCat Webhook] Failed to mark saque paid for ${id}:`, e)
+        }
       }
+    } else {
+      console.log(`[BlackCat Webhook] Event "${event}" status "${status}" — no action`)
     }
 
     return NextResponse.json({ received: true }, { status: 200 })

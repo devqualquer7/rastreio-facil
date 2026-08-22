@@ -70,9 +70,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true })
     }
 
+    // ── EC Saque: mark paid BEFORE any billing lookup so saque PIX always gets confirmed
+    // Saque PIX não existe na billing DB, portanto o early return abaixo não pode bloquear este call.
+    if (status === 'paid' || status === 'completed' || status === 'approved') {
+      const ids = [
+        String(pushinpayId),
+        String(pushinpayId).trim().toLowerCase(),
+        body.transaction_id ? String(body.transaction_id) : null,
+      ].filter(Boolean) as string[]
+      const uniqueIds = [...new Set(ids)]
+      console.log('[Webhook] Trying markSaquePaymentPaid for IDs:', uniqueIds)
+      for (const id of uniqueIds) {
+        try { await db.markSaquePaymentPaid(id) } catch {}
+      }
+    }
+
     // PushinPay pode enviar ID em case diferente — normaliza para lowercase
     const normalizedId = String(pushinpayId).trim().toLowerCase()
-    console.log('[Webhook] Normalized ID for lookup:', normalizedId)
+    console.log('[Webhook] Normalized ID for billing lookup:', normalizedId)
 
     let payment = query.getPaymentByPushinpayId(normalizedId)
 
@@ -89,11 +104,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (!payment) {
-      console.log('[Webhook] Payment not found for ID:', pushinpayId)
+      console.log('[Webhook] No billing payment found for ID:', pushinpayId, '(saque already handled above)')
       return NextResponse.json({ received: true })
     }
 
-    console.log('[Webhook] Found payment:', payment.id, '| current status:', payment.status)
+    console.log('[Webhook] Found billing payment:', payment.id, '| current status:', payment.status)
 
     if (status === 'paid' || status === 'completed' || status === 'approved') {
       if (payment.status === 'paid') {
@@ -102,9 +117,6 @@ export async function POST(request: NextRequest) {
       }
 
       query.updatePaymentStatus(payment.id, 'paid')
-
-      // Mark EC saque payment as paid if it was generated through the saque flow
-      try { await db.markSaquePaymentPaid(String(pushinpayId)) } catch {}
 
       const user = query.getUserById(payment.userId)
       if (!user) return NextResponse.json({ received: true })

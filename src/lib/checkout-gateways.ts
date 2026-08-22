@@ -124,7 +124,7 @@ async function paradiseWithdraw(
 // ── PixGate ───────────────────────────────────────────────────────────────────
 
 function getBaseUrl() {
-  return process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL || 'https://rastreiofacil.com'
+  return process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL || 'https://www.rastreiofacil.com'
 }
 
 async function pixgateCreatePix(

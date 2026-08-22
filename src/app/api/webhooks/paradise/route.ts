@@ -4,25 +4,35 @@ import { db } from '@/lib/ec-supabase'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    console.log('[Paradise Webhook] Received:', JSON.stringify(body).substring(0, 1000))
+    console.log('[Paradise Webhook] Received:', JSON.stringify(body).substring(0, 2000))
 
-    const transactionId = body.transaction_id
-    const status = (body.status || '').toString().toLowerCase()
+    // Paradise may send transaction_id or id
+    const transactionId = body.transaction_id ?? body.id ?? body.txid
+    const status = (body.status || body.event || '').toString().toLowerCase()
 
-    console.log(`[Paradise Webhook] Transaction: ${transactionId} | Status: ${status}`)
+    console.log(`[Paradise Webhook] transactionId: ${transactionId} | status: ${status}`)
 
-    if (status === 'approved') {
-      console.log(`[Paradise Webhook] Payment APPROVED for transaction ${transactionId}`)
-      if (transactionId) {
+    const isPaid = status === 'approved' || status === 'paid' || status === 'completed' || status === 'transaction.paid'
+
+    if (isPaid) {
+      console.log(`[Paradise Webhook] Payment confirmed for transaction ${transactionId}`)
+      const ids = [
+        transactionId ? String(transactionId) : null,
+        body.id ? String(body.id) : null,
+        body.reference ? String(body.reference) : null,
+      ].filter(Boolean) as string[]
+      const uniqueIds = [...new Set(ids)]
+      console.log('[Paradise Webhook] Trying markSaquePaymentPaid for IDs:', uniqueIds)
+      for (const id of uniqueIds) {
         try {
-          await db.markSaquePaymentPaid(String(transactionId))
-          console.log(`[Paradise Webhook] Saque marked paid for ${transactionId}`)
+          const marked = await db.markSaquePaymentPaid(id)
+          if (marked) console.log(`[Paradise Webhook] Saque marked paid for ID: ${id}`)
         } catch (e) {
-          console.error('[Paradise Webhook] Failed to mark saque paid:', e)
+          console.error(`[Paradise Webhook] Failed to mark saque paid for ${id}:`, e)
         }
       }
-    } else if (status === 'refunded') {
-      console.log(`[Paradise Webhook] Payment REFUNDED for transaction ${transactionId}`)
+    } else {
+      console.log(`[Paradise Webhook] Status "${status}" — no action`)
     }
 
     return NextResponse.json({ received: true }, { status: 200 })
