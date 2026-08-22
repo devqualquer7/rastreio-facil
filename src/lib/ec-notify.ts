@@ -1,7 +1,17 @@
 'use client'
 
-// Generates a cash register "cha-ching" sound using the Web Audio API
+// Play cash register sound — real audio file with Web Audio fallback
 export function playCashSound() {
+  try {
+    const audio = new Audio('/cash.mp3')
+    audio.volume = 0.85
+    audio.play().catch(() => playWebAudioFallback())
+  } catch {
+    playWebAudioFallback()
+  }
+}
+
+function playWebAudioFallback() {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
     const t = ctx.currentTime
@@ -31,8 +41,8 @@ export function playCashSound() {
     osc2.start(t + 0.06); osc2.stop(t + 0.22)
 
     setTimeout(() => ctx.close(), 500)
-  } catch (e) {
-    // AudioContext not available (SSR or blocked)
+  } catch {
+    // AudioContext not available
   }
 }
 
