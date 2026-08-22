@@ -23,23 +23,24 @@ export async function POST(req: NextRequest) {
 
     // Get the active gateway for this user
     const activeGw = await db.getSetting(`gw:user:${username}:active`)
-    if (!activeGw || !isValidGateway(activeGw) || activeGw === 'pix_estatico') {
+    const activeGwStr = activeGw as string | null
+    if (!activeGwStr || activeGwStr === 'pix_estatico' || !isValidGateway(activeGwStr)) {
       return NextResponse.json({ ok: false, error: 'Nenhum gateway dinâmico configurado' }, { status: 400 })
     }
 
-    const fields = GW_FIELDS[activeGw]
+    const fields = GW_FIELDS[activeGwStr]
     if (!fields) return NextResponse.json({ ok: false, error: 'Gateway sem suporte a PIX dinâmico' }, { status: 400 })
 
     // Read all credentials for this gateway
-    const keys = fields.map(f => `gw:user:${username}:${activeGw}:${f}`)
+    const keys = fields.map(f => `gw:user:${username}:${activeGwStr}:${f}`)
     const rows = await db.getSettings(keys)
     const settingsMap = Object.fromEntries(rows.map(r => [r.key, r.value]))
 
     const creds: Record<string, string> = {}
     for (const f of fields) {
-      const val = settingsMap[`gw:user:${username}:${activeGw}:${f}`] ?? ''
+      const val = settingsMap[`gw:user:${username}:${activeGwStr}:${f}`] ?? ''
       if (!val.trim()) {
-        return NextResponse.json({ ok: false, error: `Gateway ${activeGw}: credencial "${f}" não configurada` }, { status: 400 })
+        return NextResponse.json({ ok: false, error: `Gateway ${activeGwStr}: credencial "${f}" não configurada` }, { status: 400 })
       }
       creds[f] = val
     }
@@ -47,14 +48,14 @@ export async function POST(req: NextRequest) {
     // Amount in cents
     const amountCents = Math.round(amount * 100)
 
-    const result = await gatewayCreatePix(activeGw, creds, amountCents, description)
+    const result = await gatewayCreatePix(activeGwStr as any, creds, amountCents, description)
 
     return NextResponse.json({
       ok: true,
       pixCode: result.pix_code,
       pixBase64: result.pix_base64,
       externalId: result.external_id,
-      gateway: activeGw,
+      gateway: activeGwStr,
     })
   } catch (e: any) {
     if (e.message === 'UNAUTHORIZED') return NextResponse.json({ ok: false, error: 'Não autenticado' }, { status: 401 })
