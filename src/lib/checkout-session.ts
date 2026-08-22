@@ -1,9 +1,11 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 
-const secretKey = process.env.SESSION_SECRET
-if (!secretKey) throw new Error('SESSION_SECRET env var is required')
-const key = new TextEncoder().encode(secretKey)
+function getKey(): Uint8Array {
+  const secretKey = process.env.SESSION_SECRET
+  if (!secretKey) throw new Error('SESSION_SECRET env var is required')
+  return new TextEncoder().encode(secretKey)
+}
 
 const COOKIE = 'co-session'
 const EXPIRES_MS = 7 * 24 * 60 * 60 * 1000
@@ -13,12 +15,12 @@ async function sign(payload: Record<string, unknown>, expiresIn = '7d') {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(expiresIn)
-    .sign(key)
+    .sign(getKey())
 }
 
 async function verify(token: string): Promise<Record<string, unknown> | null> {
   try {
-    const { payload } = await jwtVerify(token, key, { algorithms: ['HS256'] })
+    const { payload } = await jwtVerify(token, getKey(), { algorithms: ['HS256'] })
     return payload as Record<string, unknown>
   } catch {
     return null
