@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Sidebar, MobileTopBar } from '@/components/ec/Sidebar'
 import { Dashboard } from '@/app/checkout/screens/Dashboard'
 import { Credentials } from '@/app/checkout/screens/Credentials'
+import { Gateways } from '@/app/checkout/screens/Gateways'
 import { Extrato } from '@/app/checkout/screens/Extrato'
 import { Logs } from '@/app/checkout/screens/Logs'
 import { GenerateModal } from '@/components/ec/modals/Generate'
@@ -15,6 +16,7 @@ import { useApp } from '@/lib/ec-store'
 const SCREENS: Record<string, React.ComponentType> = {
   dashboard:   Dashboard,
   credentials: Credentials,
+  gateways:    Gateways,
   extrato:     Extrato,
   logs:        Logs,
 }

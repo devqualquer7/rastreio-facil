@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Key, CheckCircle2, XCircle, TestTube2, Zap, Trash2, Copy, Sparkles, Pencil, Check, X, Plus, User, Shield, ChevronDown, AlertTriangle, RefreshCw } from 'lucide-react'
+import { Key, CheckCircle2, XCircle, TestTube2, Zap, Trash2, Copy, Sparkles, Pencil, Check, X, Plus, User, Shield, ChevronDown, AlertTriangle, RefreshCw, Link2, ExternalLink } from 'lucide-react'
 import { SectionTitle, Button } from '@/components/ec/ui/Base'
 import { useApp } from '@/lib/ec-store'
 import { cn, fmtDate } from '@/lib/ec-utils'
@@ -212,6 +212,40 @@ export function Credentials() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* OAuth Link Section */}
+      {origin && (
+        <div className="relative overflow-hidden bg-gradient-to-br from-cyan-500/10 via-purple-500/5 to-transparent border border-cyan-500/25 rounded-2xl mb-6 p-5">
+          <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-cyan-500/15 blur-3xl pointer-events-none" />
+          <div className="relative flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/35 text-cyan-400 flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_rgba(34,211,238,.2)]">
+              <Link2 size={16} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-bold text-sm text-cyan-300 tracking-wide mb-0.5">Link OAuth para trabalhadores</div>
+              <div className="text-[10px] font-mono text-zinc-500 leading-relaxed mb-3">
+                Compartilhe este link com os trabalhadores. Eles clicam, inserem o nome da conta e autorizam o Mercado Pago — sem precisar colar tokens.
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-0 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-[11px] font-mono text-zinc-400 truncate">
+                  {origin}/checkout/oauth
+                </div>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(`${origin}/checkout/oauth`); toast('success', 'Link copiado!') }}
+                  className="p-2.5 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/25 transition flex-shrink-0"
+                  title="Copiar link">
+                  <Copy size={13} />
+                </button>
+                <a href={`${origin}/checkout/oauth`} target="_blank" rel="noreferrer"
+                  className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.08] transition flex-shrink-0"
+                  title="Abrir página OAuth">
+                  <ExternalLink size={13} />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {creds.length === 0 ? (
         <div className="text-center py-16 bg-white/[0.02] border border-white/[0.06] rounded-2xl">

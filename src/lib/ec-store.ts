@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type Screen = 'dashboard' | 'credentials' | 'extrato' | 'logs'
+export type Screen = 'dashboard' | 'credentials' | 'extrato' | 'logs' | 'gateways'
 export type ModalId = 'generate' | 'switch-account' | 'settings'
 
 export interface Credential {
@@ -106,8 +106,8 @@ export const useApp = create<AppState>((set, get) => ({
   pushPayment: (p) => {
     const payment: PendingPayment = { ...p, id: ++paymentId }
     set(s => ({ pendingPayments: [...s.pendingPayments, payment] }))
-    // Auto-dismiss after 8 seconds
-    setTimeout(() => get().dismissPayment(payment.id), 8000)
+    // Auto-dismiss after 10 seconds
+    setTimeout(() => get().dismissPayment(payment.id), 10000)
   },
   dismissPayment: (id) => set(s => ({ pendingPayments: s.pendingPayments.filter(p => p.id !== id) })),
 

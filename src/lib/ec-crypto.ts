@@ -27,6 +27,10 @@ export async function encrypt(plaintext: string): Promise<string> {
 
 export async function decrypt(encrypted: string): Promise<string> {
   const { webcrypto } = require('node:crypto')
+  // Graceful fallback: if it doesn't look like our ivHex:base64 format,
+  // treat as a plaintext token (e.g. manually inserted APP_USR-xxx credentials)
+  const colonIdx = encrypted.indexOf(':')
+  if (colonIdx < 24 || colonIdx > 28) return encrypted
   const [ivHex, ctB64] = encrypted.split(':')
   if (!ivHex || !ctB64) throw new Error('Invalid encrypted format')
   const keyBuf = getKey()

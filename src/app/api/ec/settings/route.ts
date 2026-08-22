@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireSession } from '@/lib/ec-auth'
 import { db } from '@/lib/ec-supabase'
 
-const SETTING_KEYS = ['default_title', 'auto_cancel_enabled', 'max_rejections_per_link', 'cancel_after_minutes']
+const SETTING_KEYS = [
+  'default_title', 'auto_cancel_enabled', 'max_rejections_per_link', 'cancel_after_minutes',
+  'mp_oauth_client_id', 'mp_oauth_client_secret', 'mp_oauth_redirect_url',
+]
 
 export async function GET() {
   try {
@@ -14,6 +17,9 @@ export async function GET() {
       auto_cancel_enabled: false,
       max_rejections_per_link: 3,
       cancel_after_minutes: 60,
+      mp_oauth_client_id: '',
+      mp_oauth_client_secret: '',
+      mp_oauth_redirect_url: '',
     }
 
     for (const row of rows) {
@@ -39,6 +45,9 @@ export async function POST(req: NextRequest) {
     if (body.auto_cancel_enabled !== undefined) updates.push({ key: 'auto_cancel_enabled', value: String(body.auto_cancel_enabled) })
     if (body.max_rejections_per_link !== undefined) updates.push({ key: 'max_rejections_per_link', value: String(body.max_rejections_per_link) })
     if (body.cancel_after_minutes !== undefined) updates.push({ key: 'cancel_after_minutes', value: String(body.cancel_after_minutes) })
+    if (body.mp_oauth_client_id !== undefined) updates.push({ key: 'mp_oauth_client_id', value: String(body.mp_oauth_client_id) })
+    if (body.mp_oauth_client_secret !== undefined) updates.push({ key: 'mp_oauth_client_secret', value: String(body.mp_oauth_client_secret) })
+    if (body.mp_oauth_redirect_url !== undefined) updates.push({ key: 'mp_oauth_redirect_url', value: String(body.mp_oauth_redirect_url) })
 
     for (const { key, value } of updates) {
       await db.setSetting(key, value)

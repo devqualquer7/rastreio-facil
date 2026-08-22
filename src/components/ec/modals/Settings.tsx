@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { X, Settings2, Save, RefreshCw } from 'lucide-react'
+import { X, Settings2, Save, RefreshCw, Link2, Copy, Eye, EyeOff } from 'lucide-react'
 import { ModalBackdrop, Button } from '@/components/ec/ui/Base'
 import { useApp } from '@/lib/ec-store'
 
@@ -10,20 +10,32 @@ interface SettingsData {
   auto_cancel_enabled: boolean
   max_rejections_per_link: number
   cancel_after_minutes: number
+  mp_oauth_client_id: string
+  mp_oauth_client_secret: string
+  mp_oauth_redirect_url: string
 }
+
+type Tab = 'geral' | 'oauth'
 
 export function SettingsModal() {
   const { closeModal, toast } = useApp()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [tab, setTab] = useState<Tab>('geral')
+  const [showSecret, setShowSecret] = useState(false)
+  const [origin, setOrigin] = useState('')
   const [data, setData] = useState<SettingsData>({
     default_title: 'Pagamento',
     auto_cancel_enabled: false,
     max_rejections_per_link: 3,
     cancel_after_minutes: 60,
+    mp_oauth_client_id: '',
+    mp_oauth_client_secret: '',
+    mp_oauth_redirect_url: '',
   })
 
   useEffect(() => {
+    setOrigin(window.location.origin)
     fetch('/api/ec/settings')
       .then(r => r.json())
       .then(d => { if (d.ok) setData(d.settings) })
@@ -46,6 +58,9 @@ export function SettingsModal() {
     finally { setSaving(false) }
   }
 
+  const oauthPageUrl = `${origin}/checkout/oauth`
+  const callbackUrl = `${origin}/api/ec/oauth/callback`
+
   return (
     <ModalBackdrop onClose={closeModal}>
       <motion.div
@@ -53,7 +68,7 @@ export function SettingsModal() {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 16, scale: 0.97 }}
         transition={{ type: 'spring', stiffness: 280, damping: 26 }}
-        className="relative bg-gradient-to-b from-[#0d0d18]/98 to-[#09090f]/98 backdrop-blur-2xl border border-purple-500/20 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(168,85,247,.15)]">
+        className="relative bg-gradient-to-b from-[#0d0d18]/98 to-[#09090f]/98 backdrop-blur-2xl border border-purple-500/20 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(168,85,247,.15)] w-full max-w-lg">
 
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
         <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
@@ -74,12 +89,26 @@ export function SettingsModal() {
           </button>
         </div>
 
+        {/* Tabs */}
+        <div className="flex border-b border-purple-500/10 px-6 pt-4 gap-4">
+          {(['geral', 'oauth'] as Tab[]).map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`pb-3 text-[11px] font-mono font-bold tracking-widest uppercase transition-all border-b-2 ${
+                tab === t
+                  ? 'border-purple-500 text-purple-300'
+                  : 'border-transparent text-zinc-600 hover:text-zinc-400'
+              }`}>
+              {t === 'geral' ? 'Geral' : 'OAuth MP'}
+            </button>
+          ))}
+        </div>
+
         <div className="relative p-6">
           {loading ? (
             <div className="py-8 flex items-center justify-center">
               <RefreshCw size={18} className="animate-spin text-purple-400" />
             </div>
-          ) : (
+          ) : tab === 'geral' ? (
             <div className="space-y-5">
               {/* Título padrão */}
               <div>
@@ -135,6 +164,74 @@ export function SettingsModal() {
 
               <Button variant="accent" size="lg" icon={<Save size={13} />} onClick={save} loading={saving} className="w-full justify-center">
                 Salvar Configurações
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              <div className="text-[10px] font-mono text-zinc-600 leading-relaxed bg-white/[0.02] border border-white/[0.06] rounded-xl p-3">
+                Configure seu App do Mercado Pago (Dashboard MP → Aplicações) para permitir que usuários conectem suas contas via OAuth.
+              </div>
+
+              {/* Client ID */}
+              <div>
+                <div className="text-[10px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase mb-2">Client ID</div>
+                <input
+                  type="text" value={data.mp_oauth_client_id}
+                  onChange={e => setData(d => ({ ...d, mp_oauth_client_id: e.target.value }))}
+                  placeholder="123456789"
+                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm font-mono text-zinc-100 outline-none focus:border-purple-500/50 transition-all"
+                />
+              </div>
+
+              {/* Client Secret */}
+              <div>
+                <div className="text-[10px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase mb-2">Client Secret</div>
+                <div className="relative">
+                  <input
+                    type={showSecret ? 'text' : 'password'}
+                    value={data.mp_oauth_client_secret}
+                    onChange={e => setData(d => ({ ...d, mp_oauth_client_secret: e.target.value }))}
+                    placeholder="••••••••••••••••"
+                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 pr-12 text-sm font-mono text-zinc-100 outline-none focus:border-purple-500/50 transition-all"
+                  />
+                  <button onClick={() => setShowSecret(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition">
+                    {showSecret ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Redirect URL */}
+              <div>
+                <div className="text-[10px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase mb-2">
+                  URL de Redirecionamento (opcional)
+                </div>
+                <input
+                  type="text" value={data.mp_oauth_redirect_url}
+                  onChange={e => setData(d => ({ ...d, mp_oauth_redirect_url: e.target.value }))}
+                  placeholder={callbackUrl}
+                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm font-mono text-zinc-100 outline-none focus:border-purple-500/50 transition-all"
+                />
+                <div className="text-[10px] font-mono text-zinc-700 mt-1">Deixe vazio para usar: {callbackUrl}</div>
+              </div>
+
+              {/* OAuth page URL to share */}
+              <div className="bg-purple-500/8 border border-purple-500/20 rounded-xl p-4">
+                <div className="text-[10px] font-mono font-bold tracking-[0.25em] text-purple-500 uppercase mb-2 flex items-center gap-1.5">
+                  <Link2 size={11} /> Link para trabalhadores conectarem
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 text-[11px] font-mono text-zinc-400 bg-white/[0.04] rounded-lg px-3 py-2 truncate">{oauthPageUrl}</div>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(oauthPageUrl); toast('success', 'Link copiado!') }}
+                    className="p-2 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-400 hover:bg-purple-500/25 transition flex-shrink-0">
+                    <Copy size={13} />
+                  </button>
+                </div>
+              </div>
+
+              <Button variant="accent" size="lg" icon={<Save size={13} />} onClick={save} loading={saving} className="w-full justify-center">
+                Salvar OAuth
               </Button>
             </div>
           )}

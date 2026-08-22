@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireSession } from '@/lib/ec-auth'
-import { db } from '@/lib/ec-supabase'
+import { db, addLog } from '@/lib/ec-supabase'
 import { decrypt } from '@/lib/ec-crypto'
 import { MPAPI } from '@/lib/ec-mp-api'
 
@@ -48,6 +48,14 @@ export async function POST() {
             net_amount: payment.transaction_details?.net_received_amount ?? null,
           })
           changed++
+
+          // Log status change
+          const logType = newStatus === 'approved' ? 'approved' : newStatus === 'rejected' ? 'rejected' : 'status'
+          await addLog(
+            logType,
+            `Status alterado: ${sale.external_reference} · ${sale.status} → ${newStatus} · R$${sale.amount}`,
+            `slot #${sale.slot} ${sale.slot_name ?? ''}`
+          ).catch(() => {})
         }
       } catch (e) {
         console.error(`[poll tick sale ${sale.id}]`, e)
