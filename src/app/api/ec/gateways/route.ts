@@ -98,14 +98,12 @@ export async function POST(req: NextRequest) {
     const def = GATEWAY_DEFS[gatewayId]
     if (!def) return NextResponse.json({ ok: false, error: 'Gateway inválido' })
 
-    for (const f of def.fields) {
+    const saveOps = def.fields.map(f => {
       const value = fields[f.key] ?? ''
-      await db.setSetting(`gw:user:${username}:${gatewayId}:${f.key}`, String(value))
-    }
-
-    if (setActive) {
-      await db.setSetting(`gw:user:${username}:active`, gatewayId)
-    }
+      return db.setSetting(`gw:user:${username}:${gatewayId}:${f.key}`, String(value))
+    })
+    if (setActive) saveOps.push(db.setSetting(`gw:user:${username}:active`, gatewayId))
+    await Promise.all(saveOps)
 
     return NextResponse.json({ ok: true })
   } catch (e: any) {
@@ -124,12 +122,13 @@ export async function DELETE(req: NextRequest) {
     const def = GATEWAY_DEFS[gatewayId]
     if (!def) return NextResponse.json({ ok: false, error: 'Gateway inválido' })
 
-    for (const f of def.fields) {
-      await db.setSetting(`gw:user:${username}:${gatewayId}:${f.key}`, '')
-    }
-
-    // If this was the active gateway, clear it
-    const activeRow = await db.getSetting(`gw:user:${username}:active`)
+    const clearOps = def.fields.map(f =>
+      db.setSetting(`gw:user:${username}:${gatewayId}:${f.key}`, '')
+    )
+    const [activeRow] = await Promise.all([
+      db.getSetting(`gw:user:${username}:active`),
+      ...clearOps,
+    ])
     if (activeRow === gatewayId) {
       await db.setSetting(`gw:user:${username}:active`, '')
     }

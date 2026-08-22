@@ -3,11 +3,15 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.SUPABASE_URL!
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
+// Singleton — createClient is expensive; reuse across all requests in the same process
+let _client: ReturnType<typeof createClient> | null = null
+
 export function getSupabase() {
   if (!supabaseUrl || !supabaseKey) throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required')
-  return createClient(supabaseUrl, supabaseKey, {
-    auth: { persistSession: false }
-  })
+  if (!_client) {
+    _client = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } })
+  }
+  return _client
 }
 
 export const db = {

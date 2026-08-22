@@ -76,16 +76,16 @@ export default function CheckoutPage() {
   // Global polling — fires payment notifications from ANY screen
   async function globalPoll() {
     try {
-      // Tick the poll endpoint to sync MP statuses
-      await fetch('/api/ec/poll/tick', { method: 'POST' })
-
-      // Then fetch sales to detect new approvals
-      const r = await fetch('/api/ec/sales/list', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ limit: 500 }),
-      })
-      const d = await r.json()
+      // Tick and list run in parallel — list may miss this tick's writes but catches them next cycle (30s)
+      const [, listResp] = await Promise.all([
+        fetch('/api/ec/poll/tick', { method: 'POST' }),
+        fetch('/api/ec/sales/list', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ limit: 500 }),
+        }),
+      ])
+      const d = await listResp.json()
       if (!d.ok) return
       const list: any[] = d.sales || []
 

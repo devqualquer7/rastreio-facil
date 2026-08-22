@@ -11,34 +11,39 @@ export async function POST() {
     const pending = await db.getPendingSales()
     if (pending.length === 0) return NextResponse.json({ ok: true, checked: 0, changed: 0 })
 
-    // Group by slot to minimize token decryption
+    // Pre-load all unique slot credentials in parallel to avoid sequential DB+decrypt round-trips
     const slotMap = new Map<number, string>()
+    const toCheck = pending.filter(s => s.mp_preference_id)
+    const uniqueSlots = [...new Set(toCheck.map(s => s.slot))]
+
+    await Promise.allSettled(uniqueSlots.map(async (slot) => {
+      try {
+        const cred = await db.getCredBySlot(slot)
+        if (!cred) return
+        const token = await decrypt(cred.access_token)
+        slotMap.set(slot, token)
+      } catch (e) {
+        console.error(`[poll tick cred slot ${slot}]`, e)
+      }
+    }))
+
+    // Check all pending sales against MP API in parallel
     let checked = 0
     let changed = 0
 
-    for (const sale of pending) {
-      if (!sale.mp_preference_id) continue
+    await Promise.allSettled(toCheck.map(async (sale) => {
+      const token = slotMap.get(sale.slot)
+      if (!token) return
 
       try {
-        if (!slotMap.has(sale.slot)) {
-          const cred = await db.getCredBySlot(sale.slot)
-          if (!cred) continue
-          const token = await decrypt(cred.access_token)
-          slotMap.set(sale.slot, token)
-        }
-
-        const token = slotMap.get(sale.slot)!
         const api = new MPAPI(token)
-
-        // Search payments by external reference (set at preference creation)
         const payments = await api.searchPayments({ externalReference: sale.external_reference })
         checked++
 
-        if (!payments?.results?.length) continue
+        if (!payments?.results?.length) return
 
-        // Get the most recent
         const payment = payments.results[0]
-        const newStatus = payment.status // approved, rejected, cancelled, etc.
+        const newStatus = payment.status
 
         if (newStatus && newStatus !== sale.status) {
           await db.updateSale(sale.id, {
@@ -49,7 +54,6 @@ export async function POST() {
           })
           changed++
 
-          // Log status change
           const logType = newStatus === 'approved' ? 'approved' : newStatus === 'rejected' ? 'rejected' : 'status'
           await addLog(
             logType,
@@ -60,7 +64,7 @@ export async function POST() {
       } catch (e) {
         console.error(`[poll tick sale ${sale.id}]`, e)
       }
-    }
+    }))
 
     return NextResponse.json({ ok: true, checked, changed })
   } catch (e: any) {
