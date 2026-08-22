@@ -31,6 +31,16 @@ export const db = {
     const { count } = await sb.from('web_users').select('*', { count: 'exact', head: true })
     return count ?? 0
   },
+  async listUsers() {
+    const sb = getSupabase()
+    const { data } = await sb.from('web_users').select('id,username,created_at').order('created_at')
+    return data ?? []
+  },
+  async deleteUser(username: string) {
+    const sb = getSupabase()
+    const { error } = await sb.from('web_users').delete().eq('username', username)
+    if (error) throw error
+  },
 
   // ── Credentials ────────────────────────────────────────────────────────────
   async listCreds() {

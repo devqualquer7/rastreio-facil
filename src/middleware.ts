@@ -157,8 +157,9 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // Worker OAuth page — public, no session required
+  // Public checkout pages — no session required
   if (pathname === '/checkout/oauth') return response
+  if (pathname === '/checkout/register') return response
 
   if (pathname.startsWith('/checkout')) {
     const cookie = request.cookies.get('ec_session')
@@ -175,8 +176,9 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/api/ec')) {
     // Public endpoints: no session needed (routes handle their own logic)
     if (EC_PUBLIC_API.some(p => pathname === p || pathname.startsWith(p + '/'))) return response
-    // OAuth endpoints are also public — workers use them without an ec_session
+    // OAuth + register endpoints are public — no ec_session needed
     if (pathname.startsWith('/api/ec/oauth/')) return response
+    if (pathname === '/api/ec/register') return response
     // Everything else: routes call requireSession() internally and return 401 on failure
     return response
   }

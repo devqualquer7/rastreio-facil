@@ -1,5 +1,5 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Sidebar, MobileTopBar } from '@/components/ec/Sidebar'
 import { Dashboard } from '@/app/checkout/screens/Dashboard'
@@ -7,11 +7,15 @@ import { Credentials } from '@/app/checkout/screens/Credentials'
 import { Gateways } from '@/app/checkout/screens/Gateways'
 import { Extrato } from '@/app/checkout/screens/Extrato'
 import { Logs } from '@/app/checkout/screens/Logs'
+import { Users } from '@/app/checkout/screens/Users'
 import { GenerateModal } from '@/components/ec/modals/Generate'
 import { SwitchAccountModal } from '@/components/ec/modals/SwitchAccount'
 import { SettingsModal } from '@/components/ec/modals/Settings'
 import { ToastStack, PaymentNotifications } from '@/components/ec/Toast'
 import { useApp } from '@/lib/ec-store'
+import { usePolling } from '@/hooks/ec-polling'
+import { playCashSound, fireOSNotification } from '@/lib/ec-notify'
+import { fmtBRL } from '@/lib/ec-utils'
 
 const SCREENS: Record<string, React.ComponentType> = {
   dashboard:   Dashboard,
@@ -19,10 +23,13 @@ const SCREENS: Record<string, React.ComponentType> = {
   gateways:    Gateways,
   extrato:     Extrato,
   logs:        Logs,
+  users:       Users,
 }
 
 export default function CheckoutPage() {
-  const { screen, modal, closeModal, setUsername, refreshCreds } = useApp()
+  const { screen, modal, closeModal, setUsername, refreshCreds, username, pushPayment } = useApp()
+  const lastStatusRef = useRef<Map<number, string>>(new Map())
+  const initializedRef = useRef(false)
 
   useEffect(() => {
     // Load user + creds on mount
@@ -32,6 +39,45 @@ export default function CheckoutPage() {
       .catch(() => {})
     refreshCreds()
   }, [])
+
+  // Global polling — fires payment notifications from ANY screen
+  async function globalPoll() {
+    try {
+      // Tick the poll endpoint to sync MP statuses
+      await fetch('/api/ec/poll/tick', { method: 'POST' })
+
+      // Then fetch sales to detect new approvals
+      const r = await fetch('/api/ec/sales/list', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ limit: 500 }),
+      })
+      const d = await r.json()
+      if (!d.ok) return
+      const list: any[] = d.sales || []
+
+      if (initializedRef.current) {
+        for (const sale of list) {
+          const prev = lastStatusRef.current.get(sale.id)
+          if (prev && prev !== 'approved' && sale.status === 'approved') {
+            const amount = Number(sale.amount || 0)
+            pushPayment({ amount, title: sale.title, slotName: sale.slot_name, method: sale.payment_type_id, saleId: sale.id })
+            playCashSound()
+            if (typeof document !== 'undefined' && document.hidden) {
+              fireOSNotification(`💰 Pagamento aprovado — ${fmtBRL(amount)}`, `${sale.title}\n${sale.slot_name}`, `payment-${sale.id}`)
+            }
+          }
+        }
+      }
+
+      const map = new Map<number, string>()
+      for (const s of list) map.set(s.id, s.status)
+      lastStatusRef.current = map
+      initializedRef.current = true
+    } catch {}
+  }
+
+  usePolling(!!username, globalPoll)
 
   const Screen = SCREENS[screen] || Dashboard
 

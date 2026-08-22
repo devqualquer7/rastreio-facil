@@ -1,20 +1,16 @@
 'use client'
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { CheckCircle2, XCircle, Clock, DollarSign, TrendingUp, Zap, RefreshCw, Activity, Link as LinkIcon } from 'lucide-react'
 import { SectionTitle, Button, StatusPill } from '@/components/ec/ui/Base'
 import { StatCard } from '@/components/ec/StatCard'
 import { useApp } from '@/lib/ec-store'
-import { usePolling } from '@/hooks/ec-polling'
 import { fmtBRL, fmtDate } from '@/lib/ec-utils'
-import { playCashSound, fireOSNotification } from '@/lib/ec-notify'
 
 export function Dashboard() {
-  const { openModal, setScreen, toast, username, pushPayment } = useApp()
+  const { openModal, setScreen, toast, username } = useApp()
   const [sales, setSales] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
-  const lastStatusRef = useRef<Map<number, string>>(new Map())
-  const initializedRef = useRef(false)
 
   const stats = useMemo(() => {
     const s = { total: 0, approved: 0, rejected: 0, pending: 0, cancelled: 0, refunded: 0, totalApprovedAmount: 0, totalNetAmount: 0 }
@@ -38,42 +34,8 @@ export function Dashboard() {
         body: JSON.stringify({ limit: 500 })
       })
       const d = await r.json()
-      if (d.ok) {
-        const list = d.sales || []
-        if (initializedRef.current) {
-          for (const sale of list) {
-            const prev = lastStatusRef.current.get(sale.id)
-            if (prev && prev !== 'approved' && sale.status === 'approved') {
-              triggerPaymentNotification(sale)
-            }
-          }
-        }
-        const map = new Map<number, string>()
-        for (const s of list) map.set(s.id, s.status)
-        lastStatusRef.current = map
-        initializedRef.current = true
-        setSales(list)
-      }
+      if (d.ok) setSales(d.sales || [])
     } finally { setLoading(false) }
-  }
-
-  function triggerPaymentNotification(sale: any) {
-    const amount = Number(sale.amount || 0)
-    pushPayment({
-      amount,
-      title: sale.title,
-      slotName: sale.slot_name,
-      method: sale.payment_type_id,
-      saleId: sale.id
-    })
-    playCashSound()
-    if (typeof document !== 'undefined' && document.hidden) {
-      fireOSNotification(
-        `💰 Pagamento aprovado — ${fmtBRL(amount)}`,
-        `${sale.title}\n${sale.slot_name}`,
-        `payment-${sale.id}`
-      )
-    }
   }
 
   async function pollNow() {
@@ -85,7 +47,6 @@ export function Dashboard() {
   }
 
   useEffect(() => { load() }, [])
-  usePolling(!!username, async () => { await pollNow() })
 
   const approvalRate = useMemo(() => {
     const fin = stats.approved + stats.rejected

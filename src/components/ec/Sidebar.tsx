@@ -1,5 +1,5 @@
 'use client'
-import { LayoutDashboard, Key, Receipt, ScrollText, Zap, LogOut, Settings2, ChevronDown, Circle, Sparkles, CreditCard } from 'lucide-react'
+import { LayoutDashboard, Key, Receipt, ScrollText, Zap, LogOut, Settings2, ChevronDown, Circle, Sparkles, CreditCard, Users } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/ec-utils'
@@ -12,9 +12,10 @@ export function Sidebar() {
   const nav: { id: Screen; icon: any; label: string }[] = [
     { id: 'dashboard',   icon: LayoutDashboard, label: 'Dashboard' },
     { id: 'credentials', icon: Key,             label: 'Credenciais' },
-    { id: 'gateways',   icon: CreditCard,      label: 'Gateways PIX' },
+    { id: 'gateways',    icon: CreditCard,      label: 'Gateways PIX' },
     { id: 'extrato',     icon: Receipt,         label: 'Extrato MP' },
-    { id: 'logs',        icon: ScrollText,      label: 'Logs' }
+    { id: 'logs',        icon: ScrollText,      label: 'Logs' },
+    { id: 'users',       icon: Users,           label: 'Usuários' },
   ]
 
   async function logout() {
@@ -127,9 +128,10 @@ export function MobileTopBar() {
   const nav: { id: Screen; icon: any }[] = [
     { id: 'dashboard',   icon: LayoutDashboard },
     { id: 'credentials', icon: Key },
-    { id: 'gateways',   icon: CreditCard },
+    { id: 'gateways',    icon: CreditCard },
     { id: 'extrato',     icon: Receipt },
-    { id: 'logs',        icon: ScrollText }
+    { id: 'logs',        icon: ScrollText },
+    { id: 'users',       icon: Users },
   ]
 
   async function logout() {
