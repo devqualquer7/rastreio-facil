@@ -62,3 +62,4 @@ init-db.js
 test-prisma/
 src/proxy.ts
 test-out.txt
+package-lock.json
