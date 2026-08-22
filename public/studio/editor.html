@@ -452,6 +452,7 @@ input[type=color] {
         <button class="btn" id="btAbrir">Abrir</button>
         <button class="btn" id="btSalvar">Salvar arquivo</button>
         <button class="btn" id="btNuvem">☁ Salvar na nuvem</button>
+        <button class="btn" id="btImportarHtml" title="Importar arquivo .html da nuvem">↑ Importar HTML</button>
         <button class="btn pri" id="btExportar">Exportar HTML</button>
         <button class="btn mini" id="btSair" title="Voltar ao painel" style="margin-left:4px">← Painel</button>
     </div>
@@ -555,6 +556,7 @@ input[type=color] {
 <div class="toast" id="toast"></div>
 <input type="file" id="inputArquivo" accept=".json" style="display:none">
 <input type="file" id="inputImagem" accept="image/*" style="display:none">
+<input type="file" id="inputHtml" accept=".html" style="display:none">
 
 <script>
 /* =========================================================
@@ -1659,20 +1661,32 @@ function carregarModelosNuvem() {
             $('nuvemVazia').style.display = modelosNuvem.length ? 'none' : 'block';
             var h = '';
             for (var i = 0; i < modelosNuvem.length; i++) {
-                var m = modelosNuvem[i], d = m.dados || {}, els = d.els || [], inner = '';
-                var dw = (d.disp && d.disp.w) || 390, dh = (d.disp && d.disp.h) || 844;
-                for (var j = 0; j < els.length; j++) {
-                    var el = els[j];
-                    if (el.visivel === false) continue;
-                    inner += '<div class="bx-el" style="left:' + el.x + 'px;top:' + el.y + 'px;width:' + el.w +
-                        'px;height:' + el.h + 'px;opacity:' + ((el.op == null ? 100 : el.op) / 100) +
-                        (el.rot ? ';transform:rotate(' + el.rot + 'deg)' : '') + '">' + montar(el) + '</div>';
+                var m = modelosNuvem[i], d = m.dados || {}, isRawHtml = d.type === 'raw_html';
+                var miniContent = '';
+                if (isRawHtml) {
+                    // HTML importado — sem canvas pra renderizar, mostra placeholder
+                    miniContent = '<div style="width:100%;height:148px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#666;font-size:11px;gap:6px">' +
+                        '<span style="font-size:28px">📄</span><span>HTML importado</span></div>';
+                } else {
+                    var els = d.els || [], inner = '';
+                    var dw = (d.disp && d.disp.w) || 390, dh = (d.disp && d.disp.h) || 844;
+                    for (var j = 0; j < els.length; j++) {
+                        var el = els[j];
+                        if (el.visivel === false) continue;
+                        inner += '<div class="bx-el" style="left:' + el.x + 'px;top:' + el.y + 'px;width:' + el.w +
+                            'px;height:' + el.h + 'px;opacity:' + ((el.op == null ? 100 : el.op) / 100) +
+                            (el.rot ? ';transform:rotate(' + el.rot + 'deg)' : '') + '">' + montar(el) + '</div>';
+                    }
+                    var escala = (148 / dh);
+                    miniContent = '<div style="width:' + dw + 'px;height:' + dh + 'px;position:relative;transform:scale(' + escala.toFixed(3) + ')">' + inner + '</div>';
                 }
-                var escala = (148 / dh);
-                h += '<div class="modelo" data-nuvem="' + i + '"><div class="mini">' +
-                    '<div style="width:' + dw + 'px;height:' + dh + 'px;position:relative;transform:scale(' + escala.toFixed(3) + ')">' + inner + '</div></div>' +
+                var acoes = isRawHtml
+                    ? '<button class="copiar-html-nuvem" data-nuvem="' + i + '" style="margin-top:6px;padding:4px 8px;font-size:10px;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#ccc;cursor:pointer">Copiar HTML</button>'
+                    : '';
+                h += '<div class="modelo" data-nuvem="' + i + '" ' + (isRawHtml ? 'data-raw-html="1"' : '') + '><div class="mini">' +
+                    miniContent + '</div>' +
                     '<button class="apagar-nuvem" data-apagar="' + m.id + '" title="Apagar da nuvem">×</button>' +
-                    '<div class="txt"><b>' + esc(m.nome) + '</b><span>' + esc(m.desc || 'modelo da equipe') + '</span></div></div>';
+                    '<div class="txt"><b>' + esc(m.nome) + '</b><span>' + esc(m.desc || 'modelo da equipe') + '</span>' + acoes + '</div></div>';
             }
             g.innerHTML = h;
             motorTempo(g, 25000, 60000);
@@ -1689,7 +1703,40 @@ $('galeriaNuvem').addEventListener('click', function (e) {
             .then(function (r) { if (r.status === 401) return toast('Sessão expirada — recarregue a página', 'erro'); carregarModelosNuvem(); toast('Modelo apagado', 'ok'); });
         return;
     }
+    // "Copiar HTML" button on raw_html models
+    var btnCopy = e.target.closest('.copiar-html-nuvem');
+    if (btnCopy) {
+        e.stopPropagation();
+        var m = modelosNuvem[+btnCopy.dataset.nuvem];
+        if (m && m.dados && m.dados.html) {
+            navigator.clipboard.writeText(m.dados.html).then(function () {
+                toast('HTML copiado!', 'ok');
+            }).catch(function () {
+                // fallback
+                var ta = document.createElement('textarea');
+                ta.value = m.dados.html;
+                document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+                toast('HTML copiado!', 'ok');
+            });
+        }
+        return;
+    }
     var no = e.target.closest('.modelo'); if (!no) return;
+    // raw_html models: clicking card also copies HTML
+    if (no.dataset.rawHtml) {
+        var m = modelosNuvem[+no.dataset.nuvem];
+        if (m && m.dados && m.dados.html) {
+            navigator.clipboard.writeText(m.dados.html).then(function () {
+                toast('HTML copiado!', 'ok');
+            }).catch(function () {
+                var ta = document.createElement('textarea');
+                ta.value = m.dados.html;
+                document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+                toast('HTML copiado!', 'ok');
+            });
+        }
+        return;
+    }
     var m = modelosNuvem[+no.dataset.nuvem];
     if (m && m.dados) aplicarProjeto(m.dados, m.nome);
 });
@@ -1836,6 +1883,38 @@ $('btNuvem').addEventListener('click', function () {
         if (r.ok) toast('Modelo salvo na nuvem', 'ok');
         else toast('Falha ao salvar na nuvem', 'erro');
     }).catch(function () { toast('Erro de conexão', 'erro'); });
+});
+
+$('btImportarHtml').addEventListener('click', function () {
+    $('inputHtml').click();
+});
+
+$('inputHtml').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+        var html = ev.target.result;
+        var nome = prompt('Nome para salvar este modelo na nuvem:', f.name.replace(/\.html?$/i, '') || '');
+        if (nome === null) return;
+        nome = nome.trim();
+        if (!nome) { toast('Precisa de um nome', 'erro'); return; }
+        var desc = prompt('Descrição curta (opcional):', '') || '';
+        fetch('/api/studio/modelos', {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome: nome, desc: desc.trim(), dados: { type: 'raw_html', html: html } })
+        }).then(function (r) {
+            if (r.status === 401) return toast('Sessão expirada — recarregue a página', 'erro');
+            if (r.ok) {
+                toast('HTML importado e salvo na nuvem!', 'ok');
+                carregarModelosNuvem();
+                $('btModelos').click(); // abre o painel de modelos pra ver
+            } else toast('Falha ao salvar o HTML', 'erro');
+        }).catch(function () { toast('Erro de conexão', 'erro'); });
+    };
+    reader.readAsText(f, 'utf-8');
+    this.value = ''; // reset pra poder importar o mesmo arquivo de novo
 });
 
 $('btSair').addEventListener('click', function () {

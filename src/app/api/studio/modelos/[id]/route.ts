@@ -5,11 +5,11 @@ import { db } from '@/lib/ec-supabase'
 // DELETE /api/studio/modelos/:id — delete a cloud model
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await requireSession()
-    const { id } = params
+    const { id } = await params
     if (!id) return NextResponse.json({ erro: 'id_invalido' }, { status: 400 })
     await db.deleteStudioModel(id)
     return NextResponse.json({ ok: true })
