@@ -78,7 +78,6 @@ function QRImagePanel({ payload, name, onCopy }: {
   useEffect(() => {
     if (!payload) return
     setGenerating(true)
-    // Dynamic import to avoid SSR issues
     import('qrcode').then(QRCode => {
       QRCode.toDataURL(payload, {
         width: 340,
@@ -105,7 +104,6 @@ function QRImagePanel({ payload, name, onCopy }: {
       initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
       className="mt-3 rounded-2xl overflow-hidden border border-white/[0.08] bg-[#0c0c14]">
 
-      {/* QR image area */}
       <div className="flex flex-col items-center py-6 px-4 gap-4">
         {generating ? (
           <div className="w-56 h-56 flex items-center justify-center">
@@ -113,7 +111,6 @@ function QRImagePanel({ payload, name, onCopy }: {
           </div>
         ) : dataUrl ? (
           <div className="relative">
-            {/* White card behind QR for scanning clarity */}
             <div className="bg-white rounded-2xl p-3 shadow-[0_0_40px_rgba(255,255,255,0.12)]">
               <img
                 src={dataUrl}
@@ -122,7 +119,6 @@ function QRImagePanel({ payload, name, onCopy }: {
                 style={{ imageRendering: 'pixelated' }}
               />
             </div>
-            {/* Subtle glow behind QR */}
             <div className="absolute inset-0 rounded-2xl pointer-events-none"
               style={{ boxShadow: '0 0 60px rgba(168,85,247,0.2)' }} />
           </div>
@@ -139,7 +135,6 @@ function QRImagePanel({ payload, name, onCopy }: {
         </div>
       </div>
 
-      {/* Action buttons */}
       <div className="flex gap-2 px-4 pb-4">
         <button
           onClick={onCopy}
@@ -155,7 +150,6 @@ function QRImagePanel({ payload, name, onCopy }: {
         )}
       </div>
 
-      {/* Copia e cola text */}
       <div className="border-t border-white/[0.06] px-4 py-3">
         <div className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest mb-1.5">Copia e cola PIX</div>
         <div className="text-[10px] font-mono text-zinc-500 break-all leading-relaxed max-h-20 overflow-y-auto custom-scrollbar">
@@ -167,8 +161,7 @@ function QRImagePanel({ payload, name, onCopy }: {
 }
 
 export function Gateways() {
-  const { creds, toast } = useApp()
-  const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
+  const { toast } = useApp()
   const [gateways, setGateways] = useState<Gateway[]>([])
   const [activeGw, setActiveGw] = useState('')
   const [loading, setLoading] = useState(false)
@@ -179,21 +172,12 @@ export function Gateways() {
   const [pixPayload, setPixPayload] = useState('')
   const [showQR, setShowQR] = useState(false)
 
-  useEffect(() => {
-    if (creds.length > 0 && selectedSlot === null) {
-      const active = creds.find(c => c.is_active)
-      setSelectedSlot(active?.slot ?? creds[0].slot)
-    }
-  }, [creds])
+  useEffect(() => { loadGateways() }, [])
 
-  useEffect(() => {
-    if (selectedSlot !== null) loadGateways(selectedSlot)
-  }, [selectedSlot])
-
-  async function loadGateways(slot: number) {
+  async function loadGateways() {
     setLoading(true)
     try {
-      const r = await fetch(`/api/ec/gateways?slot=${slot}`)
+      const r = await fetch('/api/ec/gateways')
       const d = await r.json()
       if (d.ok) { setGateways(d.gateways); setActiveGw(d.activeGw || '') }
     } catch { toast('error', 'Falha ao carregar gateways') }
@@ -214,19 +198,18 @@ export function Gateways() {
   function cancelEdit() { setEditing(null); setFormValues({}); setPixPayload(''); setShowQR(false) }
 
   async function save(gw: Gateway, setActive: boolean) {
-    if (selectedSlot === null) return
     setSaving(true)
     try {
       const r = await fetch('/api/ec/gateways', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ slot: selectedSlot, gatewayId: gw.id, fields: formValues, setActive })
+        body: JSON.stringify({ gatewayId: gw.id, fields: formValues, setActive })
       })
       const d = await r.json()
       if (d.ok) {
         toast('success', setActive ? `${gw.label} configurado e ativado` : `${gw.label} salvo`)
         cancelEdit()
-        loadGateways(selectedSlot)
+        loadGateways()
       } else {
         toast('error', d.error || 'Falha')
       }
@@ -235,14 +218,14 @@ export function Gateways() {
   }
 
   async function remove(gw: Gateway) {
-    if (!confirm(`Remover configuração de ${gw.label}?`) || selectedSlot === null) return
+    if (!confirm(`Remover configuração de ${gw.label}?`)) return
     const r = await fetch('/api/ec/gateways', {
       method: 'DELETE',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ slot: selectedSlot, gatewayId: gw.id })
+      body: JSON.stringify({ gatewayId: gw.id })
     })
     const d = await r.json()
-    if (d.ok) { toast('success', 'Removido'); loadGateways(selectedSlot) }
+    if (d.ok) { toast('success', 'Removido'); loadGateways() }
   }
 
   function generatePixQR() {
@@ -255,61 +238,33 @@ export function Gateways() {
     setShowQR(true)
   }
 
-  const selectedCred = creds.find(c => c.slot === selectedSlot)
-
   return (
     <div>
       <SectionTitle
         icon={<Wallet size={18} />}
         title="Gateways de Pagamento"
-        subtitle="Configure a gateway PIX por conta"
+        subtitle="Configure sua gateway PIX"
         action={
-          selectedSlot !== null && (
-            <Button variant="outline" size="md" icon={<RefreshCw size={13} />}
-              onClick={() => loadGateways(selectedSlot!)} loading={loading}>
-              ATUALIZAR
-            </Button>
-          )
+          <Button variant="outline" size="md" icon={<RefreshCw size={13} />}
+            onClick={loadGateways} loading={loading}>
+            ATUALIZAR
+          </Button>
         }
       />
 
-      {/* Slot selector */}
-      {creds.length > 1 && (
-        <div className="flex items-center gap-2 mb-6 flex-wrap">
-          <div className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest">Conta:</div>
-          {creds.map(c => (
-            <button key={c.slot} onClick={() => setSelectedSlot(c.slot)}
-              className={cn('px-3 py-1.5 rounded-lg text-[11px] font-mono font-bold transition-all',
-                selectedSlot === c.slot
-                  ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300'
-                  : 'bg-white/[0.03] border border-white/[0.06] text-zinc-500 hover:text-zinc-300')}>
-              #{c.slot} {c.name}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {selectedCred && (
+      {activeGw && (
         <div className="flex items-center gap-2 mb-6 bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3">
           <Zap size={12} className="text-purple-400" />
           <div className="text-[11px] font-mono text-zinc-400">
-            Configurando para: <span className="text-zinc-200 font-bold">#{selectedCred.slot} {selectedCred.name}</span>
+            Gateway ativa: <span className="text-emerald-400 font-bold">{gateways.find(g => g.id === activeGw)?.label || activeGw}</span>
           </div>
-          {activeGw && (
-            <div className="ml-auto text-[10px] font-mono text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-2 py-0.5">
-              ATIVO: {gateways.find(g => g.id === activeGw)?.label || activeGw}
-            </div>
-          )}
+          <div className="ml-auto text-[10px] font-mono text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-2 py-0.5">
+            ATIVO
+          </div>
         </div>
       )}
 
-      {creds.length === 0 ? (
-        <div className="text-center py-16 bg-white/[0.02] border border-white/[0.06] rounded-2xl">
-          <Wallet size={32} className="text-zinc-600 mx-auto mb-3" />
-          <div className="font-bold text-sm text-zinc-500 mb-1">Nenhuma conta cadastrada</div>
-          <div className="text-xs font-mono text-zinc-600">Adicione credenciais MP primeiro.</div>
-        </div>
-      ) : loading ? (
+      {loading ? (
         <div className="py-16 flex items-center justify-center gap-3">
           <RefreshCw size={18} className="animate-spin text-purple-400" />
           <span className="text-xs font-mono text-zinc-500">Carregando…</span>
@@ -403,7 +358,7 @@ export function Gateways() {
                         </div>
                       ))}
 
-                      {/* PIX QR section — image + copia e cola */}
+                      {/* PIX QR section — only for pix_estatico */}
                       {gw.id === 'pix_estatico' && (
                         <div>
                           <button
@@ -446,11 +401,11 @@ export function Gateways() {
         </div>
       )}
 
-      {!activeGw && creds.length > 0 && !loading && (
+      {!activeGw && !loading && (
         <div className="flex items-center gap-2 mt-5 bg-amber-500/10 border border-amber-500/25 rounded-xl px-4 py-3">
           <AlertCircle size={14} className="text-amber-400 flex-shrink-0" />
           <div className="text-[11px] font-mono text-amber-400">
-            Nenhum gateway ativo para esta conta. Configure e ative um para gerar QR codes PIX próprios.
+            Nenhum gateway ativo. Configure e ative um para gerar QR codes PIX próprios.
           </div>
         </div>
       )}

@@ -35,7 +35,7 @@ export async function GET() {
 // POST /api/ec/regkeys — generate a new registration key
 export async function POST() {
   try {
-    const me = await requireSession()
+    const { username: me } = await requireSession()
 
     const token = randomUUID().replace(/-/g, '')
     const meta = { created_by: me, created_at: new Date().toISOString(), used: false }
@@ -52,7 +52,7 @@ export async function POST() {
 // DELETE /api/ec/regkeys — revoke a key
 export async function DELETE(req: NextRequest) {
   try {
-    const me = await requireSession()
+    const { username: me } = await requireSession()
     const { token } = await req.json()
     if (!token) return NextResponse.json({ ok: false, error: 'Token obrigatório' })
 

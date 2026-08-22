@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Receipt, RefreshCw, Search, Filter, Download, FileText, FileSpreadsheet } from 'lucide-react'
+import { Receipt, RefreshCw, Search, Filter, FileText, FileSpreadsheet } from 'lucide-react'
 import { SectionTitle, Button, StatusPill } from '@/components/ec/ui/Base'
 import { useApp } from '@/lib/ec-store'
 import { fmtBRL, fmtDate } from '@/lib/ec-utils'
@@ -21,7 +21,7 @@ function StatBox({
 }
 
 export function Extrato() {
-  const { toast, activeCred } = useApp()
+  const { toast } = useApp()
   const [sales, setSales] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState('todos')
@@ -30,24 +30,18 @@ export function Extrato() {
   async function load() {
     setLoading(true)
     try {
-      const r = await fetch('/api/ec/sales/list', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ limit: 1000 })
-      })
+      const r = await fetch('/api/ec/extrato')
       const d = await r.json()
       if (d.ok) {
-        // Only show sales for the currently active credential
-        const all: any[] = d.sales || []
-        const activeSlot = activeCred?.slot
-        setSales(activeSlot != null ? all.filter(s => s.slot === activeSlot) : all)
+        setSales(d.sales || [])
+      } else {
+        toast('error', d.error || 'Falha ao carregar extrato')
       }
     } catch { toast('error', 'Falha ao carregar extrato') }
     finally { setLoading(false) }
   }
 
-  // Reload whenever the active credential changes
-  useEffect(() => { load() }, [activeCred?.slot])
+  useEffect(() => { load() }, [])
 
   const filtered = useMemo(() => sales.filter(s => {
     if (filter !== 'todos' && s.status !== filter) return false
@@ -130,7 +124,7 @@ export function Extrato() {
       <SectionTitle
         icon={<Receipt size={18} />}
         title="Extrato MP"
-        subtitle={activeCred ? `Conta: ${activeCred.name} · ${sales.length} transações` : `${sales.length} transações registradas`}
+        subtitle={`${sales.length} transações via API`}
         action={<>
           <Button variant="outline" size="md" icon={<FileSpreadsheet size={13} />} onClick={exportCSV}>
             CSV
@@ -160,7 +154,7 @@ export function Extrato() {
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" />
           <input
             type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por título, slot ou referência…"
+            placeholder="Buscar por título, conta ou referência…"
             className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-9 pr-4 py-2.5 text-sm font-mono text-zinc-300 outline-none focus:border-purple-500/40 transition-all"
           />
         </div>
@@ -208,7 +202,7 @@ export function Extrato() {
                 <div>
                   <div className="text-sm font-mono text-zinc-300 truncate">{s.title}</div>
                   <div className="text-[10px] font-mono text-zinc-600 tabular">
-                    #{s.slot} · {s.external_reference || s.ref || `id-${s.id}`}
+                    {s.external_reference || s.ref || `id-${s.id}`}
                   </div>
                 </div>
                 <div className="text-[11px] font-mono text-zinc-500 truncate">{s.slot_name}</div>
