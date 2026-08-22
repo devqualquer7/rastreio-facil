@@ -11,37 +11,46 @@ const GW_FIELDS: Record<string, string[]> = {
 }
 
 // POST /api/ec/pix/bulk — generate N dynamic PIX QRs at once
+// Body: { amount, quantity?, description?, gatewayId? }
+// If gatewayId is provided and valid, it overrides the user's active gateway.
 export async function POST(req: NextRequest) {
   try {
     const { username } = await requireSession()
-    const { amount, quantity = 1, description } = await req.json()
+    const { amount, quantity = 1, description, gatewayId } = await req.json()
 
     if (!amount || amount <= 0) {
       return NextResponse.json({ ok: false, error: 'Valor inválido' }, { status: 400 })
     }
     const qty = Math.min(Math.max(Math.floor(quantity), 1), 50)
 
-    const activeGw = await db.getSetting(`gw:user:${username}:active`)
-    const activeGwStr = activeGw as string | null
+    // Resolve which gateway to use: explicit gatewayId > active gateway
+    let gwToUse: string | null = null
 
-    if (!activeGwStr || activeGwStr === 'pix_estatico' || !isValidGateway(activeGwStr)) {
+    if (gatewayId && typeof gatewayId === 'string' && isValidGateway(gatewayId)) {
+      gwToUse = gatewayId
+    } else {
+      const activeGw = await db.getSetting(`gw:user:${username}:active`)
+      gwToUse = activeGw as string | null
+    }
+
+    if (!gwToUse || gwToUse === 'pix_estatico' || !isValidGateway(gwToUse)) {
       return NextResponse.json({ ok: false, error: 'Nenhum gateway dinâmico configurado' }, { status: 400 })
     }
 
-    const fields = GW_FIELDS[activeGwStr]
+    const fields = GW_FIELDS[gwToUse]
     if (!fields) {
       return NextResponse.json({ ok: false, error: 'Gateway sem suporte a PIX dinâmico' }, { status: 400 })
     }
 
-    const keys = fields.map(f => `gw:user:${username}:${activeGwStr}:${f}`)
+    const keys = fields.map(f => `gw:user:${username}:${gwToUse}:${f}`)
     const rows = await db.getSettings(keys)
     const settingsMap = Object.fromEntries(rows.map(r => [r.key, r.value]))
 
     const creds: Record<string, string> = {}
     for (const f of fields) {
-      const val = settingsMap[`gw:user:${username}:${activeGwStr}:${f}`] ?? ''
+      const val = settingsMap[`gw:user:${username}:${gwToUse}:${f}`] ?? ''
       if (!val.trim()) {
-        return NextResponse.json({ ok: false, error: `Credencial "${f}" não configurada` }, { status: 400 })
+        return NextResponse.json({ ok: false, error: `Credencial "${f}" não configurada para o gateway selecionado` }, { status: 400 })
       }
       creds[f] = val
     }
@@ -51,7 +60,7 @@ export async function POST(req: NextRequest) {
     // Generate all PIX in parallel
     const results = await Promise.allSettled(
       Array.from({ length: qty }, (_, i) =>
-        gatewayCreatePix(activeGwStr as any, creds, amountCents, description || `PIX #${i + 1}`)
+        gatewayCreatePix(gwToUse as any, creds, amountCents, description || `PIX #${i + 1}`)
       )
     )
 
@@ -63,7 +72,7 @@ export async function POST(req: NextRequest) {
     })
 
     const successCount = items.filter(i => i.ok).length
-    return NextResponse.json({ ok: true, items, gateway: activeGwStr, successCount, total: qty })
+    return NextResponse.json({ ok: true, items, gateway: gwToUse, successCount, total: qty })
   } catch (e: any) {
     if (e.message === 'UNAUTHORIZED') return NextResponse.json({ ok: false, error: 'Não autenticado' }, { status: 401 })
     return NextResponse.json({ ok: false, error: e.message || 'Erro ao gerar PIX' }, { status: 500 })

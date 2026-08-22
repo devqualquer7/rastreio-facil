@@ -1,9 +1,9 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  X, ArrowDownToLine, RefreshCw, QrCode, Copy, Check, Download,
-  Zap, AlertCircle, ChevronRight, Minus, Plus
+  X, ArrowDownToLine, RefreshCw, Copy, Check, Download,
+  Zap, AlertCircle, Minus, Plus, CheckCircle2
 } from 'lucide-react'
 import { useApp } from '@/lib/ec-store'
 import { fmtBRL } from '@/lib/ec-utils'
@@ -14,7 +14,7 @@ function buildPixPayload(key: string, name: string, city: string): string {
   const safeKey = key.replace(/\s/g, '').slice(0, 77)
   const safeName = (safe(name) || 'BENEFICIARIO').toUpperCase()
   const safeCity = (safe(city) || 'SAO PAULO').toUpperCase()
-  function tlv(tag: string, value: string) { return `${tag}${String(value.length).padStart(2,'0')}${value}` }
+  function tlv(tag: string, value: string) { return `${tag}${String(value.length).padStart(2, '0')}${value}` }
   const merchantAccountInfo = tlv('00', 'BR.GOV.BCB.PIX') + tlv('01', safeKey)
   const body =
     tlv('00', '01') + tlv('26', merchantAccountInfo) + tlv('52', '0000') +
@@ -31,14 +31,14 @@ function buildPixPayload(key: string, name: string, city: string): string {
 }
 
 // ── QR card individual ────────────────────────────────────────────────────────
-function QRCard({ item, amount, gateway }: { item: any; amount: number; gateway: string }) {
+function QRCard({ item, amount }: { item: any; amount: number }) {
   const [dataUrl, setDataUrl] = useState('')
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!item.pixCode && !item.payload) return
     const code = item.pixCode || item.payload
+    if (!code) return
     import('qrcode').then(QRCode => {
       QRCode.toDataURL(code, { width: 280, margin: 2, color: { dark: '#000', light: '#fff' }, errorCorrectionLevel: 'M' })
         .then(url => { setDataUrl(url); setLoading(false) })
@@ -61,22 +61,33 @@ function QRCard({ item, amount, gateway }: { item: any; amount: number; gateway:
     a.click()
   }
 
+  const isError = !item.ok && item.error
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col items-center bg-[#0c0c14] border border-white/[0.08] rounded-2xl overflow-hidden">
+      className={`flex flex-col items-center border rounded-2xl overflow-hidden ${
+        isError
+          ? 'bg-red-500/5 border-red-500/20'
+          : 'bg-[#0c0c14] border-white/[0.08]'
+      }`}>
 
       {/* Header */}
       <div className="w-full px-4 py-2.5 flex items-center justify-between border-b border-white/[0.06]">
         <div className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">
-          {item.index ? `#${item.index}` : 'PIX Estático'}
+          {item.index ? `#${item.index}` : 'PIX'}
         </div>
-        <div className="text-[10px] font-mono text-emerald-400 font-bold">{fmtBRL(amount)}</div>
+        {amount > 0 && <div className="text-[10px] font-mono text-emerald-400 font-bold">{fmtBRL(amount)}</div>}
       </div>
 
       {/* QR */}
-      <div className="py-5 px-4 flex flex-col items-center gap-4">
-        {loading ? (
+      <div className="py-5 px-4 flex flex-col items-center gap-4 w-full">
+        {isError ? (
+          <div className="w-44 h-24 flex flex-col items-center justify-center gap-2">
+            <AlertCircle size={20} className="text-red-400" />
+            <div className="text-[10px] font-mono text-red-400 text-center px-2">{item.error}</div>
+          </div>
+        ) : loading ? (
           <div className="w-44 h-44 flex items-center justify-center">
             <RefreshCw size={20} className="animate-spin text-purple-400" />
           </div>
@@ -90,30 +101,66 @@ function QRCard({ item, amount, gateway }: { item: any; amount: number; gateway:
           </div>
         )}
 
-        {/* Copia e cola truncado */}
-        <div className="w-full text-[9px] font-mono text-zinc-700 break-all leading-relaxed max-h-10 overflow-hidden text-center">
-          {(item.pixCode || item.payload || '').slice(0, 80)}{(item.pixCode || item.payload || '').length > 80 ? '…' : ''}
-        </div>
+        {!isError && (
+          <div className="w-full text-[9px] font-mono text-zinc-700 break-all leading-relaxed max-h-10 overflow-hidden text-center">
+            {(item.pixCode || item.payload || '').slice(0, 80)}
+            {(item.pixCode || item.payload || '').length > 80 ? '…' : ''}
+          </div>
+        )}
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 w-full px-3 pb-3">
-        <button onClick={copy}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-mono font-bold tracking-wider uppercase transition-all ${
-            copied
-              ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400'
-              : 'bg-purple-500/15 border border-purple-500/25 text-purple-300 hover:bg-purple-500/25'
-          }`}>
-          {copied ? <><Check size={10} /> Copiado</> : <><Copy size={10} /> Copiar</>}
-        </button>
-        {dataUrl && (
-          <button onClick={download}
-            className="px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-500 hover:text-zinc-300 transition">
-            <Download size={11} />
+      {!isError && (
+        <div className="flex gap-2 w-full px-3 pb-3">
+          <button onClick={copy}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-mono font-bold tracking-wider uppercase transition-all ${
+              copied
+                ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400'
+                : 'bg-purple-500/15 border border-purple-500/25 text-purple-300 hover:bg-purple-500/25'
+            }`}>
+            {copied ? <><Check size={10} /> Copiado</> : <><Copy size={10} /> Copiar</>}
           </button>
+          {dataUrl && (
+            <button onClick={download}
+              className="px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-500 hover:text-zinc-300 transition">
+              <Download size={11} />
+            </button>
+          )}
+        </div>
+      )}
+    </motion.div>
+  )
+}
+
+// ── Gateway radio card ────────────────────────────────────────────────────────
+function GatewayCard({ gw, selected, onSelect }: { gw: any; selected: boolean; onSelect: () => void }) {
+  return (
+    <button
+      onClick={onSelect}
+      className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-all text-left ${
+        selected
+          ? 'bg-emerald-500/12 border-emerald-500/40 shadow-[0_0_14px_rgba(16,185,129,0.18)]'
+          : 'bg-white/[0.03] border-white/[0.07] hover:bg-white/[0.06] hover:border-white/[0.14]'
+      }`}>
+      {/* Radio dot */}
+      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+        selected ? 'border-emerald-400' : 'border-zinc-600'
+      }`}>
+        {selected && <div className="w-2 h-2 rounded-full bg-emerald-400" />}
+      </div>
+
+      {/* Label */}
+      <div className="flex-1 min-w-0">
+        <div className={`text-sm font-bold truncate transition-colors ${selected ? 'text-emerald-300' : 'text-zinc-300'}`}>
+          {gw.label}
+        </div>
+        {gw.id === 'pix_estatico' && (
+          <div className="text-[9px] font-mono text-zinc-600 mt-0.5">Escaneie · qualquer valor</div>
         )}
       </div>
-    </motion.div>
+
+      {selected && <CheckCircle2 size={14} className="text-emerald-400 flex-shrink-0" />}
+    </button>
   )
 }
 
@@ -121,10 +168,9 @@ function QRCard({ item, amount, gateway }: { item: any; amount: number; gateway:
 export function SaqueModal() {
   const { closeModal, toast } = useApp()
 
-  // Gateway info
-  const [activeGw, setActiveGw] = useState<string>('')
-  const [gwLabel, setGwLabel] = useState('')
-  const [pixEstatico, setPixEstatico] = useState<{ key: string; name: string; city: string } | null>(null)
+  // Gateways
+  const [allGateways, setAllGateways] = useState<any[]>([])
+  const [selectedGw, setSelectedGw] = useState<string>('')
   const [loadingGw, setLoadingGw] = useState(true)
 
   // Form
@@ -136,9 +182,7 @@ export function SaqueModal() {
   const [generating, setGenerating] = useState(false)
   const [done, setDone] = useState(false)
 
-  useEffect(() => {
-    loadGatewayInfo()
-  }, [])
+  useEffect(() => { loadGatewayInfo() }, [])
 
   async function loadGatewayInfo() {
     setLoadingGw(true)
@@ -146,19 +190,12 @@ export function SaqueModal() {
       const r = await fetch('/api/ec/gateways')
       const d = await r.json()
       if (!d.ok) return
-      const active = d.activeGw as string
-      setActiveGw(active)
-      const gw = d.gateways?.find((g: any) => g.id === active)
-      setGwLabel(gw?.label || active)
-
-      if (active === 'pix_estatico') {
-        // pix_estatico fields are not secret so redacted == actual values
-        setPixEstatico({
-          key: gw?.redacted?.pix_key || '',
-          name: gw?.redacted?.beneficiary || '',
-          city: gw?.redacted?.city || '',
-        })
-      }
+      const configured: any[] = (d.gateways ?? []).filter((g: any) => g.configured)
+      setAllGateways(configured)
+      // Pre-select the active gateway if it's configured, otherwise first configured
+      const activeId = d.activeGw as string
+      const preselect = configured.find((g: any) => g.id === activeId) ? activeId : (configured[0]?.id ?? '')
+      setSelectedGw(preselect)
     } catch {}
     finally { setLoadingGw(false) }
   }
@@ -177,7 +214,7 @@ export function SaqueModal() {
       const r = await fetch('/api/ec/pix/bulk', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ amount: amt, quantity, description: `Saque R$ ${amt.toFixed(2)}` })
+        body: JSON.stringify({ amount: amt, quantity, description: `Saque R$ ${amt.toFixed(2)}`, gatewayId: selectedGw })
       })
       const d = await r.json()
       if (d.ok) {
@@ -197,10 +234,16 @@ export function SaqueModal() {
 
   function reset() { setItems([]); setDone(false); setAmount(''); setQuantity(1) }
 
-  // Static PIX payload
-  const staticPayload = pixEstatico?.key ? buildPixPayload(pixEstatico.key, pixEstatico.name, pixEstatico.city) : ''
-
+  // Derived
+  const selectedGwInfo = allGateways.find(g => g.id === selectedGw)
+  const isPixEstatico = selectedGw === 'pix_estatico'
+  const pixEstaticoData = isPixEstatico
+    ? { key: selectedGwInfo?.redacted?.pix_key || '', name: selectedGwInfo?.redacted?.beneficiary || '', city: selectedGwInfo?.redacted?.city || '' }
+    : null
+  const staticPayload = pixEstaticoData?.key ? buildPixPayload(pixEstaticoData.key, pixEstaticoData.name, pixEstaticoData.city) : ''
   const amountNum = parseFloat(amount.replace(',', '.')) || 0
+  const noneConfigured = !loadingGw && allGateways.length === 0
+  const hasDynamicGateways = allGateways.some(g => g.id !== 'pix_estatico')
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -226,7 +269,11 @@ export function SaqueModal() {
             <div>
               <div className="font-black text-base text-zinc-100">Saque</div>
               <div className="text-[10px] font-mono text-zinc-600">
-                {loadingGw ? 'Carregando…' : activeGw ? `via ${gwLabel}` : 'Nenhum gateway ativo'}
+                {loadingGw
+                  ? 'Carregando…'
+                  : selectedGwInfo
+                    ? `via ${selectedGwInfo.label}`
+                    : 'Nenhum gateway configurado'}
               </div>
             </div>
           </div>
@@ -238,43 +285,65 @@ export function SaqueModal() {
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto">
-          {loadingGw ? (
+          {/* Loading */}
+          {loadingGw && (
             <div className="py-20 flex items-center justify-center gap-3">
               <RefreshCw size={18} className="animate-spin text-purple-400" />
-              <span className="text-xs font-mono text-zinc-500">Carregando gateway…</span>
+              <span className="text-xs font-mono text-zinc-500">Carregando gateways…</span>
             </div>
+          )}
 
-          ) : !activeGw ? (
+          {/* No gateways */}
+          {noneConfigured && (
             <div className="py-16 flex flex-col items-center gap-3 px-6">
               <AlertCircle size={28} className="text-amber-400" />
               <div className="text-sm font-mono text-amber-400 text-center">Nenhum gateway configurado</div>
               <div className="text-[11px] font-mono text-zinc-600 text-center">
-                Vá em Gateways PIX e configure e ative um gateway antes de gerar saques.
+                Vá em Gateways PIX e configure pelo menos um gateway antes de gerar saques.
               </div>
             </div>
+          )}
 
-          ) : activeGw === 'pix_estatico' ? (
-            /* ── PIX ESTÁTICO ── */
-            <div className="p-6 flex flex-col items-center gap-5">
+          {/* PIX Estático view */}
+          {!loadingGw && !noneConfigured && isPixEstatico && (
+            <div className="p-6 flex flex-col gap-6">
               <div className="text-[10px] font-mono text-zinc-600 uppercase tracking-[0.3em] text-center">
                 PIX Estático — escaneie para pagar qualquer valor
               </div>
               {staticPayload ? (
-                <QRCard
-                  item={{ pixCode: staticPayload, payload: staticPayload }}
-                  amount={0}
-                  gateway="pix_estatico"
-                />
+                <div className="flex justify-center">
+                  <QRCard item={{ pixCode: staticPayload, payload: staticPayload }} amount={0} />
+                </div>
               ) : (
                 <div className="py-8 text-center">
                   <div className="text-[11px] font-mono text-red-400">Chave PIX não encontrada</div>
                   <div className="text-[10px] font-mono text-zinc-600 mt-1">Configure a chave PIX estática nas Gateways.</div>
                 </div>
               )}
-            </div>
 
-          ) : done && items.length > 0 ? (
-            /* ── RESULTS ── */
+              {/* Gateway selector (only if more than one gateway) */}
+              {allGateways.length > 1 && (
+                <div>
+                  <div className="text-[10px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase mb-2.5">
+                    Gateway
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {allGateways.map((gw: any) => (
+                      <GatewayCard
+                        key={gw.id}
+                        gw={gw}
+                        selected={selectedGw === gw.id}
+                        onSelect={() => { setSelectedGw(gw.id); reset() }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Results view */}
+          {!loadingGw && !noneConfigured && !isPixEstatico && done && items.length > 0 && (
             <div className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
@@ -288,21 +357,15 @@ export function SaqueModal() {
 
               <div className={`grid gap-3 ${items.length === 1 ? 'grid-cols-1 max-w-xs mx-auto' : 'grid-cols-2 sm:grid-cols-3'}`}>
                 {items.map((item) => (
-                  <QRCard key={item.index} item={item} amount={amountNum} gateway={activeGw} />
+                  <QRCard key={item.index} item={item} amount={amountNum} />
                 ))}
               </div>
             </div>
+          )}
 
-          ) : (
-            /* ── FORM ── */
-            <div className="p-6 space-y-6">
-              {/* Active gateway pill */}
-              <div className="flex items-center gap-2 bg-emerald-500/8 border border-emerald-500/20 rounded-xl px-4 py-2.5">
-                <Zap size={12} className="text-emerald-400" />
-                <span className="text-[11px] font-mono text-zinc-400">Gateway ativa:</span>
-                <span className="text-[11px] font-mono font-bold text-emerald-400">{gwLabel}</span>
-              </div>
-
+          {/* Form view */}
+          {!loadingGw && !noneConfigured && !isPixEstatico && !done && (
+            <div className="p-6 space-y-5">
               {/* Amount */}
               <div>
                 <div className="text-[10px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase mb-2">
@@ -349,25 +412,55 @@ export function SaqueModal() {
               </div>
 
               {/* Summary */}
-              {amountNum > 0 && (
-                <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center justify-between bg-purple-500/8 border border-purple-500/15 rounded-xl px-4 py-3">
-                  <div className="text-[11px] font-mono text-zinc-500">Total a gerar</div>
-                  <div className="text-base font-black text-purple-300 tabular-nums">
-                    {quantity}× {fmtBRL(amountNum)} = {fmtBRL(amountNum * quantity)}
+              <AnimatePresence>
+                {amountNum > 0 && (
+                  <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                    className="flex items-center justify-between bg-purple-500/8 border border-purple-500/15 rounded-xl px-4 py-3">
+                    <div className="text-[11px] font-mono text-zinc-500">Total a gerar</div>
+                    <div className="text-base font-black text-purple-300 tabular-nums">
+                      {quantity}× {fmtBRL(amountNum)} = {fmtBRL(amountNum * quantity)}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Gateway selector */}
+              {allGateways.length > 1 && (
+                <div>
+                  <div className="text-[10px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase mb-2.5">
+                    Gateway
                   </div>
-                </motion.div>
+                  <div className="flex flex-col gap-2">
+                    {allGateways.map((gw: any) => (
+                      <GatewayCard
+                        key={gw.id}
+                        gw={gw}
+                        selected={selectedGw === gw.id}
+                        onSelect={() => { setSelectedGw(gw.id); reset() }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Single gateway pill (when only one configured dynamic gw) */}
+              {hasDynamicGateways && allGateways.length === 1 && (
+                <div className="flex items-center gap-2 bg-emerald-500/8 border border-emerald-500/20 rounded-xl px-4 py-2.5">
+                  <Zap size={12} className="text-emerald-400" />
+                  <span className="text-[11px] font-mono text-zinc-400">Gateway:</span>
+                  <span className="text-[11px] font-mono font-bold text-emerald-400">{selectedGwInfo?.label}</span>
+                </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Footer — generate button (only in form state) */}
-        {!loadingGw && activeGw && activeGw !== 'pix_estatico' && !done && (
+        {/* Footer — generate button */}
+        {!loadingGw && !noneConfigured && !isPixEstatico && !done && (
           <div className="px-6 py-4 border-t border-purple-500/10">
             <button
               onClick={generate}
-              disabled={generating || !amount}
+              disabled={generating || !amount || !selectedGw}
               className="w-full py-4 rounded-2xl bg-gradient-to-br from-emerald-700 via-emerald-500 to-cyan-400 text-white font-black tracking-widest text-sm uppercase shadow-[0_0_25px_rgba(16,185,129,.3)] hover:shadow-[0_0_40px_rgba(16,185,129,.5)] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2">
               {generating ? (
                 <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Gerando {quantity} PIX…</>
