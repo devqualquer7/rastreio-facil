@@ -55,9 +55,12 @@ export async function POST(req: NextRequest) {
   const origin = req.headers.get('origin')
   const headers = corsHeaders(origin)
 
-  const err = (msg: string, status = 400) =>
-    NextResponse.json({ ok: false, error: msg }, { status, headers })
+  const err = async (msg: string, status = 400, context = '') => {
+    await addLog('error', `OAuth relay falhou: ${msg}${context ? ` · ${context}` : ''}`, `origin: ${origin || 'desconhecido'}`).catch(() => {})
+    return NextResponse.json({ ok: false, error: msg }, { status, headers })
+  }
 
+  let credName = ''
   try {
     const body = await req.json()
     const { code, state, redirect_uri, name: rawName } = body
@@ -66,7 +69,7 @@ export async function POST(req: NextRequest) {
     if (!state && !rawName) return err('state ou name obrigatório')
 
     // Try to get name from state (preferred — signed by us)
-    let credName = rawName?.trim() || ''
+    credName = rawName?.trim() || ''
     if (state) {
       const stateData = verifyState(state)
       if (stateData) credName = stateData.name.trim() || credName
@@ -80,7 +83,13 @@ export async function POST(req: NextRequest) {
     const clientId = rows.find(r => r.key === 'mp_oauth_client_id')?.value
     const clientSecret = rows.find(r => r.key === 'mp_oauth_client_secret')?.value
 
-    if (!clientId || !clientSecret) return err('OAuth não configurado no servidor')
+    if (!clientId || !clientSecret) {
+      return err(
+        'OAuth não configurado — adicione Client ID e Secret em Configurações → OAuth MP',
+        500,
+        `name: ${credName}`
+      )
+    }
 
     // Use provided redirect_uri (must match what was used to start the flow)
     // encryptedgroup.com sends 'https://encryptedgroup.com/oauth/'
@@ -101,8 +110,9 @@ export async function POST(req: NextRequest) {
 
     const tokenData = await tokenRes.json()
     if (!tokenRes.ok || !tokenData.access_token) {
+      const mpError = tokenData?.message || tokenData?.error || `HTTP ${tokenRes.status}`
       console.error('[ec/oauth/relay] token exchange failed', tokenData)
-      return err(`Falha ao obter token: ${tokenData?.message || tokenData?.error || 'erro MP'}`, 502)
+      return err(`Falha ao obter token do MP: ${mpError}`, 502, `name: ${credName}, redirect_uri: ${redirectUri}`)
     }
 
     const accessToken: string = tokenData.access_token
@@ -132,7 +142,7 @@ export async function POST(req: NextRequest) {
     await addLog(
       'link',
       `OAuth relay: slot #${slot} "${credName}" · MP user ${mpUserId}`,
-      `slot #${slot}`
+      `slot #${slot} · origin: ${origin || 'desconhecido'}`
     ).catch(() => {})
 
     // Return access_token so encryptedgroup.com can also store it for the exe
@@ -142,6 +152,7 @@ export async function POST(req: NextRequest) {
     )
   } catch (e: any) {
     console.error('[ec/oauth/relay]', e)
-    return err(`Erro interno: ${e.message}`, 500)
+    await addLog('error', `OAuth relay erro interno: ${e.message}${credName ? ` · name: ${credName}` : ''}`, `origin: ${origin || 'desconhecido'}`).catch(() => {})
+    return NextResponse.json({ ok: false, error: `Erro interno: ${e.message}` }, { status: 500, headers })
   }
 }
