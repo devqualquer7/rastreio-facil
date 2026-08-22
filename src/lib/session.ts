@@ -1,22 +1,23 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 
-const secretKey = process.env.SESSION_SECRET
-if (!secretKey) throw new Error('SESSION_SECRET env var is required')
-
-const key = new TextEncoder().encode(secretKey)
+function getKey(): Uint8Array {
+  const secretKey = process.env.SESSION_SECRET
+  if (!secretKey) throw new Error('SESSION_SECRET env var is required')
+  return new TextEncoder().encode(secretKey)
+}
 
 export async function encrypt(payload: any, expiresIn = '24h') {
     return await new SignJWT(payload)
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime(expiresIn)
-      .sign(key)
+      .sign(getKey())
 }
 
 export async function decrypt(input: string): Promise<any> {
     try {
-          const { payload } = await jwtVerify(input, key, { algorithms: ['HS256'] })
+          const { payload } = await jwtVerify(input, getKey(), { algorithms: ['HS256'] })
           return payload
     } catch {
           return null
