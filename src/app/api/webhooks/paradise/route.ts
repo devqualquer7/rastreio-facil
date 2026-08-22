@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/ec-supabase'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +13,14 @@ export async function POST(request: NextRequest) {
 
     if (status === 'approved') {
       console.log(`[Paradise Webhook] Payment APPROVED for transaction ${transactionId}`)
+      if (transactionId) {
+        try {
+          await db.markSaquePaymentPaid(String(transactionId))
+          console.log(`[Paradise Webhook] Saque marked paid for ${transactionId}`)
+        } catch (e) {
+          console.error('[Paradise Webhook] Failed to mark saque paid:', e)
+        }
+      }
     } else if (status === 'refunded') {
       console.log(`[Paradise Webhook] Payment REFUNDED for transaction ${transactionId}`)
     }

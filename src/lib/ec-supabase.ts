@@ -201,6 +201,51 @@ export const db = {
       .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' })
   },
 
+  // ── Saque payments (KV-backed via web_settings) ───────────────────────────
+  // Key pattern: saque:pay:{externalId}
+  // Value: JSON { username, gateway, amount, status, created_at, paid_at? }
+
+  async saveSaquePayment(
+    externalId: string,
+    data: { username: string; gateway: string; amount: number; status: string }
+  ) {
+    const sb = getSupabase()
+    await sb
+      .from('web_settings')
+      .upsert(
+        { key: `saque:pay:${externalId}`, value: JSON.stringify({ ...data, created_at: new Date().toISOString() }), updated_at: new Date().toISOString() },
+        { onConflict: 'key' }
+      )
+  },
+
+  async markSaquePaymentPaid(externalId: string): Promise<boolean> {
+    const sb = getSupabase()
+    const { data } = await sb.from('web_settings').select('value').eq('key', `saque:pay:${externalId}`).single()
+    if (!data?.value) return false
+    try {
+      const current = JSON.parse(data.value)
+      if (current.status === 'paid') return true
+      await sb.from('web_settings').upsert(
+        { key: `saque:pay:${externalId}`, value: JSON.stringify({ ...current, status: 'paid', paid_at: new Date().toISOString() }), updated_at: new Date().toISOString() },
+        { onConflict: 'key' }
+      )
+      return true
+    } catch { return false }
+  },
+
+  async getSaqueStatuses(externalIds: string[]): Promise<Record<string, string>> {
+    if (externalIds.length === 0) return {}
+    const sb = getSupabase()
+    const keys = externalIds.map(id => `saque:pay:${id}`)
+    const { data } = await sb.from('web_settings').select('key,value').in('key', keys)
+    const result: Record<string, string> = {}
+    for (const row of (data ?? [])) {
+      const id = (row as any).key.replace('saque:pay:', '')
+      try { result[id] = JSON.parse((row as any).value)?.status ?? 'pending' } catch {}
+    }
+    return result
+  },
+
   // ── Logs ───────────────────────────────────────────────────────────────────
   async listLogs(limit = 200) {
     const sb = getSupabase()

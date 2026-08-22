@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
+import { db } from '@/lib/ec-supabase'
 
 async function sendEmail(to: string, subject: string, html: string) {
   const RESEND_KEY = process.env.RESEND_API_KEY
@@ -101,6 +102,9 @@ export async function POST(request: NextRequest) {
       }
 
       query.updatePaymentStatus(payment.id, 'paid')
+
+      // Mark EC saque payment as paid if it was generated through the saque flow
+      try { await db.markSaquePaymentPaid(String(pushinpayId)) } catch {}
 
       const user = query.getUserById(payment.userId)
       if (!user) return NextResponse.json({ received: true })

@@ -72,6 +72,14 @@ export async function POST(req: NextRequest) {
     })
 
     const successCount = items.filter(i => i.ok).length
+
+    // Persist each successful PIX to Supabase so webhooks can mark them paid
+    await Promise.allSettled(
+      items.filter(i => i.ok && i.externalId).map(i =>
+        db.saveSaquePayment(i.externalId!, { username, gateway: gwToUse!, amount: amountCents, status: 'pending' })
+      )
+    )
+
     return NextResponse.json({ ok: true, items, gateway: gwToUse, successCount, total: qty })
   } catch (e: any) {
     if (e.message === 'UNAUTHORIZED') return NextResponse.json({ ok: false, error: 'Não autenticado' }, { status: 401 })

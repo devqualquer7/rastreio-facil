@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X, ArrowDownToLine, RefreshCw, Copy, Check, Download,
@@ -31,7 +31,7 @@ function buildPixPayload(key: string, name: string, city: string): string {
 }
 
 // ── QR card individual ────────────────────────────────────────────────────────
-function QRCard({ item, amount }: { item: any; amount: number }) {
+function QRCard({ item, amount, paid }: { item: any; amount: number; paid?: boolean }) {
   const [dataUrl, setDataUrl] = useState('')
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -92,8 +92,18 @@ function QRCard({ item, amount }: { item: any; amount: number }) {
             <RefreshCw size={20} className="animate-spin text-purple-400" />
           </div>
         ) : dataUrl ? (
-          <div className="bg-white rounded-xl p-2.5 shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-            <img src={dataUrl} alt="QR PIX" className="w-44 h-44 block" style={{ imageRendering: 'pixelated' }} />
+          <div className="relative">
+            <div className={`bg-white rounded-xl p-2.5 shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-all ${paid ? 'opacity-40' : ''}`}>
+              <img src={dataUrl} alt="QR PIX" className="w-44 h-44 block" style={{ imageRendering: 'pixelated' }} />
+            </div>
+            {paid && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl z-10 pointer-events-none">
+                <div className="bg-emerald-500 rounded-2xl px-5 py-3 flex flex-col items-center gap-1 shadow-[0_0_24px_rgba(16,185,129,0.7)]">
+                  <Check size={22} className="text-white" strokeWidth={3} />
+                  <div className="text-white font-black text-sm tracking-[0.25em]">PAGO</div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="w-44 h-44 flex items-center justify-center rounded-xl border border-red-500/20 bg-red-500/5">
@@ -181,8 +191,35 @@ export function SaqueModal() {
   const [items, setItems] = useState<any[]>([])
   const [generating, setGenerating] = useState(false)
   const [done, setDone] = useState(false)
+  const [paidStatuses, setPaidStatuses] = useState<Record<string, string>>({})
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => { loadGatewayInfo() }, [])
+
+  // Poll for saque payment confirmations after generation
+  useEffect(() => {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+    if (!done || items.length === 0) return
+
+    const ids = items.filter(i => i.ok && i.externalId).map(i => i.externalId as string)
+    if (ids.length === 0) return
+
+    async function poll() {
+      try {
+        const r = await fetch('/api/ec/saque/status', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ externalIds: ids })
+        })
+        const d = await r.json()
+        if (d.ok) setPaidStatuses(d.statuses)
+      } catch {}
+    }
+
+    poll()
+    pollRef.current = setInterval(poll, 3000)
+    return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null } }
+  }, [done, items])
 
   async function loadGatewayInfo() {
     setLoadingGw(true)
@@ -232,7 +269,7 @@ export function SaqueModal() {
     finally { setGenerating(false) }
   }
 
-  function reset() { setItems([]); setDone(false); setAmount(''); setQuantity(1) }
+  function reset() { setItems([]); setDone(false); setAmount(''); setQuantity(1); setPaidStatuses({}) }
 
   // Derived
   const selectedGwInfo = allGateways.find(g => g.id === selectedGw)
@@ -357,7 +394,7 @@ export function SaqueModal() {
 
               <div className={`grid gap-3 ${items.length === 1 ? 'grid-cols-1 max-w-xs mx-auto' : 'grid-cols-2 sm:grid-cols-3'}`}>
                 {items.map((item) => (
-                  <QRCard key={item.index} item={item} amount={amountNum} />
+                  <QRCard key={item.index} item={item} amount={amountNum} paid={!!(item.externalId && paidStatuses[item.externalId] === 'paid')} />
                 ))}
               </div>
             </div>

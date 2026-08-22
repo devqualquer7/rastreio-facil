@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { codb } from '@/lib/checkout-db'
+import { db } from '@/lib/ec-supabase'
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,6 +12,8 @@ export async function POST(req: NextRequest) {
 
     if (status === 'paid' || status === 'completed' || status === 'approved') {
       codb.markTransactionPaidByExternalId(String(externalId))
+      // Also mark EC saque payment as paid if this was a saque PIX
+      try { await db.markSaquePaymentPaid(String(externalId)) } catch {}
     }
 
     return NextResponse.json({ ok: true })
