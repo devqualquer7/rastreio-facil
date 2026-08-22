@@ -6,14 +6,23 @@ export async function GET() {
   const session = await getSession()
   if (!session) return NextResponse.json({ ok: false })
 
-  // Admin = the user with the lowest ID (first account created)
+  // Admin = the first user created (lowest id / earliest created_at)
   try {
     const all = await db.listUsers()
-    const minId = all.length > 0 ? Math.min(...all.map((u: any) => u.id)) : -1
+    // listUsers() orders by created_at ASC → first element is the oldest account
     const me = all.find((u: any) => u.username === session.username)
-    const is_admin = !!me && me.id === minId
+    const first = all[0]
+    // Use string comparison to avoid BigInt vs number mismatch on some runtimes
+    const is_admin = !!me && !!first && String(me.id) === String(first.id)
     return NextResponse.json({ ok: true, username: session.username, is_admin })
-  } catch {
-    return NextResponse.json({ ok: true, username: session.username, is_admin: false })
+  } catch (e: any) {
+    console.error('[ec/me] listUsers error:', e?.message)
+    // Fall back: if there is only one user they must be admin
+    try {
+      const count = await db.countUsers()
+      return NextResponse.json({ ok: true, username: session.username, is_admin: count <= 1 })
+    } catch {
+      return NextResponse.json({ ok: true, username: session.username, is_admin: false })
+    }
   }
 }
