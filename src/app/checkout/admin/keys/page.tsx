@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useCheckoutUser } from '../../layout'
+import { useCheckoutUser } from '../../checkout-context'
 import { useRouter } from 'next/navigation'
 
 interface Key {
