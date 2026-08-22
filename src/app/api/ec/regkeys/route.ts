@@ -22,6 +22,18 @@ export async function GET() {
       const token = row.key.replace(KEY_PREFIX, '')
       let meta: any = {}
       try { meta = JSON.parse(row.value) } catch {}
+
+      // Normalize legacy data: created_by/revoked_by may be stored as object {username:"..."}
+      if (meta.created_by && typeof meta.created_by === 'object') {
+        meta.created_by = meta.created_by.username ?? String(meta.created_by)
+      }
+      if (meta.revoked_by && typeof meta.revoked_by === 'object') {
+        meta.revoked_by = meta.revoked_by.username ?? String(meta.revoked_by)
+      }
+      if (meta.used_by && typeof meta.used_by === 'object') {
+        meta.used_by = meta.used_by.username ?? String(meta.used_by)
+      }
+
       return { token, ...meta, key: row.key, updated_at: row.updated_at }
     })
 
