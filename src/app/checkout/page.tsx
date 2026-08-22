@@ -26,8 +26,11 @@ const SCREENS: Record<string, React.ComponentType> = {
   users:       Users,
 }
 
+// Health check fires on mount + every 5 minutes
+const HEALTH_MS = 5 * 60 * 1000
+
 export default function CheckoutPage() {
-  const { screen, modal, closeModal, setUsername, setIsAdmin, refreshCreds, username, pushPayment } = useApp()
+  const { screen, modal, closeModal, setUsername, setIsAdmin, refreshCreds, username, pushPayment, toast } = useApp()
   const lastStatusRef = useRef<Map<number, string>>(new Map())
   const initializedRef = useRef(false)
 
@@ -39,6 +42,35 @@ export default function CheckoutPage() {
       .catch(() => {})
     refreshCreds()
   }, [])
+
+  // Automatic account health check — every 5 minutes
+  useEffect(() => {
+    if (!username) return
+
+    async function runHealthCheck() {
+      try {
+        const r = await fetch('/api/ec/health/check', { method: 'POST' })
+        const d = await r.json()
+        if (!d.ok) return
+
+        if (d.newlyBanned?.length > 0) {
+          for (const slot of d.newlyBanned) {
+            toast('error', `⚠ Conta banida — Slot #${slot}`)
+            fireOSNotification(
+              '⚠ Conta MP Suspensa',
+              `Slot #${slot} foi banido pelo Mercado Pago. Reconecte via OAuth.`,
+              `banned-slot-${slot}`
+            )
+          }
+          refreshCreds()
+        }
+      } catch {}
+    }
+
+    runHealthCheck() // immediate check on login
+    const interval = setInterval(runHealthCheck, HEALTH_MS)
+    return () => clearInterval(interval)
+  }, [username])
 
   // Global polling — fires payment notifications from ANY screen
   async function globalPoll() {
