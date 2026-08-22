@@ -54,7 +54,7 @@ export async function POST() {
 
           await db.updateCred(cred.slot, {
             connected: false,
-            health_status: 'error',
+            health_status: 'banned',
             health_message: `Token revogado — reconecte via OAuth (${e.message || `HTTP ${e.status}`})`,
             last_test_at: new Date().toISOString(),
           }).catch(() => {})
