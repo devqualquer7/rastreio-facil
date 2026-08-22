@@ -258,6 +258,7 @@ export function Credentials() {
           {creds.map((c, i) => {
             const active = c.is_active
             const banned = c.health_status === 'banned'
+            const tokenRevoked = banned && c.health_message?.toLowerCase().includes('token')
             const isEditing = editing === c.slot
 
             return (
@@ -275,7 +276,9 @@ export function Credentials() {
                     {banned && (
                       <div className="relative bg-gradient-to-r from-red-500/40 via-red-500/30 to-red-500/40 border-b border-red-500/50 px-5 py-3 flex items-center justify-center gap-2">
                         <AlertTriangle size={14} className="text-red-400" />
-                        <div className="font-black text-xs tracking-[0.3em] text-red-400 uppercase">⚠ Conta Banida · Token Revogado ⚠</div>
+                        <div className="font-black text-xs tracking-[0.3em] text-red-400 uppercase">
+                          {tokenRevoked ? '⚠ Token Revogado · Reconecte via OAuth ⚠' : '⚠ Conta Banida pelo Mercado Pago ⚠'}
+                        </div>
                         <AlertTriangle size={14} className="text-red-400" />
                       </div>
                     )}
@@ -338,7 +341,9 @@ export function Credentials() {
                           <div className="flex items-center gap-1.5 mt-1">
                             {banned ? (
                               <><AlertTriangle size={11} className="text-red-400" />
-                                <span className="text-[10px] font-mono text-red-400 tracking-wider font-bold">BANIDA · Token revogado</span></>
+                                <span className="text-[10px] font-mono text-red-400 tracking-wider font-bold">
+                                  {tokenRevoked ? 'TOKEN REVOGADO · Reconecte' : 'BANIDA pelo Mercado Pago'}
+                                </span></>
                             ) : c.connected ? (
                               <><CheckCircle2 size={11} className="text-emerald-400" />
                                 <span className="text-[10px] font-mono text-emerald-500 tracking-wider">Conectado</span></>
