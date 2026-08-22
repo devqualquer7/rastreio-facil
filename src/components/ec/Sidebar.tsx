@@ -1,5 +1,5 @@
 'use client'
-import { LayoutDashboard, Key, Receipt, ScrollText, Zap, LogOut, Settings2, ChevronDown, Circle, Sparkles, CreditCard, Users, ArrowDownToLine } from 'lucide-react'
+import { LayoutDashboard, Key, Receipt, ScrollText, Zap, LogOut, Settings2, ChevronDown, Circle, Sparkles, CreditCard, Users, ArrowDownToLine, Layers } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/ec-utils'
@@ -16,6 +16,7 @@ export function Sidebar() {
     { id: 'extrato',     icon: Receipt,         label: 'Extrato MP' },
     { id: 'logs',        icon: ScrollText,      label: 'Logs' },
     { id: 'users',       icon: Users,           label: 'Usuários', adminOnly: true },
+    { id: 'studio',      icon: Layers,          label: 'Studio' },
   ]
 
   async function logout() {
@@ -139,6 +140,7 @@ export function MobileTopBar() {
     { id: 'extrato',     icon: Receipt },
     { id: 'logs',        icon: ScrollText },
     { id: 'users',       icon: Users, adminOnly: true },
+    { id: 'studio',      icon: Layers },
   ]
 
   async function logout() {

@@ -128,18 +128,27 @@ export default function CheckoutPage() {
       {/* Main */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <MobileTopBar />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={screen}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18 }}>
-              <Screen />
-            </motion.div>
-          </AnimatePresence>
-        </main>
+        {screen === 'studio' ? (
+          <iframe
+            src="/studio/editor.html"
+            className="flex-1 w-full border-none"
+            style={{ minHeight: 0 }}
+            allow="clipboard-write; downloads"
+          />
+        ) : (
+          <main className="flex-1 overflow-y-auto p-4 md:p-8">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={screen}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18 }}>
+                <Screen />
+              </motion.div>
+            </AnimatePresence>
+          </main>
+        )}
       </div>
 
       {/* Modals */}

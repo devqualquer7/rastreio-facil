@@ -250,6 +250,35 @@ export const db = {
     return result
   },
 
+  // ── Studio models (KV-backed via web_settings) ────────────────────────────
+  // Key pattern: studio:model:{id}
+  // Value: JSON { id, nome, desc, dados, criadoEm }
+
+  async listStudioModels(): Promise<any[]> {
+    const sb = getSupabase()
+    const { data } = await sb
+      .from('web_settings')
+      .select('key,value,updated_at')
+      .like('key', 'studio:model:%')
+      .order('updated_at', { ascending: false })
+    return (data ?? []).map((row: any) => {
+      try { return JSON.parse(row.value) } catch { return null }
+    }).filter(Boolean)
+  },
+
+  async saveStudioModel(id: string, model: { id: string; nome: string; desc: string; dados: unknown; criadoEm: number }) {
+    const sb = getSupabase()
+    await sb.from('web_settings').upsert(
+      { key: `studio:model:${id}`, value: JSON.stringify(model), updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    )
+  },
+
+  async deleteStudioModel(id: string) {
+    const sb = getSupabase()
+    await sb.from('web_settings').delete().eq('key', `studio:model:${id}`)
+  },
+
   // ── Logs ───────────────────────────────────────────────────────────────────
   async listLogs(limit = 200) {
     const sb = getSupabase()
