@@ -1,0 +1,21 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { codb } from '@/lib/checkout-db'
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const externalId = body?.transaction_id ?? body?.id
+    const status = (body?.status ?? '').toLowerCase()
+
+    if (!externalId) return NextResponse.json({ ok: false, error: 'missing id' }, { status: 400 })
+
+    if (status === 'paid' || status === 'completed' || status === 'approved') {
+      codb.markTransactionPaidByExternalId(String(externalId))
+    }
+
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    console.error('[webhook/paradise]', e)
+    return NextResponse.json({ ok: false }, { status: 500 })
+  }
+}

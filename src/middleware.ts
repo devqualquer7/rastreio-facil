@@ -15,6 +15,16 @@ async function verifyToken(token: string) {
     } catch { return null }
 }
 
+// Checkout public paths (no session required)
+const CHECKOUT_PUBLIC_API = [
+  '/api/checkout/auth/login',
+  '/api/checkout/auth/register',
+  '/api/checkout/webhooks/pushinpay',
+  '/api/checkout/webhooks/paradise',
+  '/api/checkout/webhooks/pixgate',
+  '/api/checkout/webhooks/blackcat',
+]
+
 
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
@@ -60,12 +70,7 @@ export async function middleware(request: NextRequest) {
 
 
   if (pathname.startsWith('/api/admin')) {
-        // Bypass session check for endpoints that have their own auth:
-      //  - generate-batch, check-batch-status: Bearer token (BATCH_API_TOKEN)
-      //  - bridge-auth: signed by desktop with BRIDGE_HMAC_SECRET (or admin session for mobile)
-      //  - bridge-callback: signed by desktop with BRIDGE_HMAC_SECRET
-      // NOTE: /api/admin/mobile/* still uses the admin session cookie (it's user-facing)
-      if (
+        if (
               pathname === '/api/admin/generate-batch' ||
               pathname === '/api/admin/check-batch-status' ||
               pathname === '/api/admin/bridge-auth' ||
@@ -88,10 +93,52 @@ export async function middleware(request: NextRequest) {
   }
 
 
+  // ── Checkout panel ─────────────────────────────────────────────────────────
+
+  if (pathname === '/checkout/login' || pathname === '/checkout/register') {
+        const cookie = request.cookies.get('co-session')
+        if (cookie && await verifyToken(cookie.value)) {
+              return NextResponse.redirect(new URL('/checkout', request.url))
+        }
+        return response
+  }
+
+  if (pathname.startsWith('/checkout')) {
+        const cookie = request.cookies.get('co-session')
+        if (!cookie) return NextResponse.redirect(new URL('/checkout/login', request.url))
+        const session = await verifyToken(cookie.value)
+        if (!session) {
+              const res = NextResponse.redirect(new URL('/checkout/login', request.url))
+              res.cookies.delete('co-session')
+              return res
+        }
+        return response
+  }
+
+  if (pathname.startsWith('/api/checkout')) {
+        // Public checkout API endpoints
+        if (CHECKOUT_PUBLIC_API.includes(pathname)) return response
+
+        const cookie = request.cookies.get('co-session')
+        if (!cookie) return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 })
+        const session = await verifyToken(cookie.value)
+        if (!session) return NextResponse.json({ error: 'Sessao invalida' }, { status: 401 })
+        return response
+  }
+
+
   return response
 }
 
 
 export const config = {
-    matcher: ['/admin/:path*', '/api/admin/:path*', '/dashboard/:path*', '/api/user/:path*', '/login'],
+    matcher: [
+      '/admin/:path*',
+      '/api/admin/:path*',
+      '/dashboard/:path*',
+      '/api/user/:path*',
+      '/login',
+      '/checkout/:path*',
+      '/api/checkout/:path*',
+    ],
 }
