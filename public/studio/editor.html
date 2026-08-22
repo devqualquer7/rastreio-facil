@@ -559,43 +559,23 @@ input[type=color] {
 <input type="file" id="inputHtml" accept=".html" style="display:none">
 
 <!-- =========================================================
-     MODAL: PREVIEW HTML IMPORTADO
+     VIEWER: HTML IMPORTADO (fullscreen, dentro do studio)
      ========================================================= -->
-<div id="modalHtmlPreview" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.88);align-items:center;justify-content:center;padding:16px">
-  <div style="background:#14171f;border:1px solid #262b38;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;width:100%;max-width:440px;max-height:92vh">
-    <!-- cabeçalho -->
-    <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #262b38;flex-shrink:0">
-      <div style="flex:1;min-width:0">
-        <div id="mhpNome" style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e7eaf2"></div>
-        <div style="font-size:10px;color:#8b94a8;margin-top:2px;letter-spacing:.5px">HTML IMPORTADO</div>
-      </div>
-      <button id="mhpFechar" style="background:none;border:none;color:#8b94a8;cursor:pointer;font-size:20px;line-height:1;padding:4px 6px;border-radius:6px;transition:color .15s" title="Fechar">✕</button>
-    </div>
-    <!-- corpo: preview + ações -->
-    <div style="display:flex;gap:0;overflow:hidden;flex:1">
-      <!-- iframe preview (escalonado) -->
-      <div style="flex-shrink:0;width:190px;overflow:hidden;border-right:1px solid #262b38;background:#fff;position:relative">
-        <div style="width:190px;height:100%;overflow:hidden;position:relative">
-          <iframe id="mhpFrame" sandbox="allow-scripts allow-same-origin" scrolling="no"
-            style="width:390px;height:844px;transform:scale(0.487);transform-origin:top left;border:none;display:block;pointer-events:none"></iframe>
-        </div>
-        <div style="position:absolute;inset:0;cursor:default"></div>
-      </div>
-      <!-- ações -->
-      <div style="flex:1;display:flex;flex-direction:column;gap:10px;padding:16px;justify-content:center">
-        <div>
-          <div id="mhpDesc" style="font-size:11px;color:#4a5268;line-height:1.5;word-break:break-word"></div>
-        </div>
-        <button id="mhpBtnCopiar" style="padding:10px 14px;border-radius:8px;border:1px solid #262b38;background:#1a1e28;color:#e7eaf2;cursor:pointer;font-weight:600;font-size:11px;display:flex;align-items:center;gap:7px;justify-content:center;transition:background .15s">
-          📋 Copiar HTML
-        </button>
-        <button id="mhpBtnDuplicar" style="padding:10px 14px;border-radius:8px;border:1px solid rgba(62,155,255,.35);background:rgba(27,78,245,.15);color:#3E9BFF;cursor:pointer;font-weight:600;font-size:11px;display:flex;align-items:center;gap:7px;justify-content:center;transition:background .15s">
-          ⊕ Duplicar modelo
-        </button>
-        <button id="mhpBtnApagar" style="padding:10px 14px;border-radius:8px;border:1px solid rgba(255,84,112,.25);background:rgba(255,84,112,.08);color:#ff5470;cursor:pointer;font-weight:600;font-size:11px;display:flex;align-items:center;gap:7px;justify-content:center;transition:background .15s">
-          🗑 Apagar da nuvem
-        </button>
-      </div>
+<div id="htmlViewer" style="display:none;position:fixed;inset:0;z-index:9999;background:#06080c;flex-direction:column">
+  <!-- barra superior -->
+  <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;background:#14171f;border-bottom:1px solid #262b38;flex-shrink:0">
+    <button id="hvVoltar" style="background:none;border:1px solid #262b38;border-radius:7px;color:#8b94a8;cursor:pointer;font-size:11px;font-weight:600;padding:5px 10px;display:flex;align-items:center;gap:5px;transition:.15s" title="Voltar ao editor">← Voltar</button>
+    <div id="hvNome" style="flex:1;font-weight:700;font-size:13px;color:#e7eaf2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+    <span style="font-size:10px;color:#8b94a8;letter-spacing:.5px;flex-shrink:0">HTML IMPORTADO</span>
+    <button id="hvCopiar" style="background:#1a1e28;border:1px solid #262b38;border-radius:7px;color:#e7eaf2;cursor:pointer;font-size:11px;font-weight:600;padding:5px 12px;transition:.15s">📋 Copiar HTML</button>
+    <button id="hvDuplicar" style="background:rgba(27,78,245,.18);border:1px solid rgba(62,155,255,.35);border-radius:7px;color:#3E9BFF;cursor:pointer;font-size:11px;font-weight:600;padding:5px 12px;transition:.15s">⊕ Duplicar</button>
+    <button id="hvApagar" style="background:none;border:1px solid rgba(255,84,112,.25);border-radius:7px;color:#ff5470;cursor:pointer;font-size:11px;font-weight:600;padding:5px 10px;transition:.15s">🗑</button>
+  </div>
+  <!-- área de preview centrada -->
+  <div style="flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:24px;background:#06080c">
+    <div style="border:1px solid #262b38;border-radius:20px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.8);flex-shrink:0">
+      <iframe id="hvFrame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+        style="width:390px;height:844px;border:none;display:block"></iframe>
     </div>
   </div>
 </div>
@@ -1707,8 +1687,8 @@ function carregarModelosNuvem() {
                 var miniContent = '';
                 if (isRawHtml) {
                     // Thumbnail: iframe escalado — srcdoc injetado via JS após render (evita problemas de escape)
-                    miniContent = '<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;background:#fff">' +
-                        '<iframe class="raw-thumb" data-hidx="' + i + '" sandbox="allow-scripts" scrolling="no"' +
+                    miniContent = '<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;background:#0d0f14">' +
+                        '<iframe class="raw-thumb" data-hidx="' + i + '" sandbox="allow-scripts allow-same-origin" scrolling="no"' +
                         ' style="width:390px;height:844px;transform:scale(0.6);transform-origin:top left;border:none;pointer-events:none;display:block"></iframe>' +
                         '</div>';
                 } else {
@@ -1733,12 +1713,20 @@ function carregarModelosNuvem() {
                     '<div class="txt"><b>' + esc(m.nome) + '</b><span>' + esc(m.desc || 'modelo da equipe') + '</span>' + acoes + '</div></div>';
             }
             g.innerHTML = h;
-            // Injetar srcdoc nos thumbnails raw_html via propriedade JS (evita escape de atributo HTML)
+            // Injetar Blob URL nos thumbnails raw_html (Blob URL cria origem própria, bypassa CSP da página)
             var thumbs = g.querySelectorAll('iframe.raw-thumb');
             for (var ti = 0; ti < thumbs.length; ti++) {
                 var hidx = +thumbs[ti].dataset.hidx;
                 var htmlSrc = modelosNuvem[hidx] && modelosNuvem[hidx].dados && modelosNuvem[hidx].dados.html;
-                if (htmlSrc) thumbs[ti].srcdoc = htmlSrc;
+                if (htmlSrc) {
+                    var blob = new Blob([htmlSrc], { type: 'text/html' });
+                    var blobUrl = URL.createObjectURL(blob);
+                    thumbs[ti].src = blobUrl;
+                    // revoga após carregamento para liberar memória
+                    (function(fr, url) {
+                        fr.addEventListener('load', function() { URL.revokeObjectURL(url); }, { once: true });
+                    })(thumbs[ti], blobUrl);
+                }
             }
             motorTempo(g, 25000, 60000);
         })
@@ -1773,9 +1761,9 @@ $('galeriaNuvem').addEventListener('click', function (e) {
         return;
     }
     var no = e.target.closest('.modelo'); if (!no) return;
-    // raw_html models: open preview modal
+    // raw_html models: open fullscreen HTML viewer
     if (no.dataset.rawHtml) {
-        abrirModalHtmlPreview(+no.dataset.nuvem);
+        abrirHtmlViewer(+no.dataset.nuvem);
         return;
     }
     var m = modelosNuvem[+no.dataset.nuvem];
@@ -1783,43 +1771,50 @@ $('galeriaNuvem').addEventListener('click', function (e) {
 });
 
 /* =========================================================
-   MODAL HTML PREVIEW
+   HTML VIEWER (fullscreen, dentro do studio)
    ========================================================= */
-var _mhpIdx = -1;
+var _hvIdx = -1;
+var _hvBlobUrl = null;
 
-function abrirModalHtmlPreview(idx) {
+function abrirHtmlViewer(idx) {
     var m = modelosNuvem[idx];
-    if (!m || !m.dados) return;
-    _mhpIdx = idx;
-    $('mhpNome').textContent = m.nome || 'HTML importado';
-    $('mhpDesc').textContent = m.desc || '';
-    var frame = $('mhpFrame');
-    frame.srcdoc = m.dados.html || '';
-    var modal = $('modalHtmlPreview');
-    modal.style.display = 'flex';
+    if (!m || !m.dados || !m.dados.html) return;
+    _hvIdx = idx;
+
+    // Fecha a galeria de modelos
+    $('modalModelos').classList.remove('abrir');
+
+    // Preenche nome
+    $('hvNome').textContent = m.nome || 'HTML importado';
+
+    // Carrega via Blob URL (bypassa CSP da página pai)
+    if (_hvBlobUrl) URL.revokeObjectURL(_hvBlobUrl);
+    var blob = new Blob([m.dados.html], { type: 'text/html' });
+    _hvBlobUrl = URL.createObjectURL(blob);
+    $('hvFrame').src = _hvBlobUrl;
+
+    // Exibe o viewer
+    var v = $('htmlViewer');
+    v.style.display = 'flex';
 }
 
-function fecharModalHtmlPreview() {
-    var modal = $('modalHtmlPreview');
-    modal.style.display = 'none';
-    $('mhpFrame').srcdoc = '';
-    _mhpIdx = -1;
+function fecharHtmlViewer() {
+    var v = $('htmlViewer');
+    v.style.display = 'none';
+    $('hvFrame').src = 'about:blank';
+    if (_hvBlobUrl) { URL.revokeObjectURL(_hvBlobUrl); _hvBlobUrl = null; }
+    _hvIdx = -1;
 }
 
-$('mhpFechar').addEventListener('click', fecharModalHtmlPreview);
-
-// Fechar clicando no overlay
-$('modalHtmlPreview').addEventListener('click', function (e) {
-    if (e.target === this) fecharModalHtmlPreview();
-});
+$('hvVoltar').addEventListener('click', fecharHtmlViewer);
 
 // Fechar com Esc
 document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && $('modalHtmlPreview').style.display === 'flex') fecharModalHtmlPreview();
+    if (e.key === 'Escape' && $('htmlViewer').style.display === 'flex') fecharHtmlViewer();
 });
 
-$('mhpBtnCopiar').addEventListener('click', function () {
-    var m = modelosNuvem[_mhpIdx];
+$('hvCopiar').addEventListener('click', function () {
+    var m = modelosNuvem[_hvIdx];
     if (!m || !m.dados || !m.dados.html) return;
     navigator.clipboard.writeText(m.dados.html).then(function () {
         toast('HTML copiado!', 'ok');
@@ -1831,31 +1826,40 @@ $('mhpBtnCopiar').addEventListener('click', function () {
     });
 });
 
-$('mhpBtnDuplicar').addEventListener('click', function () {
-    var m = modelosNuvem[_mhpIdx];
+$('hvDuplicar').addEventListener('click', function () {
+    var m = modelosNuvem[_hvIdx];
     if (!m || !m.dados || !m.dados.html) return;
-    var novoNome = prompt('Nome para a cópia:', (m.nome || 'HTML') + ' — cópia');
-    if (!novoNome || !novoNome.trim()) return;
-    fetch('/api/studio/modelos', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ nome: novoNome.trim(), desc: m.desc || '', dados: { type: 'raw_html', html: m.dados.html } })
-    }).then(function (r) {
-        if (r.ok) { toast('Cópia salva na nuvem!', 'ok'); fecharModalHtmlPreview(); carregarModelosNuvem(); }
-        else toast('Falha ao duplicar', 'erro');
-    }).catch(function () { toast('Erro de rede', 'erro'); });
+    // Abre o HTML direto no studio para edição imediata
+    fecharHtmlViewer();
+    // Injeta o HTML como elemento no canvas via importação
+    var blob = new Blob([m.dados.html], { type: 'text/html' });
+    var url = URL.createObjectURL(blob);
+    // Cria elemento iframe/embed no canvas
+    var el = {
+        id: Date.now(),
+        tipo: 'iframe',
+        x: 0, y: 0,
+        w: S.disp.w || 390,
+        h: S.disp.h || 844,
+        src: url,
+        _blobUrl: url,
+    };
+    salvarHist();
+    S.els.push(el);
+    S.sel = el.id;
+    tudo();
+    toast('HTML adicionado ao canvas — edite à vontade', 'ok');
 });
 
-$('mhpBtnApagar').addEventListener('click', function () {
-    var m = modelosNuvem[_mhpIdx];
+$('hvApagar').addEventListener('click', function () {
+    var m = modelosNuvem[_hvIdx];
     if (!m) return;
     if (!confirm('Apagar "' + (m.nome || 'este modelo') + '" da nuvem? Isso afeta todo mundo.')) return;
     fetch('/api/studio/modelos/' + m.id, { method: 'DELETE', credentials: 'same-origin' })
         .then(function (r) {
             if (r.status === 401) return toast('Sessão expirada', 'erro');
             toast('Modelo apagado', 'ok');
-            fecharModalHtmlPreview();
+            fecharHtmlViewer();
             carregarModelosNuvem();
         });
 });
