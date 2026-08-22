@@ -11,6 +11,7 @@ import { Users } from '@/app/checkout/screens/Users'
 import { GenerateModal } from '@/components/ec/modals/Generate'
 import { SwitchAccountModal } from '@/components/ec/modals/SwitchAccount'
 import { SettingsModal } from '@/components/ec/modals/Settings'
+import { SaqueModal } from '@/components/ec/modals/Saque'
 import { ToastStack, PaymentNotifications } from '@/components/ec/Toast'
 import { useApp } from '@/lib/ec-store'
 import { usePolling } from '@/hooks/ec-polling'
@@ -146,6 +147,7 @@ export default function CheckoutPage() {
         {modal === 'generate'       && <GenerateModal />}
         {modal === 'switch-account' && <SwitchAccountModal />}
         {modal === 'settings'       && <SettingsModal />}
+        {modal === 'saque'          && <SaqueModal />}
       </AnimatePresence>
 
       {/* Toasts & payment notifications */}

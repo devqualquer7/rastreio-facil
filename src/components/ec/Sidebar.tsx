@@ -1,5 +1,5 @@
 'use client'
-import { LayoutDashboard, Key, Receipt, ScrollText, Zap, LogOut, Settings2, ChevronDown, Circle, Sparkles, CreditCard, Users } from 'lucide-react'
+import { LayoutDashboard, Key, Receipt, ScrollText, Zap, LogOut, Settings2, ChevronDown, Circle, Sparkles, CreditCard, Users, ArrowDownToLine } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/ec-utils'
@@ -41,13 +41,18 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* CTA Gerar Link */}
-      <div className="px-4 pb-5">
+      {/* CTAs */}
+      <div className="px-4 pb-5 flex flex-col gap-2.5">
         <button onClick={() => openModal('generate')}
           className="ec-shine relative w-full py-3.5 rounded-2xl bg-gradient-to-br from-violet-700 via-purple-500 to-cyan-300 text-white font-black tracking-wide text-sm uppercase shadow-[0_0_20px_rgba(168,85,247,.4)] hover:shadow-[0_0_35px_rgba(168,85,247,.6)] active:scale-95 transition-all flex items-center justify-center gap-2 border border-white/10">
           <Sparkles size={14} className="drop-shadow" />
           <span>Gerar Link</span>
           <Zap size={14} fill="white" />
+        </button>
+        <button onClick={() => openModal('saque')}
+          className="relative w-full py-3 rounded-2xl bg-gradient-to-br from-emerald-700 via-emerald-500 to-cyan-400 text-white font-black tracking-wide text-sm uppercase shadow-[0_0_15px_rgba(16,185,129,.3)] hover:shadow-[0_0_28px_rgba(16,185,129,.5)] active:scale-95 transition-all flex items-center justify-center gap-2 border border-white/10">
+          <ArrowDownToLine size={14} className="drop-shadow" />
+          <span>Saque</span>
         </button>
       </div>
 
@@ -149,6 +154,10 @@ export function MobileTopBar() {
           <button onClick={() => openModal('generate')}
             className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-500 to-cyan-400 text-white text-xs font-bold">
             GERAR
+          </button>
+          <button onClick={() => openModal('saque')}
+            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-400 text-white text-xs font-bold">
+            SAQUE
           </button>
           <button onClick={logout} className="p-1.5 text-zinc-500 hover:text-red-400 transition">
             <LogOut size={14} />
