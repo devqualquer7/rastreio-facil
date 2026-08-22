@@ -6,7 +6,8 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 // Singleton — createClient is expensive; reuse across all requests in the same process
 let _client: ReturnType<typeof createClient> | null = null
 
-export function getSupabase() {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getSupabase(): any {
   if (!supabaseUrl || !supabaseKey) throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required')
   if (!_client) {
     _client = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } })
@@ -35,7 +36,7 @@ export const db = {
     const { count } = await sb.from('web_users').select('*', { count: 'exact', head: true })
     return count ?? 0
   },
-  async listUsers() {
+  async listUsers(): Promise<any[]> {
     const sb = getSupabase()
     const { data } = await sb.from('web_users').select('id,username,created_at').order('created_at')
     return data ?? []
@@ -47,7 +48,7 @@ export const db = {
   },
 
   // ── Credentials ────────────────────────────────────────────────────────────
-  async listCreds() {
+  async listCreds(): Promise<any[]> {
     const sb = getSupabase()
     const { data } = await sb.from('web_credentials').select('*').order('slot')
     return data ?? []
@@ -123,7 +124,7 @@ export const db = {
   },
 
   // ── Sales ──────────────────────────────────────────────────────────────────
-  async listSales(limit = 500) {
+  async listSales(limit = 500): Promise<any[]> {
     const sb = getSupabase()
     const { data } = await sb
       .from('web_sales')
@@ -137,7 +138,7 @@ export const db = {
     const { data } = await sb.from('web_sales').select('*').eq('external_reference', ref).single()
     return data
   },
-  async getPendingSales() {
+  async getPendingSales(): Promise<any[]> {
     const sb = getSupabase()
     const { data } = await sb
       .from('web_sales')
@@ -280,7 +281,7 @@ export const db = {
   },
 
   // ── Logs ───────────────────────────────────────────────────────────────────
-  async listLogs(limit = 200) {
+  async listLogs(limit = 200): Promise<any[]> {
     const sb = getSupabase()
     const { data } = await sb
       .from('web_logs')

@@ -18,7 +18,7 @@ export async function GET() {
       .like('key', `${KEY_PREFIX}%`)
       .order('updated_at', { ascending: false })
 
-    const keys = (data ?? []).map(row => {
+    const keys = (data ?? []).map((row: any) => {
       const token = row.key.replace(KEY_PREFIX, '')
       let meta: any = {}
       try { meta = JSON.parse(row.value) } catch {}
