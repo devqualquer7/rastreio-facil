@@ -21,7 +21,7 @@ function StatBox({
 }
 
 export function Extrato() {
-  const { toast } = useApp()
+  const { toast, activeCred } = useApp()
   const [sales, setSales] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState('todos')
@@ -36,12 +36,18 @@ export function Extrato() {
         body: JSON.stringify({ limit: 1000 })
       })
       const d = await r.json()
-      if (d.ok) setSales(d.sales || [])
+      if (d.ok) {
+        // Only show sales for the currently active credential
+        const all: any[] = d.sales || []
+        const activeSlot = activeCred?.slot
+        setSales(activeSlot != null ? all.filter(s => s.slot === activeSlot) : all)
+      }
     } catch { toast('error', 'Falha ao carregar extrato') }
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [])
+  // Reload whenever the active credential changes
+  useEffect(() => { load() }, [activeCred?.slot])
 
   const filtered = useMemo(() => sales.filter(s => {
     if (filter !== 'todos' && s.status !== filter) return false
@@ -124,7 +130,7 @@ export function Extrato() {
       <SectionTitle
         icon={<Receipt size={18} />}
         title="Extrato MP"
-        subtitle={`${sales.length} transações registradas`}
+        subtitle={activeCred ? `Conta: ${activeCred.name} · ${sales.length} transações` : `${sales.length} transações registradas`}
         action={<>
           <Button variant="outline" size="md" icon={<FileSpreadsheet size={13} />} onClick={exportCSV}>
             CSV
