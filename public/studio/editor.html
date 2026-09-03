@@ -761,7 +761,7 @@ function novoElemento(tipo) {
             cor: '#ffffff', align: 'center', ls: -0.6, lh: 1.25,
             italico: false, maiusc: false, sombra: true, corSombra: '#000000'
         },
-        imagem: { src: '', fit: 'contain', radius: 16, sombra: false, w: 140, h: 140, x: 125, y: 180 },
+        imagem: { src: '', fit: 'contain', radius: 16, sombra: false, borda: false, espessura: 2, corBorda: '#ffffff', w: 140, h: 140, x: 125, y: 180 },
         barra: {
             h: 8, radius: 100, corTrilho: '#ffffff', opTrilho: 100,
             cor1: '#0B3BD9', cor2: '#3E9BFF', brilho: false, sombra: true,
@@ -947,6 +947,7 @@ function montar(el) {
         }
         return '<img class="bx-img" src="' + esc(el.src) + '" alt="" style="object-fit:' + el.fit + ';' +
             'border-radius:' + el.radius + 'px;' +
+            (el.borda ? 'border:' + (el.espessura || 2) + 'px solid ' + (el.corBorda || '#ffffff') + ';box-sizing:border-box;' : '') +
             (el.sombra ? 'filter:drop-shadow(0 6px 20px rgba(0,0,0,.5));' : '') + '">';
     }
 
@@ -1333,10 +1334,22 @@ function renderProps() {
     h += '<div class="linha2">' + cNum('Largura', 'w', el.w, 4) + cNum('Altura', 'h', el.h, 4) + '</div>';
     h += '<div class="linha2">' + cNum('Rotação', 'rot', el.rot, -180, 180) +
          cNum('Opacidade', 'op', el.op, 0, 100) + '</div>';
-    h += '<div class="grupo-btn" style="margin-bottom:10px">' +
-         '<button data-acao="centroH">↔ Centralizar</button>' +
+    h += '<div class="campo"><label>Alinhar na tela</label>' +
+         '<div class="grupo-btn" style="margin-bottom:5px">' +
+         '<button data-acao="alinharEsq" title="Alinhar à esquerda">⇤</button>' +
+         '<button data-acao="centroH"    title="Centralizar horizontal">↔</button>' +
+         '<button data-acao="alinharDir" title="Alinhar à direita">⇥</button>' +
+         '<button data-acao="alinharTopo" title="Alinhar ao topo">⇑</button>' +
+         '<button data-acao="centroV"    title="Centralizar vertical">↕</button>' +
+         '<button data-acao="alinharBase" title="Alinhar à base">⇓</button>' +
+         '</div></div>';
+    h += '<div class="campo"><label>Ordem (sobreposição)</label>' +
+         '<div class="grupo-btn" style="margin-bottom:6px">' +
+         '<button data-acao="fundo">↓↓ Fundo</button>' +
+         '<button data-acao="tras">↓ Trás</button>' +
          '<button data-acao="frente">↑ Frente</button>' +
-         '<button data-acao="tras">↓ Trás</button></div>';
+         '<button data-acao="topo">↑↑ Topo</button>' +
+         '</div></div>';
 
     h += '<hr style="border:0;border-top:1px solid var(--linha);margin:12px 0">';
 
@@ -1359,7 +1372,12 @@ function renderProps() {
         h += '<button class="btn" id="btUpload" style="width:100%;justify-content:center;margin-bottom:10px">Enviar do computador</button>';
         h += cGrupo('Encaixe', 'fit', el.fit, [{v:'contain',n:'Inteira'},{v:'cover',n:'Preencher'},{v:'fill',n:'Esticar'}]);
         h += cNum('Cantos', 'radius', el.radius, 0, 400);
+        h += '<label style="display:block;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--txt2);margin:10px 0 6px">Opções</label>';
         h += cCheck('Sombra', 'sombra', el.sombra);
+        h += cCheck('Borda / contorno', 'borda', el.borda);
+        if (el.borda) {
+            h += '<div class="linha2">' + cNum('Espessura', 'espessura', el.espessura || 2, 1, 30) + cCor('Cor da borda', 'corBorda', el.corBorda || '#ffffff') + '</div>';
+        }
     }
 
     if (el.tipo === 'barra') {
@@ -1451,7 +1469,7 @@ function mudarProp(k, v, commit) {
     if (el.tipo === 'loading' || el.tipo === 'facial') el.h = el.w;
     renderPalco();
     renderCamadas();
-    if (k === 'usarGlobal' || k === 'mostrarPct' || k === 'gradiente' || k === 'formato' || k === 'modelo') renderProps();
+    if (k === 'usarGlobal' || k === 'mostrarPct' || k === 'gradiente' || k === 'formato' || k === 'modelo' || k === 'borda') renderProps();
 }
 
 $('props').addEventListener('input', function (e) {
@@ -1488,9 +1506,16 @@ $('props').addEventListener('click', function (e) {
     if (!acao || !el) return;
     salvarHist();
     var i = S.els.indexOf(el);
-    if (acao === 'centroH') el.x = Math.round((S.disp.w - el.w) / 2);
+    if (acao === 'alinharEsq')  el.x = 0;
+    if (acao === 'centroH')     el.x = Math.round((S.disp.w - el.w) / 2);
+    if (acao === 'alinharDir')  el.x = S.disp.w - el.w;
+    if (acao === 'alinharTopo') el.y = 0;
+    if (acao === 'centroV')     el.y = Math.round((S.disp.h - el.h) / 2);
+    if (acao === 'alinharBase') el.y = S.disp.h - el.h;
+    if (acao === 'fundo') { S.els.splice(i, 1); S.els.unshift(el); }
     if (acao === 'frente' && i < S.els.length - 1) { S.els.splice(i, 1); S.els.splice(i + 1, 0, el); }
     if (acao === 'tras' && i > 0) { S.els.splice(i, 1); S.els.splice(i - 1, 0, el); }
+    if (acao === 'topo') { S.els.splice(i, 1); S.els.push(el); }
     if (acao === 'duplicar') {
         var c = clone(el); c.id = uid(); c.x += 12; c.y += 12; c.nome = el.nome + ' cópia';
         S.els.push(c); S.sel = c.id;
