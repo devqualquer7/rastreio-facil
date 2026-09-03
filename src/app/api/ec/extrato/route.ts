@@ -7,9 +7,9 @@ import { decrypt } from '@/lib/ec-crypto'
 // GET /api/ec/extrato — fetch real payment data from MP API
 export async function GET() {
   try {
-    await requireSession()
+    const { username } = await requireSession()
 
-    const cred = await db.getActiveCred()
+    const cred = await db.getActiveCredForUser(username)
     if (!cred) return NextResponse.json({ ok: false, error: 'Nenhuma conta ativa' }, { status: 400 })
 
     const token = await decrypt(cred.access_token)

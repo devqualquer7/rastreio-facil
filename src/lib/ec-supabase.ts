@@ -63,6 +63,34 @@ export const db = {
     const { data } = await sb.from('web_credentials').select('*').eq('is_active', true).single()
     return data
   },
+
+  // ── Seleção de conta ATIVA por usuário (individual, não global) ─────────────
+  // Guardada em web_settings key `user:active:{username}` = slot.
+  async getUserActiveSlot(username: string): Promise<number | null> {
+    const sb = getSupabase()
+    const { data } = await sb.from('web_settings').select('value').eq('key', `user:active:${username}`).maybeSingle()
+    const n = data?.value != null ? Number(data.value) : NaN
+    return Number.isFinite(n) ? n : null
+  },
+  async setUserActiveSlot(username: string, slot: number) {
+    const sb = getSupabase()
+    await sb.from('web_settings').upsert(
+      { key: `user:active:${username}`, value: String(slot), updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    )
+  },
+  /**
+   * Conta ativa DO USUÁRIO: respeita a escolha individual dele.
+   * Cai pra conta global ativa só quando o usuário ainda não escolheu nenhuma.
+   */
+  async getActiveCredForUser(username: string) {
+    const slot = await this.getUserActiveSlot(username)
+    if (slot != null) {
+      const cred = await this.getCredBySlot(slot)
+      if (cred && cred.health_status !== 'banned') return cred
+    }
+    return this.getActiveCred()
+  },
   async getCredByMpUserId(mpUserId: string) {
     const sb = getSupabase()
     const { data } = await sb.from('web_credentials').select('*').eq('mp_user_id', mpUserId).maybeSingle()
@@ -331,16 +359,23 @@ export const db = {
  *   description → the message
  *   slot_name   → optional context label (slot ref, route name, etc.)
  */
-export async function addLog(level: string, message: string, context?: string): Promise<void> {
+export async function addLog(level: string, message: string, context?: string, username?: string): Promise<void> {
+  const sb = getSupabase()
+  // Actor sempre embutido na descrição pra ficar visível mesmo sem coluna dedicada.
+  const desc = username ? `${message} · por @${username}` : message
+  const base: Record<string, unknown> = {
+    type: level,
+    description: desc,
+    ...(context != null ? { slot_name: context } : {}),
+  }
   try {
-    const sb = getSupabase()
-    await sb.from('web_logs').insert({
-      type: level,
-      description: message,
-      ...(context != null ? { slot_name: context } : {}),
-    })
-  } catch (e) {
-    // Never let logging failures crash the caller
-    console.error('[addLog]', e)
+    // Tenta gravar a coluna `username` (best-effort — se não existir, faz fallback).
+    await sb.from('web_logs').insert(username ? { ...base, username } : base)
+  } catch (e: any) {
+    try {
+      await sb.from('web_logs').insert(base)  // retry sem a coluna extra
+    } catch (e2) {
+      console.error('[addLog]', e2)
+    }
   }
 }

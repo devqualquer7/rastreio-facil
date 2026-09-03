@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     const token = createSession(username)
     const res = NextResponse.json({ ok: true })
     await setSessionCookie(token)
-    await addLog('login', `Login bem-sucedido: "${username}"`, req.headers.get('x-forwarded-for') ?? 'unknown')
+    await addLog('login', `Login bem-sucedido: "${username}"`, req.headers.get('x-forwarded-for') ?? 'unknown', username)
     return res
   } catch (e: any) {
     console.error('[EC auth/login]', e)

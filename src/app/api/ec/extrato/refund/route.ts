@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSession } from '@/lib/ec-auth'
-import { db } from '@/lib/ec-supabase'
+import { db, addLog } from '@/lib/ec-supabase'
 import { MPAPI } from '@/lib/ec-mp-api'
 import { decrypt } from '@/lib/ec-crypto'
 
@@ -9,12 +9,12 @@ const CANCELLABLE  = new Set(['pending', 'in_process', 'authorized'])
 
 export async function POST(req: NextRequest) {
   try {
-    await requireSession()
+    const { username } = await requireSession()
 
     const { payment_id } = await req.json()
     if (!payment_id) return NextResponse.json({ ok: false, error: 'payment_id obrigatório' }, { status: 400 })
 
-    const cred = await db.getActiveCred()
+    const cred = await db.getActiveCredForUser(username)
     if (!cred) return NextResponse.json({ ok: false, error: 'Nenhuma conta ativa' }, { status: 400 })
 
     const token = await decrypt(cred.access_token)
@@ -36,7 +36,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json({ ok: true, action: REFUNDABLE.has(currentStatus) ? 'refunded' : 'cancelled', result })
+    const action = REFUNDABLE.has(currentStatus) ? 'refunded' : 'cancelled'
+    await addLog(
+      'refund',
+      `${action === 'refunded' ? 'Estorno' : 'Cancelamento'}: pagamento ${payment_id}`,
+      `slot #${cred.slot} ${cred.name ?? ''}`,
+      username,
+    ).catch(() => {})
+
+    return NextResponse.json({ ok: true, action, result })
   } catch (e: any) {
     if (e.message === 'UNAUTHORIZED') return NextResponse.json({ ok: false, error: 'Não autenticado' }, { status: 401 })
     return NextResponse.json({ ok: false, error: e.message || 'Erro interno' }, { status: 500 })

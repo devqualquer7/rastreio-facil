@@ -4,6 +4,10 @@ import { db, getSupabase } from '@/lib/ec-supabase'
 
 // Maps web_logs DB columns to the API response shape the frontend expects
 function mapLog(row: any) {
+  // Actor: coluna dedicada `username` quando existir, senão extrai do "· por @x" da descrição.
+  const inlineUser = typeof row.description === 'string'
+    ? (row.description.match(/·\s*por\s*@([\w.\-]+)\s*$/i)?.[1] ?? null)
+    : null
   return {
     id:         row.id,
     level:      row.type,        // DB: type  → frontend: level
@@ -11,6 +15,7 @@ function mapLog(row: any) {
     context:    row.slot_name ?? row.reference ?? null,
     slot:       row.slot ?? null,
     amount:     row.amount ?? null,
+    username:   row.username ?? inlineUser,
     created_at: row.created_at,
   }
 }

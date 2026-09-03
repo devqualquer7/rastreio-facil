@@ -4,7 +4,7 @@ import { db } from '@/lib/ec-supabase'
 
 export async function POST(req: NextRequest) {
   try {
-    await requireSession()
+    const { username } = await requireSession()
     const { slot } = await req.json()
     if (!slot) return NextResponse.json({ ok: false, error: 'slot obrigatório' })
 
@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
     if (!cred) return NextResponse.json({ ok: false, error: 'Slot não encontrado' })
     if (cred.health_status === 'banned') return NextResponse.json({ ok: false, error: 'Conta banida' })
 
-    await db.setAllInactive()
-    await db.updateCred(slot, { is_active: true })
+    // Seleção INDIVIDUAL — muda só pra este usuário, não mexe nos outros.
+    await db.setUserActiveSlot(username, slot)
 
     return NextResponse.json({ ok: true })
   } catch (e: any) {

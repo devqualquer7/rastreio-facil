@@ -3,47 +3,35 @@ import { useEffect, useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Receipt, RefreshCw, Search, Filter, FileText, FileSpreadsheet,
-  Eye, RotateCcw, X, Zap, CreditCard, Ticket, DollarSign,
+  Eye, RotateCcw, X, DollarSign, Clock, AlertTriangle,
 } from 'lucide-react'
 import { SectionTitle, Button, StatusPill } from '@/components/ec/ui/Base'
 import { useApp } from '@/lib/ec-store'
 import { fmtBRL, fmtDate } from '@/lib/ec-utils'
+import {
+  getMethodInfo, methodLabel as mpMethodLabel, translateStatusDetail,
+  isRejection, pendingActivity,
+} from '@/lib/ec-mp-translate'
 
 const STATUS_OPTIONS = ['todos', 'approved', 'pending', 'rejected', 'cancelled', 'refunded']
+const PENDING = new Set(['pending', 'in_process', 'authorized', 'gerado'])
 
 const REFUNDABLE  = new Set(['approved'])
 const CANCELLABLE = new Set(['pending', 'in_process', 'authorized'])
 function canRefund(status: string) { return REFUNDABLE.has(status) || CANCELLABLE.has(status) }
 
-// ── Payment method helpers ────────────────────────────────────────────────────
-function methodLabel(typeId: string | null) {
-  switch (typeId) {
-    case 'pix':          return 'Pix'
-    case 'credit_card':  return 'Crédito'
-    case 'debit_card':   return 'Débito'
-    case 'ticket':       return 'Boleto'
-    case 'account_money':return 'Saldo MP'
-    default:             return typeId || '—'
-  }
-}
-function MethodIcon({ typeId, size = 13 }: { typeId: string | null; size?: number }) {
-  if (typeId === 'pix')          return <Zap size={size} className="text-cyan-300" />
-  if (typeId === 'credit_card' || typeId === 'debit_card') return <CreditCard size={size} className="text-violet-300" />
-  if (typeId === 'ticket')       return <Ticket size={size} className="text-amber-300" />
-  return <DollarSign size={size} className="text-zinc-400" />
-}
-function methodBadgeClass(typeId: string | null) {
-  if (typeId === 'pix')          return 'bg-cyan-500/12 border-cyan-500/25 text-cyan-300'
-  if (typeId === 'credit_card' || typeId === 'debit_card') return 'bg-violet-500/12 border-violet-500/25 text-violet-300'
-  if (typeId === 'ticket')       return 'bg-amber-500/12 border-amber-500/25 text-amber-300'
-  return 'bg-zinc-500/12 border-zinc-500/25 text-zinc-300'
-}
-// Chip de método (ícone + label) usado na tabela
-function MethodChip({ typeId }: { typeId: string | null }) {
+// hex → classes de tint com opacidade (borda/bg/texto) via inline style
+function tint(hex: string, a: number) { return hex + Math.round(a * 255).toString(16).padStart(2, '0') }
+
+// Chip de método (ícone + label + cor real do método) usado na tabela
+function MethodChip({ typeId, methodId }: { typeId: string | null; methodId?: string | null }) {
+  const m = getMethodInfo(methodId, typeId)
+  const Icon = m.Icon
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold ${methodBadgeClass(typeId)}`}>
-      <MethodIcon typeId={typeId} size={12} />
-      {methodLabel(typeId)}
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold"
+      style={{ color: m.color, borderColor: tint(m.color, 0.28), background: tint(m.color, 0.1) }}>
+      <Icon size={12} />
+      {m.label}
     </span>
   )
 }
@@ -70,9 +58,18 @@ function DetailModal({ sale, onClose }: { sale: any; onClose: () => void }) {
   const rate    = feeRate(bruto, fee)
   const [emailVisible, setEmailVisible] = useState(false)
 
+  const method    = getMethodInfo(sale.payment_method_id, sale.payment_type_id)
+  const MIcon     = method.Icon
+  const isPending = PENDING.has(sale.status)
+  const rejected  = sale.status === 'rejected' || sale.status === 'cancelled'
+  const showReject = rejected && isRejection(sale.status_detail)
+  const activity  = isPending
+    ? pendingActivity(sale.payment_type_id, sale.payment_method_id, sale.status_detail)
+    : null
+
   const rows = [
     { k: 'ID MP',           v: sale.id },
-    { k: 'MOTIVO / DETALHE', v: sale.status_detail || '—' },
+    { k: 'MOTIVO / DETALHE', v: translateStatusDetail(sale.status_detail) },
     { k: 'DESCRIÇÃO',       v: sale.title || '—' },
     { k: 'REF. EXTERNA',    v: sale.external_reference || '—' },
     {
@@ -115,12 +112,41 @@ function DetailModal({ sale, onClose }: { sale: any; onClose: () => void }) {
 
         {/* Method + Status badges */}
         <div className="flex items-center gap-2 px-5 py-3">
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold ${methodBadgeClass(sale.payment_type_id)}`}>
-            <MethodIcon typeId={sale.payment_type_id} />
-            {methodLabel(sale.payment_type_id).toUpperCase()}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold"
+            style={{ color: method.color, borderColor: tint(method.color, 0.38), background: tint(method.color, 0.12) }}>
+            <MIcon size={13} />
+            {method.label.toUpperCase()}
           </div>
           <StatusPill status={sale.status} />
         </div>
+
+        {/* Atividade — pagamento pendente (PIX aguardando / cartão em processamento) */}
+        {activity && (
+          <div className="mx-5 mb-4 rounded-2xl p-4 border"
+            style={{ borderColor: tint(activity.color, 0.3), background: tint(activity.color, 0.08) }}>
+            <div className="flex items-center gap-2 mb-1.5">
+              <Clock size={13} style={{ color: activity.color }} />
+              <span className="text-[11px] font-mono font-bold tracking-widest uppercase" style={{ color: activity.color }}>
+                {activity.label}
+              </span>
+            </div>
+            <div className="text-[11px] font-mono text-zinc-400 leading-relaxed">{activity.detail}</div>
+          </div>
+        )}
+
+        {/* Motivo da recusa — traduzido + código MP */}
+        {showReject && (
+          <div className="mx-5 mb-4 rounded-2xl p-4 border border-red-500/30 bg-red-500/[0.08]">
+            <div className="flex items-center gap-2 mb-1.5">
+              <AlertTriangle size={13} className="text-red-400" />
+              <span className="text-[11px] font-mono font-bold tracking-widest uppercase text-red-400">Recusado</span>
+            </div>
+            <div className="text-sm font-mono font-bold text-red-300 mb-1">{translateStatusDetail(sale.status_detail)}</div>
+            <div className="text-[10px] font-mono text-zinc-500 leading-relaxed">
+              Código MP: <span className="text-zinc-400">{sale.status_detail}</span>
+            </div>
+          </div>
+        )}
 
         {/* Financial summary */}
         <div className="mx-5 mb-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4">
@@ -145,10 +171,10 @@ function DetailModal({ sale, onClose }: { sale: any; onClose: () => void }) {
               <span className="text-sm font-mono font-black text-emerald-400 tabular-nums">{fmtBRL(liquido || bruto)}</span>
             </div>
           </div>
-          {sale.payment_type_id && (
+          {sale.status === 'approved' && (
             <div className="mt-3 flex items-center gap-1.5 text-[10px] font-mono text-zinc-600">
-              <MethodIcon typeId={sale.payment_type_id} />
-              Pagamento à vista via {methodLabel(sale.payment_type_id)}
+              <MIcon size={11} />
+              Pagamento à vista via {method.label}
             </div>
           )}
         </div>
@@ -328,7 +354,7 @@ export function Extrato() {
         new Date(s.created_at).toLocaleString('pt-BR'),
         String(Number(s.amount || 0).toFixed(2)),
         String(Number(s.net_amount || 0).toFixed(2)),
-        s.payment_type_id ?? '',
+        mpMethodLabel(s.payment_method_id, s.payment_type_id),
         s.status ?? '',
       ])
     ]
@@ -473,7 +499,7 @@ export function Extrato() {
                       )}
                     </div>
                     {/* Método */}
-                    <div><MethodChip typeId={s.payment_type_id} /></div>
+                    <div><MethodChip typeId={s.payment_type_id} methodId={s.payment_method_id} /></div>
                     {/* Status */}
                     <div><StatusPill status={s.status} /></div>
                     {/* Ações */}
@@ -502,7 +528,7 @@ export function Extrato() {
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-mono text-zinc-300 truncate">{s.title}</div>
                       <div className="text-[10px] font-mono text-zinc-600 flex items-center gap-2">
-                        {fmtDate(s.created_at)} <MethodChip typeId={s.payment_type_id} />
+                        {fmtDate(s.created_at)} <MethodChip typeId={s.payment_type_id} methodId={s.payment_method_id} />
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">

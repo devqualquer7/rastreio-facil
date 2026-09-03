@@ -153,6 +153,11 @@ export function Logs() {
                       <div className="text-[11px] font-mono text-zinc-300 leading-relaxed break-all">{log.message}</div>
                       <div className="text-[10px] font-mono text-zinc-700 shrink-0 tabular-nums whitespace-nowrap">{fmtDate(log.created_at)}</div>
                     </div>
+                    {log.username && (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded border bg-red-500/10 border-red-500/25 text-red-400 uppercase mt-0.5 mr-1">
+                        <LogIn size={9} /> @{log.username}
+                      </span>
+                    )}
                     {log.context && (
                       <div className="text-[10px] font-mono text-zinc-600 break-all leading-relaxed border-l-2 border-white/[0.06] pl-2 mt-1 mb-1">
                         {log.context}

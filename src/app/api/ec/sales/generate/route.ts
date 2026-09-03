@@ -11,13 +11,13 @@ function genRef(): string {
 export async function POST(req: NextRequest) {
   let cred: any = null
   try {
-    await requireSession()
+    const { username } = await requireSession()
     const { amount, title, email } = await req.json()
 
     if (!amount || amount <= 0) return NextResponse.json({ ok: false, error: 'Valor inválido' })
     if (!title?.trim()) return NextResponse.json({ ok: false, error: 'Título obrigatório' })
 
-    cred = await db.getActiveCred()
+    cred = await db.getActiveCredForUser(username)
     if (!cred) return NextResponse.json({ ok: false, error: 'Nenhuma conta ativa — ative um slot em Credenciais' })
     if (cred.health_status === 'banned') return NextResponse.json({ ok: false, error: 'Conta ativa está banida' })
 
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       net_amount: null,
     })
 
-    await addLog('info', `Link gerado: ${ref} · R$${amount} · ${title}`, `slot #${cred.slot}`)
+    await addLog('link', `Link gerado: ${ref} · R$${amount} · ${title}`, `slot #${cred.slot} ${cred.name ?? ''}`, username)
 
     return NextResponse.json({ ok: true, link: preference.init_point, ref, preferenceId: preference.id })
   } catch (e: any) {

@@ -41,10 +41,10 @@ export function Sidebar() {
     <aside className="hidden md:flex w-[240px] flex-shrink-0 flex-col relative z-10"
       style={{ borderRight: '1px solid #1c1c33', background: 'rgba(11,11,22,.3)', fontFamily: MONO }}>
       {/* Logo */}
-      <div className="px-5 pt-5 pb-4 flex flex-col items-center">
-        <LogoMark size={56} />
-        <div className="mt-2 text-center">
-          <div className="font-bold text-[13px] leading-none" style={{ letterSpacing: '0.14em' }}>
+      <div className="px-5 pt-6 pb-4 flex flex-col items-center">
+        <LogoMark size={84} />
+        <div className="mt-3 text-center">
+          <div className="font-bold text-[14px] leading-none" style={{ letterSpacing: '0.14em' }}>
             <span style={{ color: '#e4e4f4' }}>ENCRYPTED</span><span style={{ color: '#ff2b4a' }}>SOFTWARE</span>
           </div>
           <div className="text-[9px] mt-1" style={{ color: '#52526e', letterSpacing: '0.2em' }}>CHECKOUT · MP</div>
