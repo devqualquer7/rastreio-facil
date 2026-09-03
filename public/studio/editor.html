@@ -1687,9 +1687,11 @@ function carregarModelosNuvem() {
                 var miniContent = '';
                 if (isRawHtml) {
                     // Thumbnail: iframe escalado — srcdoc injetado via JS após render (evita problemas de escape)
+                    // scale = 148/844 ≈ 0.1754 → visual height fits the 148px .mini container exactly
+                    // visual width = 390 × 0.1754 ≈ 68px → center: left = 50% - 34px
                     miniContent = '<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;background:#0d0f14">' +
                         '<iframe class="raw-thumb" data-hidx="' + i + '" sandbox="allow-scripts allow-same-origin" scrolling="no"' +
-                        ' style="width:390px;height:844px;transform:scale(0.6);transform-origin:top left;border:none;pointer-events:none;display:block"></iframe>' +
+                        ' style="position:absolute;top:0;left:calc(50% - 34px);width:390px;height:844px;transform:scale(0.1754);transform-origin:top left;border:none;pointer-events:none;display:block"></iframe>' +
                         '</div>';
                 } else {
                     var els = d.els || [], inner = '';
