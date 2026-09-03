@@ -1,28 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSession } from '@/lib/ec-auth'
-import { getPushoverConfig, sendPushoverRaw } from '@/lib/ec-pushover'
+import { getPushoverConfig, sendPushover } from '@/lib/ec-pushover'
 
-// POST — dispara uma notificação de teste. Usa as creds do corpo (ainda não salvas)
-// ou, se ausentes, as já salvas do usuário.
+// POST — dispara notificação de teste. Token é global do app; só precisa do User Key.
 export async function POST(req: NextRequest) {
   try {
     const { username } = await requireSession()
     const body = await req.json().catch(() => ({}))
 
     let userKey = (body.userKey || '').trim()
-    let apiToken = (body.apiToken || '').trim()
     let sound = body.sound || 'cashregister'
-    if (!userKey || !apiToken) {
+    if (!userKey) {
       const cfg = await getPushoverConfig(username)
-      userKey = userKey || cfg.userKey
-      apiToken = apiToken || cfg.apiToken
+      userKey = cfg.userKey
       sound = sound || cfg.sounds.approved
     }
-    if (!userKey || !apiToken) {
-      return NextResponse.json({ ok: false, error: 'Preencha User Key e API Token' })
-    }
+    if (!userKey) return NextResponse.json({ ok: false, error: 'Preencha seu User Key' })
 
-    const r = await sendPushoverRaw(userKey, apiToken, {
+    const r = await sendPushover(userKey, {
       title: '✅ Teste — EncryptedSoftware',
       message: `Notificações funcionando, @${username}! Você vai receber aqui quando suas vendas forem pagas.`,
       sound,

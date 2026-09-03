@@ -1,18 +1,22 @@
 import { db } from '@/lib/ec-supabase'
 
 /* ============================================================================
-   Pushover — notificação no celular, POR USUÁRIO.
-   Cada usuário guarda as próprias credenciais em web_settings:
-     key = `pushover:{username}`  value = JSON PushoverConfig
-   Só recebe push das próprias vendas (o poll resolve o dono pelo sale:by:{ref}).
+   Pushover — notificação no celular.
+   O API TOKEN é GLOBAL do app (uma Application do Pushover, "EncryptedSoftware").
+   Só o USER KEY é único de cada usuário. Cada um cola o próprio User Key e
+   recebe push das PRÓPRIAS vendas (o poll resolve o dono pelo sale:by:{ref}).
+     key = `pushover:{username}`  value = JSON { enabled, userKey, events, sounds }
    ============================================================================ */
+
+// Token único da aplicação (pode sobrescrever via env em produção).
+export const PUSHOVER_APP_TOKEN =
+  process.env.PUSHOVER_APP_TOKEN || 'aj5d8muwo1qtx154ifse7sfbmbw45v'
 
 export type PushEvent = 'approved' | 'rejected' | 'cancelled'
 
 export interface PushoverConfig {
   enabled: boolean
   userKey: string
-  apiToken: string
   events: Record<PushEvent, boolean>
   sounds: Record<PushEvent, string>
 }
@@ -20,12 +24,10 @@ export interface PushoverConfig {
 const DEFAULT_CONFIG: PushoverConfig = {
   enabled: false,
   userKey: '',
-  apiToken: '',
   events: { approved: true, rejected: true, cancelled: true },
   sounds: { approved: 'cashregister', rejected: 'pushover', cancelled: 'pushover' },
 }
 
-// Sons disponíveis no Pushover (value = id da API, label pro dropdown)
 export const PUSHOVER_SOUNDS: { value: string; label: string }[] = [
   { value: 'pushover',     label: 'Pushover (padrão)' },
   { value: 'cashregister', label: 'Caixa registradora 💰' },
@@ -52,7 +54,6 @@ export async function getPushoverConfig(username: string): Promise<PushoverConfi
     return {
       enabled: !!parsed.enabled,
       userKey: parsed.userKey || '',
-      apiToken: parsed.apiToken || '',
       events: { ...DEFAULT_CONFIG.events, ...(parsed.events || {}) },
       sounds: { ...DEFAULT_CONFIG.sounds, ...(parsed.sounds || {}) },
     }
@@ -64,7 +65,6 @@ export async function savePushoverConfig(username: string, cfg: Partial<Pushover
   const merged: PushoverConfig = {
     enabled: cfg.enabled ?? current.enabled,
     userKey: (cfg.userKey ?? current.userKey).trim(),
-    apiToken: (cfg.apiToken ?? current.apiToken).trim(),
     events: { ...current.events, ...(cfg.events || {}) },
     sounds: { ...current.sounds, ...(cfg.sounds || {}) },
   }
@@ -72,15 +72,15 @@ export async function savePushoverConfig(username: string, cfg: Partial<Pushover
   return merged
 }
 
-/** Envia direto com credenciais explícitas (usado no botão de teste). */
-export async function sendPushoverRaw(
-  userKey: string, apiToken: string,
+/** Envia com o token GLOBAL do app + um User Key. (usado no teste e no envio real) */
+export async function sendPushover(
+  userKey: string,
   opts: { title: string; message: string; sound?: string; priority?: number }
 ): Promise<{ ok: boolean; error?: string }> {
-  if (!userKey || !apiToken) return { ok: false, error: 'Credenciais Pushover ausentes' }
+  if (!userKey) return { ok: false, error: 'User Key ausente' }
   try {
     const body = new URLSearchParams({
-      token: apiToken,
+      token: PUSHOVER_APP_TOKEN,
       user: userKey,
       title: opts.title,
       message: opts.message,
@@ -101,8 +101,8 @@ export async function sendPushoverRaw(
 }
 
 /**
- * Envia push pra um USUÁRIO respeitando a config dele (enabled + evento ligado).
- * Retorna silencioso se o usuário não tem Pushover ou desligou o evento.
+ * Push pra um USUÁRIO respeitando a config dele (enabled + evento ligado).
+ * Silencioso se o usuário não pôs o User Key ou desligou o evento.
  */
 export async function sendPushoverToUser(
   username: string | null | undefined,
@@ -112,9 +112,9 @@ export async function sendPushoverToUser(
   if (!username) return
   try {
     const cfg = await getPushoverConfig(username)
-    if (!cfg.enabled || !cfg.userKey || !cfg.apiToken) return
+    if (!cfg.enabled || !cfg.userKey) return
     if (!cfg.events[event]) return
-    await sendPushoverRaw(cfg.userKey, cfg.apiToken, {
+    await sendPushover(cfg.userKey, {
       title: opts.title,
       message: opts.message,
       sound: cfg.sounds[event],

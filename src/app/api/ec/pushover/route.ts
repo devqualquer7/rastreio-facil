@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const { username } = await requireSession()
     const cfg = await getPushoverConfig(username)
-    // Não devolve o apiToken inteiro em claro? Mantemos — é a conta do próprio usuário.
+    // config = { enabled, userKey, events, sounds } — o API Token é global, não vai aqui.
     return NextResponse.json({ ok: true, config: cfg })
   } catch (e: any) {
     if (e.message === 'UNAUTHORIZED') return NextResponse.json({ ok: false, error: 'Não autenticado' }, { status: 401 })
@@ -23,7 +23,6 @@ export async function POST(req: NextRequest) {
     const cfg = await savePushoverConfig(username, {
       enabled: body.enabled,
       userKey: body.userKey,
-      apiToken: body.apiToken,
       events: body.events,
       sounds: body.sounds,
     })

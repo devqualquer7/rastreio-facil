@@ -35,13 +35,12 @@ const EVENTS: { key: EventKey; icon: any; title: string; desc: string; color: st
 interface Config {
   enabled: boolean
   userKey: string
-  apiToken: string
   events: Record<EventKey, boolean>
   sounds: Record<EventKey, string>
 }
 
 const EMPTY: Config = {
-  enabled: false, userKey: '', apiToken: '',
+  enabled: false, userKey: '',
   events: { approved: true, rejected: true, cancelled: true },
   sounds: { approved: 'cashregister', rejected: 'pushover', cancelled: 'pushover' },
 }
@@ -64,7 +63,6 @@ export function PushoverModal() {
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
   const [showKey, setShowKey] = useState(false)
-  const [showToken, setShowToken] = useState(false)
 
   useEffect(() => {
     fetch('/api/ec/pushover')
@@ -86,14 +84,14 @@ export function PushoverModal() {
   }
 
   async function sendTest() {
-    if (!cfg.userKey.trim() || !cfg.apiToken.trim()) { toast('error', 'Preencha User Key e API Token'); return }
+    if (!cfg.userKey.trim()) { toast('error', 'Cole seu User Key primeiro'); return }
     setTesting(true)
     try {
       // salva antes pra garantir persistência
       await save(cfg)
       const r = await fetch('/api/ec/pushover/test', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ userKey: cfg.userKey, apiToken: cfg.apiToken, sound: cfg.sounds.approved }),
+        body: JSON.stringify({ userKey: cfg.userKey, sound: cfg.sounds.approved }),
       })
       const d = await r.json()
       if (d.ok) toast('success', 'Notificação de teste enviada! Olha o celular 📲')
@@ -170,19 +168,14 @@ export function PushoverModal() {
                   {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-              <div className="text-[10px] font-mono text-zinc-600 mb-4">Achado na home do pushover.net após login</div>
+              <div className="text-[10px] font-mono text-zinc-600 mb-4">Achado na home do pushover.net após login — é só isso que você precisa colar</div>
 
-              <label className="block text-[10px] font-mono text-zinc-500 mb-1.5 tracking-wider">⚿ API TOKEN</label>
-              <div className="relative mb-1">
-                <input type={showToken ? 'text' : 'password'} value={cfg.apiToken}
-                  onChange={e => setCfg({ ...cfg, apiToken: e.target.value })}
-                  onBlur={() => save(cfg)}
-                  placeholder="aj5d8muwo1qtx154ifse7…" className={inputCls} />
-                <button onClick={() => setShowToken(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-300">
-                  {showToken ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
+              <div className="flex items-start gap-2.5 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/20 p-3">
+                <CheckCircle2 size={13} className="text-emerald-400 mt-0.5 flex-shrink-0" />
+                <div className="text-[10px] font-mono text-zinc-500 leading-relaxed">
+                  O <span className="text-emerald-400">API Token</span> já vem configurado no sistema (aplicativo EncryptedSoftware). Você <span className="text-zinc-300">não precisa criar nada</span> — só cola o seu User Key acima.
+                </div>
               </div>
-              <div className="text-[10px] font-mono text-zinc-600">Em "Your Applications" → cria uma com nome "EncryptedSoftware" → pega o token</div>
             </div>
 
             {/* Test button */}
