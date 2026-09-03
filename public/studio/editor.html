@@ -1408,10 +1408,11 @@ function renderProps() {
     if (el.tipo === 'loading') {
         h += cSel('Modelo', 'modelo', el.modelo, LOADINGS);
         h += '<div class="linha2">' + cCor('Cor 1', 'cor1', el.cor1) + cCor('Cor 2', 'cor2', el.cor2) + '</div>';
+        h += cRange('Finura da roda', 'espessura', el.espessura, 1, 30, .5, 'px');
         h += cRange('Velocidade (seg por volta)', 'veloc', el.veloc, .3, 4, .1, 's');
-        h += cNum('Espessura', 'espessura', el.espessura, 1, 30, .5);
         h += cCor('Trilho', 'corTrilho', el.corTrilho);
         h += cRange('Opacidade do trilho', 'opTrilho', el.opTrilho, 0, 100, 1, '%');
+        h += '<label style="display:block;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--txt2);margin:10px 0 6px">Opções</label>';
         h += cCheck('Mostrar % no centro', 'mostrarPct', el.mostrarPct);
         if (el.mostrarPct) {
             h += '<div class="linha2">' + cNum('Tamanho %', 'tamPct', el.tamPct, 6, 90) + cCor('Cor %', 'corPct', el.corPct) + '</div>';
