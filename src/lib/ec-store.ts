@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 export type Screen = 'dashboard' | 'credentials' | 'gateways' | 'extrato' | 'logs' | 'users' | 'studio'
-export type ModalId = 'generate' | 'switch-account' | 'settings' | 'saque' | 'pushover'
+export type ModalId = 'generate' | 'switch-account' | 'settings' | 'saque' | 'pushover' | 'utmify'
 
 export interface Credential {
   id: number

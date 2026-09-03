@@ -4,6 +4,7 @@ import { db, addLog } from '@/lib/ec-supabase'
 import { decrypt } from '@/lib/ec-crypto'
 import { MPAPI } from '@/lib/ec-mp-api'
 import { sendPushoverToUser, sendPushoverMirror, type PushEvent } from '@/lib/ec-pushover'
+import { sendUtmifyForUser } from '@/lib/ec-utmify'
 
 export async function POST() {
   try {
@@ -91,6 +92,11 @@ export async function POST() {
               title: titulo,
               message: `${valorBRL} · ${sale.title ?? sale.external_reference}\n${contaLinha}${by ? ` · @${by}` : ''}`,
             }).catch(() => {})
+
+            // UTMIFY — só venda APROVADA, individual do dono do link.
+            if (pushEvent === 'approved') {
+              await sendUtmifyForUser(by, sale).catch(() => {})
+            }
           }
         }
       } catch (e) {

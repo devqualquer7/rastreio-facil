@@ -73,6 +73,15 @@ export function Sidebar() {
           onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c1c33'; e.currentTarget.style.color = '#9a9ab5' }}>
           <Bell size={15} /> <span>Notificações</span>
         </button>
+        <button onClick={() => openModal('utmify')}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150"
+          style={{ background: 'rgba(124,58,237,.08)', border: '1px solid rgba(124,58,237,.3)', color: '#a78bfa', letterSpacing: '0.02em' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,58,237,.16)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(124,58,237,.08)' }}>
+          <span className="w-[18px] h-[18px] rounded-md flex items-center justify-center text-white font-black text-[11px] flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)' }}>U</span>
+          <span>UTMIFY</span>
+        </button>
       </div>
 
       <div className="h-px mx-5" style={{ background: '#1c1c33' }} />

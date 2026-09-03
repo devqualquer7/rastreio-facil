@@ -13,6 +13,7 @@ import { SwitchAccountModal } from '@/components/ec/modals/SwitchAccount'
 import { SettingsModal } from '@/components/ec/modals/Settings'
 import { SaqueModal } from '@/components/ec/modals/Saque'
 import { PushoverModal } from '@/components/ec/modals/Pushover'
+import { UtmifyModal } from '@/components/ec/modals/Utmify'
 import { ToastStack, PaymentNotifications } from '@/components/ec/Toast'
 import { useApp } from '@/lib/ec-store'
 import { usePolling } from '@/hooks/ec-polling'
@@ -163,6 +164,7 @@ export default function CheckoutPage() {
         {modal === 'settings'       && <SettingsModal />}
         {modal === 'saque'          && <SaqueModal />}
         {modal === 'pushover'       && <PushoverModal />}
+        {modal === 'utmify'         && <UtmifyModal />}
       </AnimatePresence>
 
       {/* Toasts & payment notifications */}
