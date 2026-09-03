@@ -1590,7 +1590,7 @@ function mudarProp(k, v, commit) {
     if (el.tipo === 'loading' || el.tipo === 'facial') el.h = el.w;
     renderPalco();
     renderCamadas();
-    if (k === 'usarGlobal' || k === 'mostrarPct' || k === 'gradiente' || k === 'formato' || k === 'modelo' || k === 'borda') renderProps();
+    if (k === 'usarGlobal' || k === 'mostrarPct' || k === 'gradiente' || k === 'formato' || k === 'modelo' || k === 'borda' || k === 'usarOriginal' || k === 'refresh' || k === 'girarRefresh' || k === 'preencher' || k === 'temBorda' || k === 'glow') renderProps();
 }
 
 $('props').addEventListener('input', function (e) {
