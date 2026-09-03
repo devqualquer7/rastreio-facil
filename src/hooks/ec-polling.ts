@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef } from 'react'
 
-const POLL_INTERVAL = 30_000 // 30 seconds
+const POLL_INTERVAL = 15_000 // 15 segundos — checa os últimos links pagos
 
 export function usePolling(enabled: boolean, fn: () => Promise<void>) {
   const fnRef = useRef(fn)

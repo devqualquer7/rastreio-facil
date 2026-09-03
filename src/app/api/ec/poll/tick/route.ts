@@ -3,6 +3,7 @@ import { requireSession } from '@/lib/ec-auth'
 import { db, addLog } from '@/lib/ec-supabase'
 import { decrypt } from '@/lib/ec-crypto'
 import { MPAPI } from '@/lib/ec-mp-api'
+import { sendPushoverToUser, type PushEvent } from '@/lib/ec-pushover'
 
 export async function POST() {
   try {
@@ -13,7 +14,9 @@ export async function POST() {
 
     // Pre-load all unique slot credentials in parallel to avoid sequential DB+decrypt round-trips
     const slotMap = new Map<number, string>()
-    const toCheck = pending.filter(s => s.mp_preference_id)
+    // getPendingSales já vem ordenado por created_at desc → pega os mais recentes.
+    // Cobre "pelo menos os 10 últimos" com folga, sem varrer centenas de links velhos.
+    const toCheck = pending.filter(s => s.mp_preference_id).slice(0, 50)
     const uniqueSlots = [...new Set(toCheck.map(s => s.slot))]
 
     await Promise.allSettled(uniqueSlots.map(async (slot) => {
@@ -65,6 +68,23 @@ export async function POST() {
             `slot #${sale.slot} ${sale.slot_name ?? ''}`,
             by || undefined,
           ).catch(() => {})
+
+          // Push no celular (Pushover) — SÓ pro dono do link, no instante da transição.
+          // Como o status já foi gravado acima, nenhum outro tick/usuário reenvia.
+          const pushEvent: PushEvent | null =
+            newStatus === 'approved' ? 'approved'
+            : newStatus === 'rejected' ? 'rejected'
+            : (newStatus === 'cancelled' || newStatus === 'refunded') ? 'cancelled'
+            : null
+          if (pushEvent) {
+            const titulo = pushEvent === 'approved' ? '💰 Pagamento aprovado'
+              : pushEvent === 'rejected' ? '❌ Pagamento recusado'
+              : '⚠ Link cancelado'
+            await sendPushoverToUser(by, pushEvent, {
+              title: titulo,
+              message: `${valorBRL} · ${sale.title ?? sale.external_reference}\nConta: ${sale.slot_name ?? ('slot #' + sale.slot)}`,
+            }).catch(() => {})
+          }
         }
       } catch (e) {
         console.error(`[poll tick sale ${sale.id}]`, e)

@@ -1,5 +1,5 @@
 'use client'
-import { LayoutDashboard, Key, ScrollText, Wallet, LogOut, CreditCard, Users, Link2, Layers, HandCoins, ChevronsUpDown } from 'lucide-react'
+import { LayoutDashboard, Key, ScrollText, Wallet, LogOut, CreditCard, Users, Link2, Layers, HandCoins, ChevronsUpDown, Bell } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/ec-utils'
@@ -65,6 +65,13 @@ export function Sidebar() {
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold transition-all duration-150"
           style={{ background: 'rgba(255,43,74,.10)', border: '1px solid rgba(255,43,74,.3)', color: '#ff2b4a', letterSpacing: '0.02em' }}>
           <HandCoins size={15} /> <span>SAQUE</span>
+        </button>
+        <button onClick={() => openModal('pushover')}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150"
+          style={{ background: 'rgba(17,17,31,.5)', border: '1px solid #1c1c33', color: '#9a9ab5', letterSpacing: '0.02em' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = '#3a1a30'; e.currentTarget.style.color = '#e4e4f4' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c1c33'; e.currentTarget.style.color = '#9a9ab5' }}>
+          <Bell size={15} /> <span>Notificações</span>
         </button>
       </div>
 

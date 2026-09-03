@@ -12,6 +12,7 @@ import { GenerateModal } from '@/components/ec/modals/Generate'
 import { SwitchAccountModal } from '@/components/ec/modals/SwitchAccount'
 import { SettingsModal } from '@/components/ec/modals/Settings'
 import { SaqueModal } from '@/components/ec/modals/Saque'
+import { PushoverModal } from '@/components/ec/modals/Pushover'
 import { ToastStack, PaymentNotifications } from '@/components/ec/Toast'
 import { useApp } from '@/lib/ec-store'
 import { usePolling } from '@/hooks/ec-polling'
@@ -92,7 +93,10 @@ export default function CheckoutPage() {
       if (initializedRef.current) {
         for (const sale of list) {
           const prev = lastStatusRef.current.get(sale.id)
-          if (prev && prev !== 'approved' && sale.status === 'approved') {
+          // SÓ notifica na tela se o link foi gerado por ESTE usuário.
+          // (created_by vem do sales/list; sem match, não é minha venda → não notifica)
+          const isMine = sale.created_by && sale.created_by === username
+          if (isMine && prev && prev !== 'approved' && sale.status === 'approved') {
             const amount = Number(sale.amount || 0)
             pushPayment({ amount, title: sale.title, slotName: sale.slot_name, method: sale.payment_type_id, saleId: sale.id })
             playCashSound()
@@ -158,6 +162,7 @@ export default function CheckoutPage() {
         {modal === 'switch-account' && <SwitchAccountModal />}
         {modal === 'settings'       && <SettingsModal />}
         {modal === 'saque'          && <SaqueModal />}
+        {modal === 'pushover'       && <PushoverModal />}
       </AnimatePresence>
 
       {/* Toasts & payment notifications */}
