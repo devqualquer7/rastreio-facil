@@ -25,24 +25,13 @@ export async function POST(req: NextRequest) {
     const api = new MPAPI(token)
     const ref = genRef()
 
-    // Only include back_urls when we have a valid absolute base URL
-    // MP rejects relative URLs and returns 400/403 — never pass empty strings
-    const base = (process.env.NEXT_PUBLIC_BASE_URL || '').replace(/\/$/, '')
-    const hasValidBase = base.startsWith('http://') || base.startsWith('https://')
-
+    // back_urls / auto_return deliberately omitted — they add a "Voltar pra loja"
+    // button on mobile that exposes the panel URL to payers
     const preference = await api.createPreference({
       title: title.trim(),
       amount: Number(amount),
       externalReference: ref,
       ...(email && { payerEmail: email }),
-      ...(hasValidBase ? {
-        backUrls: {
-          success: `${base}/checkout`,
-          failure: `${base}/checkout`,
-          pending: `${base}/checkout`,
-        },
-        autoReturn: 'approved',
-      } : {}),
     })
 
     if (!preference?.init_point) {
