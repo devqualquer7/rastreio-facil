@@ -412,12 +412,21 @@ input[type=color] {
 .toast.ok  { border-color: rgba(34,221,136,.5); color: var(--verde); }
 .toast.erro{ border-color: rgba(255,84,112,.5); color: var(--vermelho); }
 
-.atalhos { font-size: 11px; color: var(--txt2); line-height: 1.9; }
-.atalhos kbd {
-    background: var(--bg); border: 1px solid var(--linha);
-    border-radius: 4px; padding: 1px 5px;
-    font-family: inherit; font-size: 10px; color: var(--txt);
+.atalho-tecla {
+    display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+    min-height: 32px;
+    background: var(--bg);
+    border: 1px solid var(--linha);
+    border-radius: 7px;
+    padding: 6px 9px;
+    font-size: 11px; color: var(--txt2);
 }
+.atalho-tecla kbd {
+    background: var(--painel2); border: 1px solid var(--linha);
+    border-radius: 4px; padding: 2px 6px;
+    font-family: inherit; font-size: 10px; font-weight: 700; color: var(--txt);
+}
+.atalho-tecla .sep-tecla { color: var(--txt2); font-size: 10px; }
 </style>
 </head>
 <body>
@@ -477,10 +486,49 @@ input[type=color] {
 
         <div class="secao">
             <h3>Atalhos</h3>
-            <div class="atalhos">
-                <kbd>Del</kbd> apagar &nbsp; <kbd>Ctrl</kbd>+<kbd>D</kbd> duplicar<br>
-                <kbd>Ctrl</kbd>+<kbd>Z</kbd> desfazer &nbsp; <kbd>Esc</kbd> soltar<br>
-                <kbd>↑↓←→</kbd> mover 1px &nbsp; <kbd>Shift</kbd>+seta 10px
+
+            <div class="linha2">
+                <div class="campo">
+                    <label>Desfazer</label>
+                    <div class="atalho-tecla"><kbd>Ctrl</kbd><span class="sep-tecla">+</span><kbd>Z</kbd></div>
+                </div>
+                <div class="campo">
+                    <label>Refazer</label>
+                    <div class="atalho-tecla"><kbd>Ctrl</kbd><span class="sep-tecla">+</span><kbd>⇧</kbd><span class="sep-tecla">+</span><kbd>Z</kbd></div>
+                </div>
+            </div>
+
+            <div class="linha2">
+                <div class="campo">
+                    <label>Duplicar</label>
+                    <div class="atalho-tecla"><kbd>Ctrl</kbd><span class="sep-tecla">+</span><kbd>D</kbd></div>
+                </div>
+                <div class="campo">
+                    <label>Apagar</label>
+                    <div class="atalho-tecla"><kbd>Del</kbd></div>
+                </div>
+            </div>
+
+            <div class="linha2">
+                <div class="campo">
+                    <label>Soltar seleção</label>
+                    <div class="atalho-tecla"><kbd>Esc</kbd></div>
+                </div>
+                <div class="campo">
+                    <label>Travar ângulo</label>
+                    <div class="atalho-tecla"><kbd>⇧</kbd><span class="sep-tecla">+</span>arrastar</div>
+                </div>
+            </div>
+
+            <div class="linha2">
+                <div class="campo">
+                    <label>Mover 1 px</label>
+                    <div class="atalho-tecla"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></div>
+                </div>
+                <div class="campo">
+                    <label>Mover 10 px</label>
+                    <div class="atalho-tecla"><kbd>⇧</kbd><span class="sep-tecla">+</span><kbd>↑↓←→</kbd></div>
+                </div>
             </div>
         </div>
     </div>
