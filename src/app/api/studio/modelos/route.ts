@@ -3,6 +3,9 @@ import { requireSession } from '@/lib/ec-auth'
 import { db } from '@/lib/ec-supabase'
 import { randomUUID } from 'crypto'
 
+// Increase body size limit for models that may contain large base64 data URIs
+export const config = { api: { bodyParser: { sizeLimit: '10mb' } } }
+
 // GET /api/studio/modelos — list all cloud models
 export async function GET() {
   try {
