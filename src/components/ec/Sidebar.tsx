@@ -1,5 +1,5 @@
 'use client'
-import { LayoutDashboard, Key, ScrollText, Wallet, LogOut, CreditCard, Users, Link2, Layers, HandCoins } from 'lucide-react'
+import { LayoutDashboard, Key, ScrollText, Wallet, LogOut, CreditCard, Users, Link2, Layers, HandCoins, ChevronsUpDown } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/ec-utils'
@@ -95,20 +95,27 @@ export function Sidebar() {
 
       <div className="h-px mx-5" style={{ background: '#1c1c33' }} />
 
-      {/* Conta ativa */}
-      {activeCred && (
-        <div className="px-3 pt-2 pb-1">
-          <div className="rounded-lg p-2.5" style={{ background: 'rgba(17,17,31,.5)', border: '1px solid #1c1c33' }}>
-            <div className="flex items-center gap-2 mb-0.5">
-              <div className="w-1.5 h-1.5 rounded-full" style={activeCred.connected
-                ? { background: '#00e396', boxShadow: '0 0 15px rgba(0,227,150,.3)' }
-                : { background: '#2a2a42' }} />
-              <div className="ec-label text-[9px]">Conta Ativa</div>
-            </div>
-            <div className="text-xs truncate ml-3.5" style={{ color: '#e4e4f4' }}>{activeCred.name || 'Sem conta'}</div>
+      {/* Conta ativa — atalho pra trocar de conta */}
+      <div className="px-3 pt-2 pb-1">
+        <button onClick={() => openModal('switch-account')}
+          className="w-full rounded-lg p-2.5 text-left transition-all group"
+          style={{ background: 'rgba(17,17,31,.5)', border: '1px solid #1c1c33' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = '#3a1a30'; e.currentTarget.style.background = '#15152a' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c1c33'; e.currentTarget.style.background = 'rgba(17,17,31,.5)' }}
+          title="Trocar de conta">
+          <div className="flex items-center gap-2 mb-0.5">
+            <div className="w-1.5 h-1.5 rounded-full" style={activeCred?.connected
+              ? { background: '#00e396', boxShadow: '0 0 15px rgba(0,227,150,.3)' }
+              : { background: '#2a2a42' }} />
+            <div className="ec-label text-[9px]">Conta Ativa</div>
+            <ChevronsUpDown size={11} className="ml-auto flex-shrink-0" style={{ color: '#52526e' }} />
           </div>
-        </div>
-      )}
+          <div className="flex items-center justify-between gap-2 ml-3.5">
+            <span className="text-xs truncate" style={{ color: '#e4e4f4' }}>{activeCred?.name || 'Selecionar conta'}</span>
+            <span className="text-[9px] font-mono flex-shrink-0 opacity-0 group-hover:opacity-100 transition" style={{ color: '#ff2b4a', letterSpacing: '0.1em' }}>TROCAR</span>
+          </div>
+        </button>
+      </div>
 
       {/* Logado + sair */}
       <div className="p-3">

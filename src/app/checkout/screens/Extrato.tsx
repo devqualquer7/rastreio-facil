@@ -478,7 +478,7 @@ export function Extrato() {
                   className="px-5 py-3.5 hover:bg-red-600/[0.04] transition"
                 >
                   {/* Desktop layout */}
-                  <div className="hidden md:grid items-center"
+                  <div className="hidden md:grid items-center min-h-[44px]"
                     style={{ gridTemplateColumns: GRID, gap: '0 12px' }}>
                     {/* Title */}
                     <div>
@@ -491,12 +491,12 @@ export function Extrato() {
                     <div className="text-[11px] font-mono text-zinc-500 truncate">{s.slot_name}</div>
                     {/* Data */}
                     <div className="text-[11px] font-mono text-zinc-600 tabular-nums">{fmtDate(s.created_at)}</div>
-                    {/* Valor */}
-                    <div>
+                    {/* Valor — líq só quando aprovado E > 0. Sem isso o "0 &&" imprimia um 0 solto. */}
+                    <div className="leading-tight">
                       <div className="text-sm font-mono font-bold text-zinc-200 tabular-nums">{fmtBRL(Number(s.amount))}</div>
-                      {s.net_amount && s.status === 'approved' && (
-                        <div className="text-[10px] font-mono text-zinc-600 tabular-nums">líq: {fmtBRL(Number(s.net_amount))}</div>
-                      )}
+                      {s.status === 'approved' && Number(s.net_amount) > 0
+                        ? <div className="text-[10px] font-mono text-zinc-600 tabular-nums">líq: {fmtBRL(Number(s.net_amount))}</div>
+                        : <div className="text-[10px] text-transparent select-none">·</div>}
                     </div>
                     {/* Método */}
                     <div><MethodChip typeId={s.payment_type_id} methodId={s.payment_method_id} /></div>

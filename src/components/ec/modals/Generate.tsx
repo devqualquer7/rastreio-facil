@@ -1,92 +1,12 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Zap, X, Copy, ExternalLink, CheckCircle2, RefreshCw, DollarSign, FileText, QrCode, Download } from 'lucide-react'
+import { Sparkles, Zap, X, Copy, ExternalLink, CheckCircle2, RefreshCw, DollarSign, FileText } from 'lucide-react'
 import { ModalBackdrop, Button } from '@/components/ec/ui/Base'
 import { useApp } from '@/lib/ec-store'
 import { fmtBRL } from '@/lib/ec-utils'
 
 type Step = 'form' | 'result'
-
-function PixQRPanel({ pixCode, pixBase64, onCopy }: {
-  pixCode: string
-  pixBase64?: string | null
-  onCopy: () => void
-}) {
-  const [dataUrl, setDataUrl] = useState(pixBase64 ? `data:image/png;base64,${pixBase64}` : '')
-  const [generating, setGenerating] = useState(!pixBase64)
-
-  useEffect(() => {
-    if (pixBase64) { setDataUrl(`data:image/png;base64,${pixBase64}`); return }
-    if (!pixCode) return
-    setGenerating(true)
-    import('qrcode').then(QRCode => {
-      QRCode.toDataURL(pixCode, {
-        width: 340, margin: 2,
-        color: { dark: '#000000', light: '#ffffff' },
-        errorCorrectionLevel: 'M',
-      }).then(url => { setDataUrl(url); setGenerating(false) })
-        .catch(() => setGenerating(false))
-    }).catch(() => setGenerating(false))
-  }, [pixCode, pixBase64])
-
-  function download() {
-    if (!dataUrl) return
-    const a = document.createElement('a')
-    a.href = dataUrl; a.download = 'qr-pix.png'; a.click()
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-      className="mt-4 rounded-2xl overflow-hidden border border-purple-500/20 bg-[#0c0c14]">
-
-      <div className="flex flex-col items-center py-5 px-4 gap-3">
-        <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.3em]">QR Code PIX</div>
-        {generating ? (
-          <div className="w-52 h-52 flex items-center justify-center">
-            <RefreshCw size={22} className="animate-spin text-purple-400" />
-          </div>
-        ) : dataUrl ? (
-          <div className="relative">
-            <div className="bg-white rounded-2xl p-3 shadow-[0_0_40px_rgba(255,255,255,0.12)]">
-              <img src={dataUrl} alt="QR Code PIX"
-                className="w-52 h-52 sm:w-56 sm:h-56 block"
-                style={{ imageRendering: 'pixelated' }} />
-            </div>
-            <div className="absolute inset-0 rounded-2xl pointer-events-none"
-              style={{ boxShadow: '0 0 50px rgba(168,85,247,0.25)' }} />
-          </div>
-        ) : (
-          <div className="w-52 h-52 flex items-center justify-center">
-            <div className="text-[10px] font-mono text-red-400">Erro ao gerar QR</div>
-          </div>
-        )}
-        <div className="text-[9px] font-mono text-zinc-700">Escaneie com qualquer app de pagamento</div>
-      </div>
-
-      <div className="flex gap-2 px-4 pb-4">
-        <button onClick={onCopy}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-purple-500/15 border border-purple-500/25 text-purple-300 hover:bg-purple-500/25 text-[11px] font-mono font-bold tracking-wider uppercase transition-all">
-          <Copy size={12} /> Copiar código PIX
-        </button>
-        {dataUrl && (
-          <button onClick={download}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.10] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.08] transition-all">
-            <Download size={13} />
-          </button>
-        )}
-      </div>
-
-      <div className="border-t border-white/[0.06] px-4 py-3">
-        <div className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest mb-1.5">Copia e cola PIX</div>
-        <div className="text-[10px] font-mono text-zinc-500 break-all leading-relaxed max-h-16 overflow-y-auto">
-          {pixCode}
-        </div>
-      </div>
-    </motion.div>
-  )
-}
 
 export function GenerateModal() {
   const { closeModal, activeCred, toast } = useApp()
@@ -97,8 +17,6 @@ export function GenerateModal() {
   const [email, setEmail] = useState('')
   const [result, setResult] = useState<{ link?: string; ref?: string; amount?: number } | null>(null)
   const [copied, setCopied] = useState(false)
-  const [pixResult, setPixResult] = useState<{ code: string; base64?: string | null } | null>(null)
-  const [pixCopied, setPixCopied] = useState(false)
 
   // Load default title on mount
   useEffect(() => {
@@ -122,20 +40,6 @@ export function GenerateModal() {
       const d = await r.json()
       if (d.ok) {
         setResult({ link: d.link, ref: d.ref, amount: amt })
-
-        // Try to generate PIX via gateway in parallel
-        try {
-          const pixR = await fetch('/api/ec/pix', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ amount: amt, description: title.trim() })
-          })
-          const pixD = await pixR.json()
-          if (pixD.ok && pixD.pixCode) {
-            setPixResult({ code: pixD.pixCode, base64: pixD.pixBase64 ?? null })
-          }
-        } catch { /* gateway not configured — silent */ }
-
         setStep('result')
       } else {
         toast('error', d.error || 'Falha ao gerar link')
@@ -151,22 +55,12 @@ export function GenerateModal() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  function copyPix() {
-    if (!pixResult?.code) return
-    navigator.clipboard.writeText(pixResult.code)
-    setPixCopied(true)
-    toast('success', 'Código PIX copiado!')
-    setTimeout(() => setPixCopied(false), 2000)
-  }
-
   function reset() {
     setStep('form')
     setAmount('')
     setEmail('')
     setResult(null)
     setCopied(false)
-    setPixResult(null)
-    setPixCopied(false)
     // Keep title for convenience (user can clear if needed)
   }
 
@@ -302,15 +196,6 @@ export function GenerateModal() {
                     <ExternalLink size={14} />
                   </a>
                 </div>
-
-                {/* PIX QR — shown if gateway is configured */}
-                {pixResult && (
-                  <PixQRPanel
-                    pixCode={pixResult.code}
-                    pixBase64={pixResult.base64}
-                    onCopy={copyPix}
-                  />
-                )}
 
                 <button onClick={reset}
                   className="w-full py-2.5 rounded-xl text-zinc-600 hover:text-zinc-400 text-[10px] font-mono tracking-widest uppercase transition mt-4">

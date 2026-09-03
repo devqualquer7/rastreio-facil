@@ -63,7 +63,11 @@ export async function POST(req: NextRequest) {
       net_amount: null,
     })
 
-    await addLog('link', `Link gerado: ${ref} · R$${amount} · ${title}`, `slot #${cred.slot} ${cred.name ?? ''}`, username)
+    // Guarda QUEM criou o link (KV) — o poll usa isso pra atribuir aprovado/recusado.
+    await db.setSetting(`sale:by:${ref}`, username).catch(() => {})
+
+    const valorBRL = Number(amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    await addLog('link', `Link gerado · ${valorBRL} · ${title.trim()} · ${ref}`, `slot #${cred.slot} ${cred.name ?? ''}`, username)
 
     return NextResponse.json({ ok: true, link: preference.init_point, ref, preferenceId: preference.id })
   } catch (e: any) {

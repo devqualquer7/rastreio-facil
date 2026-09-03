@@ -55,10 +55,15 @@ export async function POST() {
           changed++
 
           const logType = newStatus === 'approved' ? 'approved' : newStatus === 'rejected' ? 'rejected' : 'status'
+          // Quem gerou o link (KV gravado na geração) — atribui a aprovação/recusa a ele.
+          const by = await db.getSetting(`sale:by:${sale.external_reference}`).catch(() => null)
+          const valorBRL = Number(sale.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+          const verbo = newStatus === 'approved' ? 'Pagamento APROVADO' : newStatus === 'rejected' ? 'Pagamento RECUSADO' : `Status → ${newStatus}`
           await addLog(
             logType,
-            `Status alterado: ${sale.external_reference} · ${sale.status} → ${newStatus} · R$${sale.amount}`,
-            `slot #${sale.slot} ${sale.slot_name ?? ''}`
+            `${verbo} · ${valorBRL} · ${sale.title ?? sale.external_reference}`,
+            `slot #${sale.slot} ${sale.slot_name ?? ''}`,
+            by || undefined,
           ).catch(() => {})
         }
       } catch (e) {
