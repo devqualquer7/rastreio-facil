@@ -280,6 +280,35 @@ export const db = {
     await sb.from('web_settings').delete().eq('key', `studio:model:${id}`)
   },
 
+  // ── Studio images (KV-backed via web_settings) ────────────────────────────
+  // Key pattern: studio:img:{id}
+  // Value: JSON { id, nome, src, criadoEm }
+
+  async listStudioImages(): Promise<any[]> {
+    const sb = getSupabase()
+    const { data } = await sb
+      .from('web_settings')
+      .select('key,value,updated_at')
+      .like('key', 'studio:img:%')
+      .order('updated_at', { ascending: false })
+    return (data ?? []).map((row: any) => {
+      try { return JSON.parse(row.value) } catch { return null }
+    }).filter(Boolean)
+  },
+
+  async saveStudioImage(id: string, img: { id: string; nome: string; src: string; criadoEm: number }) {
+    const sb = getSupabase()
+    await sb.from('web_settings').upsert(
+      { key: `studio:img:${id}`, value: JSON.stringify(img), updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    )
+  },
+
+  async deleteStudioImage(id: string) {
+    const sb = getSupabase()
+    await sb.from('web_settings').delete().eq('key', `studio:img:${id}`)
+  },
+
   // ── Logs ───────────────────────────────────────────────────────────────────
   async listLogs(limit = 200): Promise<any[]> {
     const sb = getSupabase()
