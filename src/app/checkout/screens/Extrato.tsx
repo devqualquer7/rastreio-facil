@@ -26,17 +26,26 @@ function methodLabel(typeId: string | null) {
     default:             return typeId || '—'
   }
 }
-function MethodIcon({ typeId }: { typeId: string | null }) {
-  if (typeId === 'pix')          return <Zap size={13} className="text-cyan-400" />
-  if (typeId === 'credit_card' || typeId === 'debit_card') return <CreditCard size={13} className="text-purple-400" />
-  if (typeId === 'ticket')       return <Ticket size={13} className="text-amber-400" />
-  return <DollarSign size={13} className="text-zinc-400" />
+function MethodIcon({ typeId, size = 13 }: { typeId: string | null; size?: number }) {
+  if (typeId === 'pix')          return <Zap size={size} className="text-cyan-300" />
+  if (typeId === 'credit_card' || typeId === 'debit_card') return <CreditCard size={size} className="text-violet-300" />
+  if (typeId === 'ticket')       return <Ticket size={size} className="text-amber-300" />
+  return <DollarSign size={size} className="text-zinc-400" />
 }
 function methodBadgeClass(typeId: string | null) {
-  if (typeId === 'pix')          return 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300'
-  if (typeId === 'credit_card' || typeId === 'debit_card') return 'bg-purple-500/15 border-purple-500/30 text-purple-300'
-  if (typeId === 'ticket')       return 'bg-amber-500/15 border-amber-500/30 text-amber-300'
-  return 'bg-zinc-500/15 border-zinc-500/30 text-zinc-300'
+  if (typeId === 'pix')          return 'bg-cyan-500/12 border-cyan-500/25 text-cyan-300'
+  if (typeId === 'credit_card' || typeId === 'debit_card') return 'bg-violet-500/12 border-violet-500/25 text-violet-300'
+  if (typeId === 'ticket')       return 'bg-amber-500/12 border-amber-500/25 text-amber-300'
+  return 'bg-zinc-500/12 border-zinc-500/25 text-zinc-300'
+}
+// Chip de método (ícone + label) usado na tabela
+function MethodChip({ typeId }: { typeId: string | null }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold ${methodBadgeClass(typeId)}`}>
+      <MethodIcon typeId={typeId} size={12} />
+      {methodLabel(typeId)}
+    </span>
+  )
 }
 function feeRate(bruto: number, fee: number | null) {
   if (!fee || !bruto) return null
@@ -87,8 +96,9 @@ function DetailModal({ sale, onClose }: { sale: any; onClose: () => void }) {
         exit={{ opacity: 0, scale: 0.95, y: 12 }}
         transition={{ duration: 0.18 }}
         onClick={e => e.stopPropagation()}
-        className="relative w-full max-w-sm bg-[#0d0d14] border border-purple-500/20 rounded-3xl overflow-hidden shadow-2xl"
+        className="relative w-full max-w-sm bg-[#120009] border border-red-900/25 rounded-3xl overflow-hidden shadow-2xl"
       >
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-600/50 to-transparent" />
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/[0.06]">
           <div>
@@ -193,8 +203,9 @@ function RefundModal({ sale, slotName, onClose, onDone }: {
         exit={{ opacity: 0, scale: 0.95, y: 12 }}
         transition={{ duration: 0.18 }}
         onClick={e => e.stopPropagation()}
-        className="relative w-full max-w-sm bg-[#0d0d14] border border-red-500/20 rounded-3xl overflow-hidden shadow-2xl"
+        className="relative w-full max-w-sm bg-[#120009] border border-red-900/25 rounded-3xl overflow-hidden shadow-2xl"
       >
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-600/50 to-transparent" />
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/[0.06]">
           <div className="flex items-center gap-2 text-[10px] font-mono font-bold tracking-[0.25em] text-red-400 uppercase">
@@ -358,6 +369,8 @@ export function Extrato() {
     w.document.write(html); w.document.close(); w.print()
   }
 
+  const GRID = '2fr 1fr 1fr 1fr 0.9fr auto auto'
+
   return (
     <>
       <div>
@@ -368,18 +381,18 @@ export function Extrato() {
           action={<>
             <Button variant="outline" size="md" icon={<FileSpreadsheet size={13} />} onClick={exportCSV}>CSV</Button>
             <Button variant="outline" size="md" icon={<FileText size={13} />} onClick={exportPrint}>PDF</Button>
-            <Button variant="outline" size="md" icon={<RefreshCw size={13} />} onClick={load} loading={loading}>ATUALIZAR</Button>
+            <Button variant="accent" size="md" icon={<RefreshCw size={13} />} onClick={load} loading={loading}>ATUALIZAR</Button>
           </>}
         />
 
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-          <StatBox label="Bruto"     value={fmtBRL(stats.bruto)}     color="bg-emerald-500/10 border-emerald-500/20 text-emerald-400" />
-          <StatBox label="Líquido"   value={fmtBRL(stats.liquido)}   color="bg-cyan-500/10 border-cyan-500/20 text-cyan-400" />
-          <StatBox label="Taxa MP"   value={fmtBRL(stats.taxa)}      color="bg-amber-500/10 border-amber-500/20 text-amber-400" />
-          <StatBox label="Pendente"  value={fmtBRL(stats.pendente)}  color="bg-blue-500/10 border-blue-500/20 text-blue-400" />
-          <StatBox label="Aprovados" value={String(stats.aprovados)} color="bg-purple-500/10 border-purple-500/20 text-purple-400" />
-          <StatBox label="Recusados" value={String(stats.recusados)} color="bg-red-500/10 border-red-500/20 text-red-400" />
+          <StatBox label="Bruto"     value={fmtBRL(stats.bruto)}     color="bg-emerald-500/10 border-emerald-500/25 text-emerald-400" />
+          <StatBox label="Líquido"   value={fmtBRL(stats.liquido)}   color="bg-emerald-500/10 border-emerald-500/20 text-emerald-300" />
+          <StatBox label="Taxa MP"   value={`-${fmtBRL(stats.taxa)}`} color="bg-red-500/10 border-red-500/25 text-red-400" />
+          <StatBox label="Pendente"  value={fmtBRL(stats.pendente)}  color="bg-amber-500/10 border-amber-500/25 text-amber-400" />
+          <StatBox label="Aprovados" value={String(stats.aprovados)} color="bg-white/[0.04] border-white/10 text-zinc-100" />
+          <StatBox label="Recusados" value={String(stats.recusados)} color="bg-red-500/10 border-red-500/25 text-red-400" />
         </div>
 
         {/* Filters */}
@@ -389,7 +402,7 @@ export function Extrato() {
             <input
               type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Buscar por título, conta, ID ou referência…"
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-9 pr-4 py-2.5 text-sm font-mono text-zinc-300 outline-none focus:border-purple-500/40 transition-all"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-9 pr-4 py-2.5 text-sm font-mono text-zinc-300 outline-none focus:border-red-600/40 transition-all"
             />
           </div>
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -398,7 +411,7 @@ export function Extrato() {
               <button key={s} onClick={() => setFilter(s)}
                 className={`px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold tracking-widest uppercase transition-all ${
                   filter === s
-                    ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300'
+                    ? 'bg-red-600/20 border border-red-600/40 text-red-300'
                     : 'bg-white/[0.03] border border-white/[0.06] text-zinc-600 hover:border-white/[0.12] hover:text-zinc-400'
                 }`}>
                 {s === 'todos' ? 'TODOS' : s.toUpperCase()}
@@ -408,23 +421,24 @@ export function Extrato() {
         </div>
 
         {/* Table */}
-        <div className="bg-gradient-to-br from-[#0d0d14] to-[#0a0a0f] border border-purple-500/10 rounded-2xl overflow-hidden">
+        <div className="bg-gradient-to-br from-[#12000c] to-[#0a0006] border border-red-900/15 rounded-2xl overflow-hidden">
           {loading ? (
             <div className="py-16 flex items-center justify-center gap-3">
-              <RefreshCw size={18} className="animate-spin text-purple-400" />
+              <RefreshCw size={18} className="animate-spin text-red-400" />
               <span className="text-xs font-mono text-zinc-500">Carregando…</span>
             </div>
           ) : filtered.length === 0 ? (
             <div className="py-16 text-center text-zinc-600 text-xs font-mono">Nenhuma transação encontrada</div>
           ) : (
-            <div className="divide-y divide-purple-500/[0.06]">
+            <div className="divide-y divide-red-900/[0.12]">
               {/* Header */}
-              <div className="hidden md:grid px-5 py-3 text-[10px] font-mono font-bold tracking-widest text-zinc-600 uppercase border-b border-purple-500/10"
-                style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr auto auto' }}>
+              <div className="hidden md:grid px-5 py-3 text-[10px] font-mono font-bold tracking-widest text-zinc-600 uppercase border-b border-red-900/15"
+                style={{ gridTemplateColumns: GRID, gap: '0 12px' }}>
                 <div>Título / Referência</div>
                 <div>Conta</div>
                 <div>Data</div>
                 <div>Valor</div>
+                <div>Método</div>
                 <div>Status</div>
                 <div className="text-right">Ações</div>
               </div>
@@ -435,12 +449,11 @@ export function Extrato() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: Math.min(i * 0.015, 0.3) }}
-                  className="px-5 py-3.5 grid grid-cols-1 gap-1 md:gap-0 items-center hover:bg-purple-500/[0.03] transition"
-                  style={{ gridTemplateColumns: 'repeat(1, 1fr)' }}
+                  className="px-5 py-3.5 hover:bg-red-600/[0.04] transition"
                 >
                   {/* Desktop layout */}
-                  <div className="hidden md:grid md:col-span-full items-center"
-                    style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto auto', gap: '0 12px' }}>
+                  <div className="hidden md:grid items-center"
+                    style={{ gridTemplateColumns: GRID, gap: '0 12px' }}>
                     {/* Title */}
                     <div>
                       <div className="text-sm font-mono text-zinc-300 truncate">{s.title}</div>
@@ -459,6 +472,8 @@ export function Extrato() {
                         <div className="text-[10px] font-mono text-zinc-600 tabular-nums">líq: {fmtBRL(Number(s.net_amount))}</div>
                       )}
                     </div>
+                    {/* Método */}
+                    <div><MethodChip typeId={s.payment_type_id} /></div>
                     {/* Status */}
                     <div><StatusPill status={s.status} /></div>
                     {/* Ações */}
@@ -475,7 +490,7 @@ export function Extrato() {
                       <button
                         title="Ver detalhes"
                         onClick={() => setDetailSale(s)}
-                        className="p-1.5 rounded-lg border border-transparent text-zinc-600 hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/10 transition"
+                        className="p-1.5 rounded-lg border border-transparent text-zinc-600 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition"
                       >
                         <Eye size={14} />
                       </button>
@@ -486,7 +501,9 @@ export function Extrato() {
                   <div className="md:hidden flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-mono text-zinc-300 truncate">{s.title}</div>
-                      <div className="text-[10px] font-mono text-zinc-600">{fmtDate(s.created_at)}</div>
+                      <div className="text-[10px] font-mono text-zinc-600 flex items-center gap-2">
+                        {fmtDate(s.created_at)} <MethodChip typeId={s.payment_type_id} />
+                      </div>
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <div>
@@ -503,7 +520,7 @@ export function Extrato() {
                       )}
                       <button
                         onClick={() => setDetailSale(s)}
-                        className="p-1.5 rounded-lg text-zinc-600 hover:text-blue-400 transition"
+                        className="p-1.5 rounded-lg text-zinc-600 hover:text-red-400 transition"
                       >
                         <Eye size={14} />
                       </button>

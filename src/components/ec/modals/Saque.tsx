@@ -89,7 +89,7 @@ function QRCard({ item, amount, paid }: { item: any; amount: number; paid?: bool
           </div>
         ) : loading ? (
           <div className="w-44 h-44 flex items-center justify-center">
-            <RefreshCw size={20} className="animate-spin text-purple-400" />
+            <RefreshCw size={20} className="animate-spin text-emerald-400" />
           </div>
         ) : dataUrl ? (
           <div className="relative">
@@ -126,7 +126,7 @@ function QRCard({ item, amount, paid }: { item: any; amount: number; paid?: bool
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-mono font-bold tracking-wider uppercase transition-all ${
               copied
                 ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400'
-                : 'bg-purple-500/15 border border-purple-500/25 text-purple-300 hover:bg-purple-500/25'
+                : 'bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/25'
             }`}>
             {copied ? <><Check size={10} /> Copiado</> : <><Copy size={10} /> Copiar</>}
           </button>
@@ -295,10 +295,13 @@ export function SaqueModal() {
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 12 }} transition={{ duration: 0.2 }}
-        className="relative z-10 w-full max-w-2xl max-h-[90vh] flex flex-col bg-gradient-to-br from-[#0f0f1a] to-[#0a0a0f] border border-purple-500/20 rounded-3xl shadow-[0_0_60px_rgba(168,85,247,0.15)] overflow-hidden">
+        className="relative z-10 w-full max-w-2xl max-h-[90vh] flex flex-col bg-gradient-to-br from-[#0b1310] to-[#070a09] border border-emerald-500/20 rounded-3xl shadow-[0_0_60px_rgba(16,185,129,0.15)] overflow-hidden">
+
+        {/* Top shimmer */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-400/60 to-transparent z-20 pointer-events-none" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-purple-500/10">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-emerald-500/10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/30 to-cyan-400/20 border border-emerald-500/30 flex items-center justify-center">
               <ArrowDownToLine size={16} className="text-emerald-400" />
@@ -325,7 +328,7 @@ export function SaqueModal() {
           {/* Loading */}
           {loadingGw && (
             <div className="py-20 flex items-center justify-center gap-3">
-              <RefreshCw size={18} className="animate-spin text-purple-400" />
+              <RefreshCw size={18} className="animate-spin text-emerald-400" />
               <span className="text-xs font-mono text-zinc-500">Carregando gateways…</span>
             </div>
           )}
@@ -387,7 +390,7 @@ export function SaqueModal() {
                   {items.filter(i => i.ok).length} de {items.length} gerados · {fmtBRL(amountNum)} cada
                 </div>
                 <button onClick={reset}
-                  className="text-[10px] font-mono text-purple-400 hover:text-purple-300 flex items-center gap-1 transition">
+                  className="text-[10px] font-mono text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition">
                   <RefreshCw size={10} /> Novo saque
                 </button>
               </div>
@@ -416,7 +419,7 @@ export function SaqueModal() {
                     value={amount}
                     onChange={e => setAmount(e.target.value.replace(/[^0-9,.]/g, ''))}
                     placeholder="0,00"
-                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-10 pr-4 py-3.5 text-xl font-black text-zinc-100 outline-none focus:border-purple-500/50 transition-all tabular-nums"
+                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-10 pr-4 py-3.5 text-xl font-black text-zinc-100 outline-none focus:border-emerald-500/50 transition-all tabular-nums"
                   />
                 </div>
               </div>
@@ -452,9 +455,9 @@ export function SaqueModal() {
               <AnimatePresence>
                 {amountNum > 0 && (
                   <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-                    className="flex items-center justify-between bg-purple-500/8 border border-purple-500/15 rounded-xl px-4 py-3">
+                    className="flex items-center justify-between bg-emerald-500/8 border border-emerald-500/15 rounded-xl px-4 py-3">
                     <div className="text-[11px] font-mono text-zinc-500">Total a gerar</div>
-                    <div className="text-base font-black text-purple-300 tabular-nums">
+                    <div className="text-base font-black text-emerald-300 tabular-nums">
                       {quantity}× {fmtBRL(amountNum)} = {fmtBRL(amountNum * quantity)}
                     </div>
                   </motion.div>
@@ -494,7 +497,7 @@ export function SaqueModal() {
 
         {/* Footer — generate button */}
         {!loadingGw && !noneConfigured && !isPixEstatico && !done && (
-          <div className="px-6 py-4 border-t border-purple-500/10">
+          <div className="px-6 py-4 border-t border-emerald-500/10">
             <button
               onClick={generate}
               disabled={generating || !amount || !selectedGw}

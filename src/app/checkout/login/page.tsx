@@ -70,33 +70,28 @@ export default function ECLoginPage() {
           {/* Soft glow behind logo */}
           <div className="absolute inset-0 rounded-full bg-red-600/10 blur-3xl scale-150 pointer-events-none" />
 
-          {/* Logo image — no border box */}
-          <div className="relative w-[90px] h-[90px] overflow-hidden">
+          {/* Logo — suspensa, sem caixa, respirando; scanner é só a linha */}
+          <motion.div
+            className="relative w-[92px] h-[92px]"
+            animate={{ y: [0, -5, 0], scale: [1, 1.03, 1] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}>
             <img
               src="/logo.png"
               alt="Encrypted"
-              className="w-full h-full object-contain relative z-10 drop-shadow-[0_0_20px_rgba(239,68,68,0.4)]"
+              className="w-full h-full object-contain relative z-10 drop-shadow-[0_0_18px_rgba(239,68,68,0.45)]"
               onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
             />
-
-            {/* Scanner line — just the line, no box */}
+            {/* Scanner — só a linha */}
             <motion.div
               className="absolute left-0 right-0 h-px z-20 pointer-events-none"
               style={{
                 background: 'linear-gradient(90deg, transparent 0%, rgba(239,68,68,0.3) 15%, #ef4444 40%, #ff7070 50%, #ef4444 60%, rgba(239,68,68,0.3) 85%, transparent 100%)',
                 boxShadow: '0 0 6px 1px rgba(239,68,68,0.9), 0 0 16px 3px rgba(239,68,68,0.35)',
               }}
-              animate={{ top: ['-1px', '91px', '-1px'] }}
+              animate={{ top: ['2px', '86px', '2px'] }}
               transition={{ duration: 2.6, repeat: Infinity, ease: 'linear' }}
             />
-            {/* Subtle glow sweep */}
-            <motion.div
-              className="absolute left-0 right-0 h-10 z-[15] pointer-events-none"
-              style={{ background: 'linear-gradient(to bottom, transparent, rgba(239,68,68,0.035), transparent)' }}
-              animate={{ top: ['-40px', '108px', '-40px'] }}
-              transition={{ duration: 2.6, repeat: Infinity, ease: 'linear' }}
-            />
-          </div>
+          </motion.div>
 
           <div className="mt-3 text-[9px] font-mono tracking-[0.42em] text-red-900/55 uppercase">encrypted</div>
         </motion.div>

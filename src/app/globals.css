@@ -165,12 +165,12 @@
 .ec-shimmer-text {
   background: linear-gradient(
     90deg,
-    #a855f7 0%,
-    #c084fc 20%,
-    #e879f9 40%,
-    #22d3ee 60%,
-    #c084fc 80%,
-    #a855f7 100%
+    #ef4444 0%,
+    #f87171 20%,
+    #ff4d5e 40%,
+    #c50020 60%,
+    #f87171 80%,
+    #ef4444 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;

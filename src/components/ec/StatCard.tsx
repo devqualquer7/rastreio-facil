@@ -27,11 +27,11 @@ const colorMap: Record<Color, { bg: string; border: string; text: string; glow: 
     icon: 'bg-amber-500/15 border-amber-500/30 text-amber-400',
   },
   primary: {
-    bg: 'from-purple-500/10 to-transparent',
-    border: 'border-purple-500/20',
-    text: 'text-purple-400',
-    glow: 'shadow-[0_0_30px_rgba(168,85,247,.15)]',
-    icon: 'bg-purple-500/15 border-purple-500/30 text-purple-400',
+    bg: 'from-rose-500/10 to-transparent',
+    border: 'border-rose-500/25',
+    text: 'text-rose-300',
+    glow: 'shadow-[0_0_30px_rgba(244,63,94,.15)]',
+    icon: 'bg-rose-500/15 border-rose-500/30 text-rose-300',
   },
 }
 

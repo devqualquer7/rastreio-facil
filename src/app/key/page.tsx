@@ -2,50 +2,50 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle2, AlertCircle, ArrowRight, User, Zap, ShieldCheck } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Info, User, Link2 } from 'lucide-react'
 
-// ── Logo component — crystal robot branding ───────────────────────────────────
-function EncryptedLogo({ size = 96 }: { size?: number }) {
+// ── Logo — suspensa, respirando, só a linha do scanner ────────────────────────
+function EncryptedLogo({ size = 92 }: { size?: number }) {
   return (
-    <div className="relative mx-auto" style={{ width: size, height: size }}>
-      {/* Outer glow ring */}
-      <div className="absolute inset-0 rounded-2xl blur-xl"
-        style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.6) 0%, rgba(99,102,241,0.3) 50%, transparent 70%)' }} />
-      {/* Card */}
-      <div className="relative w-full h-full rounded-2xl overflow-hidden border border-purple-500/30"
-        style={{ background: 'linear-gradient(135deg, #1a0d2e 0%, #0f0820 50%, #0a0614 100%)' }}>
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <div className="absolute inset-0 rounded-full bg-red-600/12 blur-2xl scale-150 pointer-events-none" />
+      <motion.div
+        className="relative"
+        style={{ width: size, height: size }}
+        animate={{ y: [0, -5, 0], scale: [1, 1.03, 1] }}
+        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}>
         <img
           src="/logo.png"
           alt="Encrypted"
-          className="absolute inset-0 w-full h-full object-contain p-1 z-10"
-          onError={e => {
-            (e.target as HTMLImageElement).style.display = 'none'
-          }}
+          className="w-full h-full object-contain relative z-10 drop-shadow-[0_0_18px_rgba(239,68,68,0.5)]"
+          onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
         />
-        {/* Fallback "E" if no logo */}
-        <div className="absolute inset-0 flex items-center justify-center z-[5]">
-          <span className="font-black select-none text-purple-400"
-            style={{ fontSize: size * 0.4, textShadow: '0 0 30px rgba(168,85,247,0.9), 0 0 60px rgba(168,85,247,0.5)' }}>
-            E
-          </span>
-        </div>
-        {/* Scan line */}
         <motion.div
-          className="absolute left-0 right-0 h-[2px] z-20 pointer-events-none"
+          className="absolute left-0 right-0 h-px z-20 pointer-events-none"
           style={{
-            background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.9), rgba(196,181,253,1), rgba(168,85,247,0.9), transparent)',
-            boxShadow: '0 0 12px 3px rgba(168,85,247,0.6)',
+            background: 'linear-gradient(90deg, transparent, rgba(239,68,68,0.3) 15%, #ef4444 40%, #ff7070 50%, #ef4444 60%, rgba(239,68,68,0.3) 85%, transparent)',
+            boxShadow: '0 0 6px 1px rgba(239,68,68,0.9), 0 0 16px 3px rgba(239,68,68,0.35)',
           }}
-          animate={{ top: ['-2px', `${size + 2}px`, '-2px'] }}
-          transition={{ duration: 2.8, repeat: Infinity, ease: 'linear' }}
+          animate={{ top: ['2px', `${size - 6}px`, '2px'] }}
+          transition={{ duration: 2.6, repeat: Infinity, ease: 'linear' }}
         />
-        <div className="absolute inset-0 border border-purple-500/20 rounded-2xl z-30" />
-      </div>
+      </motion.div>
     </div>
   )
 }
 
-// ── Inner page ────────────────────────────────────────────────────────────────
+// Cantoneiras (molduras dos cantos da tela)
+function Corner({ pos }: { pos: 'tl' | 'tr' | 'bl' | 'br' }) {
+  const base = 'fixed w-10 h-10 pointer-events-none z-10 border-red-600/30'
+  const map: Record<string, string> = {
+    tl: 'top-6 left-6 border-t border-l',
+    tr: 'top-6 right-6 border-t border-r',
+    bl: 'bottom-6 left-6 border-b border-l',
+    br: 'bottom-6 right-6 border-b border-r',
+  }
+  return <div className={`${base} ${map[pos]}`} />
+}
+
 function KeyPageInner() {
   const params = useSearchParams()
   const success = params.get('success') === '1'
@@ -81,189 +81,155 @@ function KeyPageInner() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden"
-      style={{ background: 'linear-gradient(160deg, #07030f 0%, #0d0820 40%, #090615 100%)' }}>
-
-      {/* Ambient glows */}
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden bg-[#06030a] select-none">
+      {/* Grid + glows */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[700px] h-[350px] rounded-full"
-          style={{ background: 'radial-gradient(ellipse, rgba(139,92,246,0.15) 0%, transparent 70%)' }} />
-        <div className="absolute bottom-0 right-0 w-[400px] h-[300px]"
-          style={{ background: 'radial-gradient(ellipse at bottom right, rgba(99,102,241,0.1) 0%, transparent 70%)' }} />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[300px]"
-          style={{ background: 'radial-gradient(ellipse at bottom left, rgba(168,85,247,0.08) 0%, transparent 70%)' }} />
+        <div className="absolute inset-0 opacity-[0.5]" style={{
+          backgroundImage: 'linear-gradient(rgba(180,0,30,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(180,0,30,0.05) 1px, transparent 1px)',
+          backgroundSize: '42px 42px',
+          maskImage: 'radial-gradient(ellipse 70% 60% at 50% 30%, #000, transparent 80%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 70% 60% at 50% 30%, #000, transparent 80%)',
+        }} />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[340px] rounded-full bg-red-900/12 blur-[150px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(180,0,30,0.07),transparent)]" />
       </div>
 
-      {/* Status pill */}
+      <Corner pos="tl" /><Corner pos="tr" /><Corner pos="bl" /><Corner pos="br" />
+
+      {/* Status topo */}
       <motion.div
-        initial={{ opacity: 0, y: -16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 mb-8 flex items-center gap-2 rounded-full px-4 py-1.5 border"
-        style={{ background: 'rgba(88,28,135,0.2)', borderColor: 'rgba(139,92,246,0.3)' }}>
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-500 opacity-60" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-400" />
+        initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
+        className="relative z-10 mb-8 flex items-center gap-2">
+        <span className="relative flex h-1.5 w-1.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-60" />
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
         </span>
-        <span className="text-[10px] font-mono tracking-[0.3em] uppercase" style={{ color: 'rgba(196,181,253,0.7)' }}>
-          Encrypted · OAuth
-        </span>
+        <span className="text-[10px] font-mono tracking-[0.35em] uppercase text-red-500/70">SYS::ENCRYPTED · OAuth Flow</span>
       </motion.div>
 
       {/* Logo */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.88 }}
-        animate={{ opacity: 1, scale: 1 }}
+      <motion.div initial={{ opacity: 0, scale: 0.88 }} animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.08, type: 'spring', stiffness: 260, damping: 22 }}
         className="relative z-10 mb-4">
-        <EncryptedLogo size={100} />
+        <EncryptedLogo size={92} />
       </motion.div>
 
-      {/* Brand title */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.16 }}
+      {/* Marca */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}
         className="relative z-10 text-center mb-1">
-        <div className="font-black text-2xl tracking-tight text-white">
-          en<span style={{ color: '#a855f7' }}>Crypted</span>
+        <div className="font-black text-[26px] tracking-tight">
+          <span className="text-zinc-100">ENCRYPTED</span><span className="text-red-500">SOFTWARE</span>
         </div>
       </motion.div>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.22 }}
-        className="relative z-10 text-[10px] font-mono tracking-[0.35em] mb-8 uppercase"
-        style={{ color: 'rgba(161,161,170,0.4)' }}>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.22 }}
+        className="relative z-10 text-[10px] font-mono tracking-[0.35em] mb-8 uppercase text-zinc-700">
         Checkout · Mercado Pago
       </motion.div>
 
-      {/* Main card */}
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
+      {/* Card */}
+      <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.28, type: 'spring', stiffness: 240, damping: 24 }}
         className="w-full max-w-md relative z-10">
-        <div className="relative rounded-3xl overflow-hidden p-8"
+        <div className="relative rounded-2xl overflow-hidden"
           style={{
-            background: 'linear-gradient(160deg, rgba(20,12,36,0.96) 0%, rgba(12,8,24,0.98) 100%)',
-            border: '1px solid rgba(139,92,246,0.22)',
-            boxShadow: '0 0 60px rgba(139,92,246,0.12), 0 24px 48px rgba(0,0,0,0.5)',
+            background: 'linear-gradient(160deg, rgba(20,0,28,0.96) 0%, rgba(12,0,15,0.98) 100%)',
+            border: '1px solid rgba(180,0,30,0.18)',
+            boxShadow: '0 0 60px rgba(140,0,20,0.10), 0 24px 48px rgba(0,0,0,0.5)',
           }}>
-          {/* Top shimmer line */}
-          <div className="absolute top-0 left-0 right-0 h-px"
-            style={{ background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.7), transparent)' }} />
-          {/* Corner glow */}
-          <div className="absolute -top-16 -right-16 w-40 h-40 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)' }} />
+          {/* Tab header */}
+          <div className="flex border-b border-red-900/20">
+            <div className="flex-1 py-3.5 text-center text-[11px] font-mono font-bold tracking-[0.25em] uppercase text-red-500 border-b-2 border-red-600 relative">
+              OAuth
+              <span className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-500/60 to-transparent" />
+            </div>
+          </div>
 
-          <AnimatePresence mode="wait">
-            {success ? (
-              <motion.div key="success"
-                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-8 relative">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
-                  style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.35)', boxShadow: '0 0 30px rgba(34,197,94,0.25)' }}>
-                  <CheckCircle2 size={28} className="text-emerald-400" />
-                </div>
-                <div className="font-black text-xl text-emerald-400 mb-2">Conta conectada!</div>
-                {successName && (
-                  <div className="text-sm font-mono mt-2 mb-1" style={{ color: 'rgba(161,161,170,0.7)' }}>
-                    <span style={{ color: 'rgba(113,113,122,1)' }}>Conta: </span>
-                    {decodeURIComponent(successName)}
+          <div className="p-7">
+            <AnimatePresence mode="wait">
+              {success ? (
+                <motion.div key="success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                  className="text-center py-6 relative">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
+                    style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.35)', boxShadow: '0 0 30px rgba(34,197,94,0.25)' }}>
+                    <CheckCircle2 size={28} className="text-emerald-400" />
                   </div>
-                )}
-                <div className="mt-6 text-[10px] font-mono" style={{ color: 'rgba(113,113,122,0.8)' }}>
-                  Você já pode fechar esta aba.
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative">
-                {/* Shield icon header */}
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}>
-                    <ShieldCheck size={18} style={{ color: '#a855f7' }} />
+                  <div className="font-black text-xl text-emerald-400 mb-2">Conta conectada!</div>
+                  {successName && (
+                    <div className="text-sm font-mono mt-2 mb-1 text-zinc-400">
+                      <span className="text-zinc-600">Conta: </span>{decodeURIComponent(successName)}
+                    </div>
+                  )}
+                  <div className="mt-6 text-[10px] font-mono text-zinc-600">Você já pode fechar esta aba.</div>
+                </motion.div>
+              ) : (
+                <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  {/* Section heading */}
+                  <div className="text-[11px] font-mono font-bold tracking-[0.28em] uppercase text-red-500 mb-4">
+                    ▸ Conectar sua conta
                   </div>
-                  <div>
-                    <div className="font-black text-base text-white">Conectar Mercado Pago</div>
-                    <div className="text-[11px] font-mono mt-0.5" style={{ color: 'rgba(113,113,122,1)' }}>
-                      Autorize sua conta para receber pagamentos
+
+                  {/* Info box */}
+                  <div className="flex gap-3 rounded-xl px-4 py-3.5 mb-6"
+                    style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.14)' }}>
+                    <Info size={15} className="text-red-400 flex-shrink-0 mt-0.5" />
+                    <div className="text-[12px] leading-relaxed text-zinc-400">
+                      Digite seu <span className="text-red-300 font-semibold">nome</span> e clique em <span className="text-red-300 font-semibold">CONECTAR</span>. Você vai fazer login no Mercado Pago e autorizar o acesso — depois volta aqui automaticamente.
                     </div>
                   </div>
-                </div>
 
-                {err && (
-                  <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-2 rounded-xl px-4 py-3 mb-4"
-                    style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
-                    <AlertCircle size={14} className="text-red-400 flex-shrink-0" />
-                    <span className="text-xs font-mono text-red-400">{err}</span>
-                  </motion.div>
-                )}
+                  {err && (
+                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-2 rounded-xl px-4 py-3 mb-4"
+                      style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                      <AlertCircle size={14} className="text-red-400 flex-shrink-0" />
+                      <span className="text-xs font-mono text-red-400">{err}</span>
+                    </motion.div>
+                  )}
 
-                {/* Name input */}
-                <div className="mb-5">
-                  <div className="text-[10px] font-mono font-bold tracking-[0.25em] uppercase mb-2 flex items-center gap-1.5"
-                    style={{ color: 'rgba(113,113,122,0.9)' }}>
-                    <User size={10} /> Nome da conta
+                  {/* Nome */}
+                  <div className="mb-6">
+                    <div className="text-[10px] font-mono font-bold tracking-[0.25em] uppercase mb-2 flex items-center gap-1.5 text-zinc-500">
+                      <User size={11} /> Seu nome
+                    </div>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && connect()}
+                      placeholder="Ex: FULANO"
+                      maxLength={60}
+                      autoFocus
+                      className="w-full rounded-xl px-4 py-3.5 text-sm font-mono text-white outline-none transition-all placeholder-zinc-700"
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+                      onFocus={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.45)' }}
+                      onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
+                    />
+                    <div className="text-[10px] font-mono text-zinc-700 mt-1.5">Apenas seu nome — sem prefixo</div>
                   </div>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && connect()}
-                    placeholder="Ex: João Silva MEI"
-                    maxLength={60}
-                    autoFocus
-                    className="w-full rounded-xl px-4 py-3.5 text-sm font-mono text-white outline-none transition-all placeholder-zinc-700"
+
+                  {/* Botão */}
+                  <button
+                    onClick={connect}
+                    disabled={loading || !name.trim()}
+                    className="relative w-full py-4 rounded-xl overflow-hidden font-black tracking-[0.14em] text-sm uppercase transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2 text-white"
                     style={{
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.07)',
-                    }}
-                    onFocus={e => { e.currentTarget.style.borderColor = 'rgba(139,92,246,0.45)' }}
-                    onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
-                  />
-                </div>
-
-                {/* Connect button */}
-                <button
-                  onClick={connect}
-                  disabled={loading || !name.trim()}
-                  className="relative w-full py-4 rounded-2xl overflow-hidden font-black tracking-widest text-sm uppercase transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2 group text-white"
-                  style={{
-                    background: 'linear-gradient(135deg, #6d28d9, #9333ea, #6d28d9)',
-                    boxShadow: '0 0 28px rgba(139,92,246,0.45)',
-                  }}>
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7, #7c3aed)' }} />
-                  <span className="relative z-10 flex items-center gap-2">
+                      background: 'linear-gradient(135deg, #6b0011, #a8001a 45%, #c50020 60%, #8c0018)',
+                      boxShadow: '0 0 28px rgba(180,0,30,0.45)',
+                    }}>
                     {loading ? (
-                      <>
-                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Redirecionando…
-                      </>
+                      <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Redirecionando…</>
                     ) : (
-                      <>
-                        <Zap size={15} fill="white" />
-                        Conectar com Mercado Pago
-                        <ArrowRight size={15} />
-                      </>
+                      <><Link2 size={15} /> Conectar Mercado Pago</>
                     )}
-                  </span>
-                </button>
-
-                <div className="mt-4 text-center text-[10px] font-mono"
-                  style={{ color: 'rgba(113,113,122,0.6)' }}>
-                  Você será redirecionado para o Mercado Pago para autorizar.
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </motion.div>
 
-      <div className="relative z-10 text-center mt-6 text-[10px] font-mono tracking-[0.3em] uppercase"
-        style={{ color: 'rgba(63,63,70,0.8)' }}>
+      <div className="relative z-10 text-center mt-6 text-[10px] font-mono tracking-[0.3em] uppercase text-zinc-800">
         Encrypted Software · Checkout MP
       </div>
     </div>

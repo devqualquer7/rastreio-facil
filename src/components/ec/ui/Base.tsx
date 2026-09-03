@@ -9,7 +9,7 @@ export function SectionTitle({
     <div className="flex items-start justify-between gap-4 mb-6">
       <div className="flex items-center gap-3">
         {icon && (
-          <div className="w-9 h-9 rounded-xl bg-purple-500/15 border border-purple-500/25 text-purple-400 flex items-center justify-center flex-shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-red-500/15 border border-red-500/25 text-red-400 flex items-center justify-center flex-shrink-0">
             {icon}
           </div>
         )}
@@ -53,7 +53,7 @@ export function Button({
   }
 
   const variants = {
-    accent:  'bg-gradient-to-br from-violet-700 via-purple-500 to-purple-400 text-white shadow-[0_0_20px_rgba(168,85,247,.35)] hover:shadow-[0_0_30px_rgba(168,85,247,.5)]',
+    accent:  'bg-gradient-to-br from-[#6b0011] via-[#a8001a] to-[#c50020] text-white shadow-[0_0_20px_rgba(180,0,30,.4)] hover:shadow-[0_0_30px_rgba(180,0,30,.6)]',
     outline: 'bg-white/[0.04] border border-white/[0.1] text-zinc-300 hover:bg-white/[0.08] hover:border-white/[0.2] hover:text-zinc-100',
     ghost:   'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]',
     danger:  'bg-red-500/10 border border-red-500/25 text-red-400 hover:bg-red-500/20',

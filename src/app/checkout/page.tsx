@@ -115,11 +115,12 @@ export default function CheckoutPage() {
   const Screen = SCREENS[screen] || Dashboard
 
   return (
-    <div className="h-screen flex flex-col md:flex-row bg-[#09090f] overflow-hidden">
-      {/* Ambient bg */}
+    <div className="h-screen flex flex-col md:flex-row bg-[#06030a] overflow-hidden">
+      {/* Ambient bg — crimson */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] rounded-full bg-purple-900/20 blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full bg-cyan-900/15 blur-[100px]" />
+        <div className="absolute top-0 left-1/4 w-[520px] h-[520px] rounded-full bg-red-900/15 blur-[130px]" />
+        <div className="absolute bottom-0 right-1/4 w-[420px] h-[420px] rounded-full bg-red-950/12 blur-[110px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,rgba(180,0,30,0.06),transparent)]" />
       </div>
 
       {/* Sidebar (desktop) */}

@@ -25,15 +25,15 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="hidden md:flex w-64 h-full flex-col relative z-10 border-r border-purple-500/10 bg-gradient-to-b from-[#0d0d14]/95 via-[#0a0a0f]/80 to-[#0d0d14]/95 backdrop-blur-xl">
-      {/* Brand */}
+    <aside className="hidden md:flex w-64 h-full flex-col relative z-10 border-r border-red-900/15 bg-gradient-to-b from-[#12000f]/95 via-[#0a0006]/80 to-[#12000f]/95 backdrop-blur-xl">
+      {/* Brand — crystal logo */}
       <div className="p-5 pt-7">
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-500 via-purple-500/50 to-cyan-400 opacity-40 blur-lg" />
-            <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-700 to-cyan-600 flex items-center justify-center text-white font-black text-lg border border-purple-400/20">
-              E
-            </div>
+          <div className="relative w-11 h-11 shrink-0">
+            <div className="absolute inset-0 rounded-full bg-red-600/15 blur-lg pointer-events-none" />
+            <img src="/logo.png" alt="Encrypted"
+              className="relative w-full h-full object-contain drop-shadow-[0_0_14px_rgba(239,68,68,0.5)]"
+              onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
           </div>
           <div>
             <div className="font-black text-sm tracking-tight ec-shimmer-text">ENCRYPTED</div>
@@ -45,13 +45,14 @@ export function Sidebar() {
       {/* CTAs */}
       <div className="px-4 pb-5 flex flex-col gap-2.5">
         <button onClick={() => openModal('generate')}
-          className="ec-shine relative w-full py-3.5 rounded-2xl bg-gradient-to-br from-violet-700 via-purple-500 to-cyan-300 text-white font-black tracking-wide text-sm uppercase shadow-[0_0_20px_rgba(168,85,247,.4)] hover:shadow-[0_0_35px_rgba(168,85,247,.6)] active:scale-95 transition-all flex items-center justify-center gap-2 border border-white/10">
+          className="ec-shine relative w-full py-3.5 rounded-2xl text-white font-black tracking-wide text-sm uppercase shadow-[0_0_20px_rgba(180,0,30,.4)] hover:shadow-[0_0_35px_rgba(180,0,30,.6)] active:scale-95 transition-all flex items-center justify-center gap-2 border border-white/10"
+          style={{ background: 'linear-gradient(135deg, #6b0011, #a8001a 50%, #c50020)' }}>
           <Sparkles size={14} className="drop-shadow" />
           <span>Gerar Link</span>
           <Zap size={14} fill="white" />
         </button>
         <button onClick={() => openModal('saque')}
-          className="relative w-full py-3 rounded-2xl bg-gradient-to-br from-emerald-700 via-emerald-500 to-cyan-400 text-white font-black tracking-wide text-sm uppercase shadow-[0_0_15px_rgba(16,185,129,.3)] hover:shadow-[0_0_28px_rgba(16,185,129,.5)] active:scale-95 transition-all flex items-center justify-center gap-2 border border-white/10">
+          className="relative w-full py-3 rounded-2xl bg-gradient-to-br from-emerald-700 via-emerald-500 to-emerald-400 text-white font-black tracking-wide text-sm uppercase shadow-[0_0_15px_rgba(16,185,129,.3)] hover:shadow-[0_0_28px_rgba(16,185,129,.5)] active:scale-95 transition-all flex items-center justify-center gap-2 border border-white/10">
           <ArrowDownToLine size={14} className="drop-shadow" />
           <span>Saque</span>
         </button>
@@ -66,29 +67,29 @@ export function Sidebar() {
             <button key={item.id} onClick={() => setScreen(item.id)}
               className={cn('relative w-full flex items-center gap-3 px-3 py-3 rounded-xl font-bold text-sm transition-all group',
                 active
-                  ? 'bg-gradient-to-r from-purple-500/20 via-purple-500/5 to-transparent text-purple-300'
+                  ? 'bg-gradient-to-r from-red-600/20 via-red-600/5 to-transparent text-red-300'
                   : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300')}>
               {active && (
                 <motion.div layoutId="ec-nav-indicator"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-gradient-to-b from-purple-500 to-cyan-400 shadow-[0_0_12px_rgba(168,85,247,.6)]"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-gradient-to-b from-red-500 to-red-700 shadow-[0_0_12px_rgba(239,68,68,.6)]"
                 />
               )}
-              <Icon size={16} className={active ? 'text-purple-300' : 'group-hover:scale-110 transition-transform'} />
+              <Icon size={16} className={active ? 'text-red-400' : 'group-hover:scale-110 transition-transform'} />
               <span className="tracking-wide">{item.label}</span>
-              {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,.8)]" />}
+              {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,.8)]" />}
             </button>
           )
         })}
       </nav>
 
       {/* Conta ativa */}
-      <div className="p-3 border-t border-purple-500/10">
+      <div className="p-3 border-t border-red-900/15">
         <div className="text-[9px] font-mono text-zinc-700 tracking-[0.3em] px-2 mb-2 uppercase">Conta Ativa</div>
         <button onClick={() => openModal('switch-account')}
           className={cn('relative w-full rounded-2xl p-4 text-left transition-all group overflow-hidden',
             activeCred?.connected
-              ? 'bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-purple-500/10 border border-emerald-500/40 shadow-[0_0_20px_rgba(34,197,94,.2)]'
-              : 'bg-[#0d0d14] border border-[#1a1a28] hover:border-[#252538]')}>
+              ? 'bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-red-900/10 border border-emerald-500/40 shadow-[0_0_20px_rgba(34,197,94,.2)]'
+              : 'bg-[#140008] border border-[#28101a] hover:border-[#3a1622]')}>
           {activeCred?.connected && (
             <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-emerald-500/20 blur-2xl pointer-events-none" />
           )}
@@ -112,7 +113,7 @@ export function Sidebar() {
       </div>
 
       {/* Ações */}
-      <div className="p-3 border-t border-purple-500/10 flex gap-1.5">
+      <div className="p-3 border-t border-red-900/15 flex gap-1.5">
         {isAdmin && (
           <button onClick={() => openModal('settings')}
             className="flex-1 py-2.5 rounded-xl text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300 flex items-center justify-center gap-2 font-mono text-[10px] tracking-[0.2em] transition uppercase">
@@ -150,15 +151,20 @@ export function MobileTopBar() {
 
   return (
     <div className="md:hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-purple-500/10 bg-[#0d0d14]/95 backdrop-blur">
-        <span className="font-black text-sm ec-shimmer-text">ENCRYPTED</span>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-red-900/15 bg-[#12000f]/95 backdrop-blur">
+        <div className="flex items-center gap-2">
+          <img src="/logo.png" alt="" className="w-6 h-6 object-contain drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]"
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+          <span className="font-black text-sm ec-shimmer-text">ENCRYPTED</span>
+        </div>
         <div className="flex items-center gap-2">
           <button onClick={() => openModal('generate')}
-            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-500 to-cyan-400 text-white text-xs font-bold">
+            className="px-3 py-1.5 rounded-lg text-white text-xs font-bold"
+            style={{ background: 'linear-gradient(135deg,#a8001a,#c50020)' }}>
             GERAR
           </button>
           <button onClick={() => openModal('saque')}
-            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-400 text-white text-xs font-bold">
+            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-400 text-white text-xs font-bold">
             SAQUE
           </button>
           <button onClick={logout} className="p-1.5 text-zinc-500 hover:text-red-400 transition">
@@ -166,13 +172,13 @@ export function MobileTopBar() {
           </button>
         </div>
       </div>
-      <div className="flex border-b border-[#1a1a28] bg-[#0a0a0f]">
+      <div className="flex border-b border-[#28101a] bg-[#0a0006]">
         {nav.filter(item => !item.adminOnly || isAdmin).map(item => {
           const Icon = item.icon; const active = screen === item.id
           return (
             <button key={item.id} onClick={() => setScreen(item.id)}
               className={cn('flex-1 py-3 flex items-center justify-center transition',
-                active ? 'text-purple-400 border-b-2 border-purple-500' : 'text-zinc-600')}>
+                active ? 'text-red-400 border-b-2 border-red-500' : 'text-zinc-600')}>
               <Icon size={18} />
             </button>
           )

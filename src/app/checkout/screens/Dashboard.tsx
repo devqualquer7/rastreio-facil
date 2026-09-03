@@ -82,19 +82,19 @@ export function Dashboard() {
 
       {(stats.approved + stats.rejected > 0) && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-          className="bg-gradient-to-br from-[#0d0d14] to-[#0a0a0f] border border-purple-500/15 rounded-2xl p-5 mb-6">
+          className="bg-gradient-to-br from-[#0d0d14] to-[#0a0a0f] border border-red-600/15 rounded-2xl p-5 mb-6">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <TrendingUp size={15} className="text-purple-400" />
+              <TrendingUp size={15} className="text-red-400" />
               <div className="text-xs font-mono font-bold tracking-widest text-zinc-500">TAXA DE APROVAÇÃO</div>
             </div>
-            <div className="text-lg font-mono font-black text-purple-400">{approvalRate.toFixed(1)}%</div>
+            <div className="text-lg font-mono font-black text-red-400">{approvalRate.toFixed(1)}%</div>
           </div>
           <div className="h-2 bg-[#1a1a28] rounded-full overflow-hidden">
             <motion.div
               initial={{ width: 0 }} animate={{ width: `${approvalRate}%` }}
               transition={{ delay: 0.3, duration: 0.6 }}
-              className="h-full bg-gradient-to-r from-violet-700 via-purple-500 to-cyan-400"
+              className="h-full bg-gradient-to-r from-[#6b0011] via-[#a8001a] to-[#c50020]"
             />
           </div>
           <div className="flex justify-between mt-2">
@@ -104,24 +104,24 @@ export function Dashboard() {
         </motion.div>
       )}
 
-      <div className="bg-gradient-to-br from-[#0d0d14] to-[#0a0a0f] border border-purple-500/10 rounded-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-purple-500/10 flex items-center justify-between">
+      <div className="bg-gradient-to-br from-[#0d0d14] to-[#0a0a0f] border border-red-600/10 rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-red-600/10 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <LinkIcon size={14} className="text-purple-400" />
+            <LinkIcon size={14} className="text-red-400" />
             <div className="text-xs font-mono font-bold tracking-widest text-zinc-500">TRANSAÇÕES RECENTES</div>
           </div>
-          <button onClick={() => setScreen('extrato')} className="text-[10px] font-mono text-zinc-600 hover:text-purple-400 tracking-widest transition">
+          <button onClick={() => setScreen('extrato')} className="text-[10px] font-mono text-zinc-600 hover:text-red-400 tracking-widest transition">
             VER TODAS →
           </button>
         </div>
         {recent.length === 0 ? (
           <div className="py-12 text-center text-zinc-600 text-xs font-mono">
-            Nenhuma venda ainda. Clique em <span className="text-purple-400">GERAR LINK</span>.
+            Nenhuma venda ainda. Clique em <span className="text-red-400">GERAR LINK</span>.
           </div>
         ) : (
-          <div className="divide-y divide-purple-500/[0.06]">
+          <div className="divide-y divide-red-600/[0.06]">
             {recent.map(s => (
-              <div key={s.id} className="px-5 py-3 flex items-center justify-between hover:bg-purple-500/[0.03] transition">
+              <div key={s.id} className="px-5 py-3 flex items-center justify-between hover:bg-red-600/[0.03] transition">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-mono text-zinc-300 truncate">{s.title}</div>
                   <div className="text-[10px] font-mono text-zinc-600">

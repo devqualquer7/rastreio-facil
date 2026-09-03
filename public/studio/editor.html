@@ -458,12 +458,9 @@ input[type=color] {
         <div class="espaco"></div>
 
         <button class="btn" id="btModelos">Modelos</button>
-        <button class="btn" id="btAbrir">Abrir</button>
-        <button class="btn" id="btSalvar">Salvar arquivo</button>
         <button class="btn" id="btNuvem">☁ Salvar na nuvem</button>
-        <button class="btn" id="btImportarHtml" title="Importar arquivo .html da nuvem">↑ Importar HTML</button>
         <button class="btn pri" id="btExportar">Exportar HTML</button>
-        <button class="btn mini" id="btSair" title="Voltar ao painel" style="margin-left:4px">← Painel</button>
+        <button class="btn mini" id="btSair" title="Voltar ao painel" style="margin-left:4px">Sair</button>
     </div>
 
     <!-- ============ COLUNA ESQUERDA ============ -->
@@ -592,7 +589,10 @@ input[type=color] {
         </header>
         <div class="corpo">
             <div class="aviso">Abrir um modelo substitui a tela atual. Salve seu projeto antes se precisar.</div>
-            <h3 style="font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--txt2);margin:2px 0 10px">☁ Modelos da equipe (nuvem)</h3>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 10px">
+                <h3 style="font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--txt2);margin:0">☁ Modelos da equipe (nuvem)</h3>
+                <button class="btn mini" id="btImportarHtml" title="Importar .json (modelo editável) ou .html (só copiar)">↑ Importar modelo</button>
+            </div>
             <div class="galeria" id="galeriaNuvem"></div>
             <div id="nuvemVazia" class="vazio" style="display:none">Nenhum modelo salvo na nuvem ainda. Monte uma tela e use “☁ Salvar na nuvem”.</div>
             <h3 style="font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--txt2);margin:22px 0 10px">Modelos prontos</h3>
@@ -626,7 +626,7 @@ input[type=color] {
 <div class="toast" id="toast"></div>
 <input type="file" id="inputArquivo" accept=".json" style="display:none">
 <input type="file" id="inputImagem" accept="image/*" style="display:none">
-<input type="file" id="inputHtml" accept=".html" style="display:none">
+<input type="file" id="inputHtml" accept=".html,.htm,.json" multiple style="display:none">
 <input type="file" id="inputImgBib" accept="image/*" style="display:none">
 
 <!-- =========================================================
@@ -2015,11 +2015,12 @@ function autoCarregar() {
     } catch (e) { return false; }
 }
 
-$('btSalvar').addEventListener('click', function () {
+// btSalvar / btAbrir foram removidos da barra — guardas evitam erro se o elemento não existir.
+(function () { var b = $('btSalvar'); if (b) b.addEventListener('click', function () {
     baixar('tela-' + new Date().getTime() + '.json', projetoJSON(), 'application/json');
     toast('Projeto salvo', 'ok');
-});
-$('btAbrir').addEventListener('click', function () { $('inputArquivo').click(); });
+}); })();
+(function () { var b = $('btAbrir'); if (b) b.addEventListener('click', function () { $('inputArquivo').click(); }); })();
 $('inputArquivo').addEventListener('change', function (e) {
     var f = e.target.files[0]; if (!f) return;
     var r = new FileReader();
@@ -2134,32 +2135,94 @@ $('btImportarHtml').addEventListener('click', function () {
     $('inputHtml').click();
 });
 
+// Lê um arquivo (.json ou .html) e devolve { editavel, padraoNome, dados } ou null se JSON inválido.
+function _dadosDeArquivoStudio(nomeArq, conteudo) {
+    if (/\.json$/i.test(nomeArq)) {
+        var proj;
+        try { proj = JSON.parse(conteudo); } catch (e) { proj = null; }
+        if (!proj || !Array.isArray(proj.els)) return null;
+        return {
+            editavel: true,
+            padraoNome: nomeArq.replace(/\.json$/i, ''),
+            dados: {
+                v: 1,
+                disp: proj.disp || { w: 390, h: 844 },
+                fundo: proj.fundo || { tipo: 'transparente', cor: '#000000', cor2: '#1B4EF5', ang: 160 },
+                duracaoMin: proj.duracaoMin || 59,
+                els: proj.els
+            }
+        };
+    }
+    // .html renderizado -> só copiar (não é editável por bloco).
+    return { editavel: false, padraoNome: nomeArq.replace(/\.html?$/i, ''), dados: { type: 'raw_html', html: conteudo } };
+}
+function _salvarModeloNuvem(nome, desc, dados) {
+    return fetch('/api/studio/modelos', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: nome, desc: desc, dados: dados })
+    });
+}
+function _lerArquivoTexto(f) {
+    return new Promise(function (resolve, reject) {
+        var r = new FileReader();
+        r.onload = function (ev) { resolve(ev.target.result); };
+        r.onerror = function () { reject(r.error); };
+        r.readAsText(f, 'utf-8');
+    });
+}
+
 $('inputHtml').addEventListener('change', function () {
-    var f = this.files && this.files[0];
-    if (!f) return;
-    var reader = new FileReader();
-    reader.onload = function (ev) {
-        var html = ev.target.result;
-        var nome = prompt('Nome para salvar este modelo na nuvem:', f.name.replace(/\.html?$/i, '') || '');
-        if (nome === null) return;
-        nome = nome.trim();
-        if (!nome) { toast('Precisa de um nome', 'erro'); return; }
-        var desc = prompt('Descrição curta (opcional):', '') || '';
-        fetch('/api/studio/modelos', {
-            method: 'POST', credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nome: nome, desc: desc.trim(), dados: { type: 'raw_html', html: html } })
-        }).then(function (r) {
-            if (r.status === 401) return toast('Sessão expirada — recarregue a página', 'erro');
-            if (r.ok) {
-                toast('HTML importado e salvo na nuvem!', 'ok');
-                carregarModelosNuvem();
-                $('btModelos').click(); // abre o painel de modelos pra ver
-            } else toast('Falha ao salvar o HTML', 'erro');
-        }).catch(function () { toast('Erro de conexão', 'erro'); });
-    };
-    reader.readAsText(f, 'utf-8');
-    this.value = ''; // reset pra poder importar o mesmo arquivo de novo
+    var arquivos = this.files ? Array.prototype.slice.call(this.files) : [];
+    this.value = ''; // reset pra poder reimportar os mesmos arquivos depois
+    if (!arquivos.length) return;
+
+    // 1 arquivo -> fluxo com prompt de nome/descrição.
+    if (arquivos.length === 1) {
+        var f = arquivos[0];
+        _lerArquivoTexto(f).then(function (conteudo) {
+            var info = _dadosDeArquivoStudio(f.name, conteudo);
+            if (!info) { toast('JSON inválido — precisa ser um projeto do estúdio (com "els")', 'erro'); return; }
+            var nome = prompt('Nome para salvar este modelo na nuvem:', info.padraoNome || '');
+            if (nome === null) return;
+            nome = nome.trim();
+            if (!nome) { toast('Precisa de um nome', 'erro'); return; }
+            var desc = (prompt('Descrição curta (opcional):', '') || '').trim();
+            _salvarModeloNuvem(nome, desc, info.dados).then(function (r) {
+                if (r.status === 401) return toast('Sessão expirada — recarregue a página', 'erro');
+                if (r.ok) {
+                    toast(info.editavel ? 'Modelo importado — já dá pra duplicar e editar!' : 'HTML importado e salvo na nuvem!', 'ok');
+                    carregarModelosNuvem();
+                    $('btModelos').click(); // abre o painel de modelos pra ver
+                } else toast('Falha ao salvar o modelo', 'erro');
+            }).catch(function () { toast('Erro de conexão', 'erro'); });
+        }).catch(function () { toast('Não consegui ler o arquivo', 'erro'); });
+        return;
+    }
+
+    // Vários arquivos -> importação em lote, sem prompts (usa o nome do arquivo).
+    toast('Importando ' + arquivos.length + ' modelo(s)...', 'ok');
+    var ok = 0, falhas = 0, invalidos = 0;
+    var seq = Promise.resolve();
+    arquivos.forEach(function (f) {
+        seq = seq.then(function () {
+            return _lerArquivoTexto(f).then(function (conteudo) {
+                var info = _dadosDeArquivoStudio(f.name, conteudo);
+                if (!info) { invalidos++; return; }
+                return _salvarModeloNuvem(info.padraoNome || 'modelo', 'modelo importado', info.dados)
+                    .then(function (r) { if (r.ok) ok++; else falhas++; })
+                    .catch(function () { falhas++; });
+            }).catch(function () { falhas++; });
+        });
+    });
+    seq.then(function () {
+        var msg = ok + ' importado(s)';
+        if (invalidos) msg += ' · ' + invalidos + ' inválido(s)';
+        if (falhas) msg += ' · ' + falhas + ' falha(s)';
+        toast(msg, ok ? 'ok' : 'erro');
+        carregarModelosNuvem();
+        $('btModelos').click();
+    });
 });
 
 $('btSair').addEventListener('click', function () {
