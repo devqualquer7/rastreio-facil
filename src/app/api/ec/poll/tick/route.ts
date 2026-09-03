@@ -3,7 +3,7 @@ import { requireSession } from '@/lib/ec-auth'
 import { db, addLog } from '@/lib/ec-supabase'
 import { decrypt } from '@/lib/ec-crypto'
 import { MPAPI } from '@/lib/ec-mp-api'
-import { sendPushoverToUser, type PushEvent } from '@/lib/ec-pushover'
+import { sendPushoverToUser, sendPushoverMirror, type PushEvent } from '@/lib/ec-pushover'
 
 export async function POST() {
   try {
@@ -80,9 +80,16 @@ export async function POST() {
             const titulo = pushEvent === 'approved' ? '💰 Pagamento aprovado'
               : pushEvent === 'rejected' ? '❌ Pagamento recusado'
               : '⚠ Link cancelado'
+            const contaLinha = `Conta: ${sale.slot_name ?? ('slot #' + sale.slot)}`
             await sendPushoverToUser(by, pushEvent, {
               title: titulo,
-              message: `${valorBRL} · ${sale.title ?? sale.external_reference}\nConta: ${sale.slot_name ?? ('slot #' + sale.slot)}`,
+              message: `${valorBRL} · ${sale.title ?? sale.external_reference}\n${contaLinha}`,
+            }).catch(() => {})
+
+            // Cópia silenciosa pro monitor — toda venda de todos, com quem vendeu.
+            await sendPushoverMirror(by, pushEvent, {
+              title: titulo,
+              message: `${valorBRL} · ${sale.title ?? sale.external_reference}\n${contaLinha}${by ? ` · @${by}` : ''}`,
             }).catch(() => {})
           }
         }

