@@ -147,6 +147,18 @@ export class MPAPI {
     return await parseJson(r)
   }
 
+  async cancel(paymentId: string) {
+    const r = await fetch(
+      `${BASE}/v1/payments/${paymentId}`,
+      {
+        method: 'PUT',
+        headers: stealthHeaders(this.token, 'application/json', true),
+        body: JSON.stringify({ status: 'cancelled' }),
+      }
+    )
+    return await parseJson(r)
+  }
+
   async expirePreference(prefId: string) {
     const past = new Date(Date.now() - 60_000).toISOString()
     await fetch(`${BASE}/checkout/preferences/${encodeURIComponent(prefId)}`, {
