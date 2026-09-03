@@ -1400,6 +1400,12 @@ function cGrupo(l, k, v, ops) {
 }
 function opsFonte() { return FONTES.map(function (f) { return { v: f.v, n: f.n }; }); }
 
+/* seção "Opções" — usada pelos blocos Digital e Android (portados do fosterstudio) */
+function ops(inner) {
+    return '<label style="display:block;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--txt2);margin:10px 0 6px">Opções</label>' +
+           '<div class="prop-opcoes">' + inner + '</div>';
+}
+
 function renderProps() {
     var el = sel(), p = $('props');
     $('tipoSel').textContent = el ? el.tipo : '';
@@ -1532,20 +1538,6 @@ function renderProps() {
         h += cCheck('MAIÚSCULAS', 'maiusc', el.maiusc);
     }
 
-    h += '<hr style="border:0;border-top:1px solid var(--linha);margin:12px 0">';
-    h += cCheck('Travar posição', 'travado', el.travado);
-    h += '<div class="grupo-btn" style="margin-top:8px">' +
-         '<button data-acao="duplicar">Duplicar</button>' +
-         '<button data-acao="apagar" style="color:var(--vermelho)">Apagar</button></div>';
-
-    p.innerHTML = h;
-}
-
-/* ---------- eventos do painel ---------- */
-function mudarProp(k, v, commit) {
-    var el = sel(); if (!el) return;
-    if (commit) salvarHist();
-    el[k] = v;
     if (el.tipo === 'digital') {
         if (!el.usarOriginal) {
             h += '<div class="linha2">' + cCor(el.gradiente ? 'Cor de cima' : 'Cor', 'cor1', el.cor1) +
