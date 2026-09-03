@@ -1733,7 +1733,7 @@ function carregarModelosNuvem() {
                 }
                 var acoes = isRawHtml
                     ? '<button class="copiar-html-nuvem" data-nuvem="' + i + '" style="margin-top:6px;padding:4px 8px;font-size:10px;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#ccc;cursor:pointer">Copiar HTML</button>'
-                    : '';
+                    : '<button class="duplicar-nuvem" data-nuvem="' + i + '" style="margin-top:6px;padding:4px 8px;font-size:10px;background:rgba(27,78,245,.18);border:1px solid rgba(62,155,255,.35);border-radius:6px;color:#3E9BFF;cursor:pointer;font-weight:600">⊕ Duplicar</button>';
                 h += '<div class="modelo" data-nuvem="' + i + '" ' + (isRawHtml ? 'data-raw-html="1"' : '') + '><div class="mini">' +
                     miniContent + '</div>' +
                     '<button class="apagar-nuvem" data-apagar="' + m.id + '" title="Apagar da nuvem">×</button>' +
@@ -1787,14 +1787,35 @@ $('galeriaNuvem').addEventListener('click', function (e) {
         }
         return;
     }
-    var no = e.target.closest('.modelo'); if (!no) return;
-    // raw_html models: open fullscreen HTML viewer
-    if (no.dataset.rawHtml) {
-        abrirHtmlViewer(+no.dataset.nuvem);
+    // "Duplicar" button on canvas models
+    var btnDup = e.target.closest('.duplicar-nuvem');
+    if (btnDup) {
+        e.stopPropagation();
+        var md = modelosNuvem[+btnDup.dataset.nuvem];
+        if (md && md.dados) {
+            aplicarProjeto(md.dados, null);
+            toast('Duplicado de "' + (md.nome || 'modelo') + '" — edite à vontade', 'ok');
+        }
         return;
     }
-    var m = modelosNuvem[+no.dataset.nuvem];
-    if (m && m.dados) aplicarProjeto(m.dados, m.nome);
+    var no = e.target.closest('.modelo'); if (!no) return;
+    var mc = modelosNuvem[+no.dataset.nuvem];
+    if (!mc || !mc.dados) return;
+    // raw_html models: copy HTML on card click (no fullscreen viewer)
+    if (no.dataset.rawHtml) {
+        var html = mc.dados.html || '';
+        navigator.clipboard.writeText(html).then(function () {
+            toast('HTML copiado!', 'ok');
+        }).catch(function () {
+            var ta = document.createElement('textarea');
+            ta.value = html; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+            toast('HTML copiado!', 'ok');
+        });
+        return;
+    }
+    // Canvas models: apply directly for editing
+    aplicarProjeto(mc.dados, null);
+    toast('Duplicado de "' + (mc.nome || 'modelo') + '" — edite à vontade', 'ok');
 });
 
 /* =========================================================
