@@ -209,3 +209,55 @@
 .ec-glow-emerald {
   box-shadow: 0 0 20px 4px rgba(52, 211, 153, 0.3);
 }
+/* ============================================================
+   PORT DO APP DESKTOP (enCrypted .exe) — tokens + classes 1:1
+   Namespace ec-* pra não colidir com o shadcn.
+   ============================================================ */
+@theme {
+  --color-ec-bg: #060610;
+  --color-ec-card: #0b0b16;
+  --color-ec-card2: #11111f;
+  --color-ec-input: #08080f;
+  --color-ec-hover: #15152a;
+  --color-ec-line: #1c1c33;
+  --color-ec-line-glow: #3a1a30;
+  --color-ec-red: #ff2b4a;
+  --color-ec-red-deep: #cc1b35;
+  --color-ec-red-soft: #ff5a73;
+  --color-ec-green: #00e396;
+  --color-ec-green-deep: #00a06b;
+  --color-ec-yellow: #ffc83d;
+  --color-ec-orange: #ff8c2c;
+  --color-ec-blue: #4ea8f7;
+  --color-ec-purple: #a29bfe;
+  --color-ec-text: #e4e4f4;
+  --color-ec-dim: #9a9ab5;
+  --color-ec-muted: #52526e;
+  --color-ec-faded: #2a2a42;
+  --shadow-ec-glow: 0 0 20px rgba(255,43,74,.25);
+  --shadow-ec-glow-sm: 0 0 10px rgba(255,43,74,.15);
+  --shadow-ec-glow-green: 0 0 15px rgba(0,227,150,.3);
+  --shadow-ec-card: 0 4px 20px rgba(0,0,0,.4);
+  --font-ec-mono: 'JetBrains Mono', ui-monospace, Consolas, Menlo, monospace;
+  --animate-ec-glow-pulse: ec-glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ec-glow-pulse { 0%,100%{ box-shadow:0 0 10px rgba(255,43,74,.4) } 50%{ box-shadow:0 0 20px rgba(255,43,74,.7) } }
+@keyframes ec-scanmove { 0%{ transform:translateY(-100%) } 100%{ transform:translateY(100vh) } }
+
+/* Componentes utilitários do desktop */
+.ec-app { font-family: var(--font-ec-mono); }
+.ec-glass { background: rgba(11,11,22,.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+.ec-card { background: #0b0b16; border: 1px solid #1c1c33; border-radius: 12px; }
+.ec-card-hover { transition: all .2s; }
+.ec-card-hover:hover { border-color: #3a1a30; background: #11111f; }
+.ec-input { background:#08080f; border:1px solid #1c1c33; border-radius:8px; padding:10px 14px; font-size:14px; color:#e4e4f4;
+  font-family:var(--font-ec-mono); outline:none; transition:all .2s; width:100%; }
+.ec-input::placeholder { color:#52526e; }
+.ec-input:focus { border-color:#ff2b4a; box-shadow:0 0 10px rgba(255,43,74,.15); }
+.ec-label { font-size:10px; font-weight:600; color:#52526e; letter-spacing:.15em; text-transform:uppercase; font-family:var(--font-ec-mono); }
+.ec-grid-pattern { background-image:
+  linear-gradient(rgba(28,28,51,.4) 1px, transparent 1px),
+  linear-gradient(90deg, rgba(28,28,51,.4) 1px, transparent 1px);
+  background-size: 40px 40px; }
+.ec-spotlight { background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,43,74,.08) 0%, transparent 60%); }
