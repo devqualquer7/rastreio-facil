@@ -33,7 +33,7 @@ const SCREENS: Record<string, React.ComponentType> = {
 const HEALTH_MS = 5 * 60 * 1000
 
 export default function CheckoutPage() {
-  const { screen, modal, closeModal, setUsername, setIsAdmin, refreshCreds, username, pushPayment, toast } = useApp()
+  const { screen, modal, closeModal, setUsername, setIsAdmin, refreshCreds, username, isAdmin, pushPayment, toast } = useApp()
   const lastStatusRef = useRef<Map<number, string>>(new Map())
   const initializedRef = useRef(false)
 
@@ -94,9 +94,9 @@ export default function CheckoutPage() {
       if (initializedRef.current) {
         for (const sale of list) {
           const prev = lastStatusRef.current.get(sale.id)
-          // SÓ notifica na tela se o link foi gerado por ESTE usuário.
-          // (created_by vem do sales/list; sem match, não é minha venda → não notifica)
-          const isMine = sale.created_by && sale.created_by === username
+          // Notifica na tela se o link foi gerado por ESTE usuário — OU se sou ADMIN
+          // (admin vê todas as vendas do sistema). created_by vem do sales/list.
+          const isMine = isAdmin || (sale.created_by && sale.created_by === username)
           if (isMine && prev && prev !== 'approved' && sale.status === 'approved') {
             const amount = Number(sale.amount || 0)
             pushPayment({ amount, title: sale.title, slotName: sale.slot_name, method: sale.payment_type_id, saleId: sale.id })

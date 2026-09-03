@@ -104,10 +104,78 @@ export async function POST() {
       }
     }))
 
+    // ── Varredura direta no MP — pega TODA venda aprovada em QUALQUER conta,
+    //    mesmo que não esteja no web_sales / mesmo conta inativa. Robusto.
+    //    Throttle global via KV pra não rodar por cada cliente (dedup por payId).
+    try {
+      const lastScan = await db.getSetting('notify:scan:at')
+      const now = Date.now()
+      if (!lastScan || now - Number(lastScan) > 12000) {
+        await db.setSetting('notify:scan:at', String(now))
+        await scanApprovedAndNotify()
+      }
+    } catch (e) { console.error('[notify scan]', e) }
+
     return NextResponse.json({ ok: true, checked, changed })
   } catch (e: any) {
     if (e.message === 'UNAUTHORIZED') return NextResponse.json({ ok: false, error: 'Não autenticado' }, { status: 401 })
     console.error('[EC poll/tick]', e)
     return NextResponse.json({ ok: false, error: 'Erro interno' })
   }
+}
+
+// Janela de 10 min: só notifica aprovações recentes (não blasta histórico no 1º run).
+const NOTIFY_WINDOW_MS = 10 * 60 * 1000
+
+async function scanApprovedAndNotify() {
+  const creds = await db.listCreds()
+  const live = creds.filter((c: any) => c.health_status !== 'banned' && c.access_token)
+  const cutoff = Date.now() - NOTIFY_WINDOW_MS
+
+  await Promise.allSettled(live.map(async (cred: any) => {
+    try {
+      const token = await decrypt(cred.access_token)
+      const api = new MPAPI(token)
+      const data = await api.searchPayments({ status: 'approved', limit: 15 })
+      const results: any[] = data?.results || []
+
+      for (const p of results) {
+        if (p.status !== 'approved') continue
+        const apprMs = p.date_approved ? Date.parse(p.date_approved)
+          : (p.date_created ? Date.parse(p.date_created) : 0)
+        if (!apprMs || apprMs < cutoff) continue // fora da janela → ignora
+
+        const payId = String(p.id)
+        const seen = await db.getSetting(`notify:pay:${payId}`).catch(() => null)
+        if (seen) continue                         // já notificado → nunca repete
+        await db.setSetting(`notify:pay:${payId}`, '1')
+
+        const ref = p.external_reference || ''
+        const by = ref ? await db.getSetting(`sale:by:${ref}`).catch(() => null) : null
+        const amount = Number(p.transaction_amount || 0)
+        const valorBRL = amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+        const titulo = '💰 Pagamento aprovado'
+        const desc = p.description || ref || payId
+        const msg = `${valorBRL} · ${desc}\nConta: ${cred.name}`
+
+        // dono do link (se conhecido) + cópia silenciosa pro admin (sempre)
+        await sendPushoverToUser(by, 'approved', { title: titulo, message: msg }).catch(() => {})
+        await sendPushoverMirror(by, 'approved', { title: titulo, message: msg + (by ? ` · @${by}` : '') }).catch(() => {})
+
+        // UTMIFY — só aprovada, do dono
+        await sendUtmifyForUser(by, {
+          external_reference: ref, mp_payment_id: payId, id: payId,
+          title: desc, amount,
+          net_amount: p.transaction_details?.net_received_amount ?? null,
+          payment_type_id: p.payment_type_id, payment_method_id: p.payment_method_id,
+          payer_email: p.payer?.email, created_at: p.date_created, date_approved: p.date_approved,
+        }).catch(() => {})
+
+        await addLog('approved', `Pagamento APROVADO · ${valorBRL} · ${desc}`,
+          `slot #${cred.slot} ${cred.name ?? ''}`, by || undefined).catch(() => {})
+      }
+    } catch (e) {
+      console.error(`[notify scan slot ${cred.slot}]`, e)
+    }
+  }))
 }
