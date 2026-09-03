@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
     if (!apiToken) return NextResponse.json({ ok: false, error: 'Cole seu API Token da UTMIFY' })
 
     const r = await sendUtmifyTest(apiToken)
-    if (!r.ok) return NextResponse.json({ ok: false, error: r.error || 'Falha ao enviar' })
-    return NextResponse.json({ ok: true })
+    if (!r.ok) return NextResponse.json({ ok: false, error: r.error || 'Falha ao enviar', body: r.body })
+    return NextResponse.json({ ok: true, body: r.body })
   } catch (e: any) {
     if (e.message === 'UNAUTHORIZED') return NextResponse.json({ ok: false, error: 'Não autenticado' }, { status: 401 })
     return NextResponse.json({ ok: false, error: 'Erro interno' })

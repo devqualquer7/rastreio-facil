@@ -1,4 +1,4 @@
-import { db } from '@/lib/ec-supabase'
+import { db, addLog } from '@/lib/ec-supabase'
 
 /* ============================================================================
    UTMIFY — envia a venda APROVADA pra API de Pedidos da UTMIFY.
@@ -110,8 +110,8 @@ function buildOrder(sale: any, opts?: { isTest?: boolean }) {
   }
 }
 
-/** Envio bruto com token explícito (usado no teste e no envio real). */
-export async function sendUtmifyRaw(apiToken: string, order: any): Promise<{ ok: boolean; error?: string }> {
+/** Envio bruto com token explícito. Retorna também o corpo da resposta pra diagnóstico. */
+export async function sendUtmifyRaw(apiToken: string, order: any): Promise<{ ok: boolean; error?: string; body?: string }> {
   if (!apiToken) return { ok: false, error: 'API Token ausente' }
   try {
     const r = await fetch(UTMIFY_URL, {
@@ -119,32 +119,46 @@ export async function sendUtmifyRaw(apiToken: string, order: any): Promise<{ ok:
       headers: { 'content-type': 'application/json', 'x-api-token': apiToken },
       body: JSON.stringify(order),
     })
-    if (r.ok) return { ok: true }
     const txt = await r.text().catch(() => '')
-    return { ok: false, error: `HTTP ${r.status}${txt ? ' · ' + txt.slice(0, 160) : ''}` }
+    // A UTMIFY responde 200 mesmo com token inválido (valida async). Tratamos 2xx como aceito.
+    if (r.ok) return { ok: true, body: txt.slice(0, 300) }
+    return { ok: false, error: `HTTP ${r.status}${txt ? ' · ' + txt.slice(0, 200) : ''}`, body: txt.slice(0, 300) }
   } catch (e: any) {
     return { ok: false, error: e?.message || 'Falha de rede' }
   }
 }
 
-/** Dispara uma venda pra UTMIFY do usuário DONO, respeitando o enabled dele. Só paga. */
+/**
+ * Dispara uma venda pra UTMIFY do usuário DONO, respeitando o enabled dele. Só paga.
+ * Loga o resultado (visível em Logs) pra dar pra diagnosticar por que (não) enviou.
+ */
 export async function sendUtmifyForUser(username: string | null | undefined, sale: any): Promise<void> {
-  if (!username) return
+  const ref = sale?.external_reference || sale?.id || '?'
+  if (!username) {
+    await addLog('status', `UTMIFY: pulado (venda ${ref} sem dono/usuário atribuído)`, 'utmify').catch(() => {})
+    return
+  }
   try {
     const cfg = await getUtmifyConfig(username)
-    if (!cfg.enabled || !cfg.apiToken) return
-    await sendUtmifyRaw(cfg.apiToken, buildOrder(sale))
-  } catch { /* nunca derruba o poll */ }
+    if (!cfg.enabled) { await addLog('status', `UTMIFY: desligado pra @${username} (venda ${ref})`, 'utmify', username).catch(() => {}); return }
+    if (!cfg.apiToken) { await addLog('status', `UTMIFY: sem token pra @${username} (venda ${ref})`, 'utmify', username).catch(() => {}); return }
+    const r = await sendUtmifyRaw(cfg.apiToken, buildOrder(sale))
+    if (r.ok) await addLog('status', `UTMIFY: venda enviada ✓ (${ref})`, 'utmify', username).catch(() => {})
+    else await addLog('error', `UTMIFY: falha ao enviar (${ref}) · ${r.error}`, 'utmify', username).catch(() => {})
+  } catch (e: any) {
+    await addLog('error', `UTMIFY: erro (${ref}) · ${e?.message || e}`, 'utmify', username).catch(() => {})
+  }
 }
 
-/** Pedido de teste (isTest:true) pro botão do modal. */
-export async function sendUtmifyTest(apiToken: string): Promise<{ ok: boolean; error?: string }> {
+/** Pedido de teste pro botão do modal. isTest:false pra APARECER no painel da UTMIFY. */
+export async function sendUtmifyTest(apiToken: string): Promise<{ ok: boolean; error?: string; body?: string }> {
   const order = buildOrder({
-    external_reference: `TEST-${PLATFORM}-` + Math.random().toString(36).slice(2, 8).toUpperCase(),
-    title: 'Venda de teste — EncryptedSoftware',
-    amount: 99.99, net_amount: 96.5,
+    external_reference: `TESTE-${PLATFORM}-` + Math.random().toString(36).slice(2, 8).toUpperCase(),
+    title: 'TESTE — EncryptedSoftware (pode apagar)',
+    amount: 19.9, net_amount: 19.2,
     payment_type_id: 'bank_transfer', payment_method_id: 'pix',
     payer_email: 'teste@encrypted.local',
-  }, { isTest: true })
+    created_at: new Date().toISOString(), date_approved: new Date().toISOString(),
+  }, { isTest: false })
   return sendUtmifyRaw(apiToken, order)
 }
