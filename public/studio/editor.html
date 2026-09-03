@@ -553,10 +553,33 @@ input[type=color] {
     </div>
 </div>
 
+<div class="modal-fundo" id="modalImagens">
+    <div class="modal">
+        <header>
+            <h2>Biblioteca de imagens</h2>
+            <button class="fechar" data-fechar>×</button>
+        </header>
+        <div class="corpo">
+            <div class="aviso">Escolha uma imagem pra usar no elemento selecionado.</div>
+            <div id="donoAddImg" style="display:none;margin-bottom:14px">
+                <div style="display:flex;gap:8px;margin-bottom:8px">
+                    <input id="imgUrl" type="text" placeholder="Cole a URL de uma imagem"
+                        style="flex:1;background:#141720;border:1px solid #262b38;border-radius:8px;color:#e7eaf2;padding:8px 10px;font-size:12px;outline:none">
+                    <button class="btn" id="imgAddUrl" style="flex-shrink:0">Salvar URL</button>
+                    <button class="btn pri" id="imgAddUpload" style="flex-shrink:0">Enviar do PC</button>
+                </div>
+            </div>
+            <div id="imgVazia" class="vazio" style="display:none">Nenhuma imagem na biblioteca. Adicione pela URL ou envie do PC.</div>
+            <div class="galeria" id="galeriaImagens"></div>
+        </div>
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <input type="file" id="inputArquivo" accept=".json" style="display:none">
 <input type="file" id="inputImagem" accept="image/*" style="display:none">
 <input type="file" id="inputHtml" accept=".html" style="display:none">
+<input type="file" id="inputImgBib" accept="image/*" style="display:none">
 
 <!-- =========================================================
      VIEWER: HTML IMPORTADO (fullscreen, dentro do studio)
@@ -1284,6 +1307,7 @@ function renderProps() {
 
     if (el.tipo === 'imagem') {
         h += cTexto('URL da imagem', 'src', el.src);
+        h += '<button class="btn pri" id="btBiblioteca" style="width:100%;justify-content:center;margin-bottom:8px">🖼 Escolher da biblioteca</button>';
         h += '<button class="btn" id="btUpload" style="width:100%;justify-content:center;margin-bottom:10px">Enviar do computador</button>';
         h += cGrupo('Encaixe', 'fit', el.fit, [{v:'contain',n:'Inteira'},{v:'cover',n:'Preencher'},{v:'fill',n:'Esticar'}]);
         h += cNum('Cantos', 'radius', el.radius, 0, 400);
@@ -1429,6 +1453,7 @@ $('props').addEventListener('click', function (e) {
 });
 $('props').addEventListener('click', function (e) {
     if (e.target.id === 'btUpload') $('inputImagem').click();
+    if (e.target.id === 'btBiblioteca') abrirBiblioteca();
 });
 
 /* =========================================================
@@ -1690,7 +1715,7 @@ function carregarModelosNuvem() {
                     // scale = 148/844 ≈ 0.1754 → visual height fits the 148px .mini container exactly
                     // visual width = 390 × 0.1754 ≈ 68px → center: left = 50% - 34px
                     miniContent = '<div style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;background:#0d0f14">' +
-                        '<iframe class="raw-thumb" data-hidx="' + i + '" sandbox="allow-scripts allow-same-origin" scrolling="no"' +
+                        '<iframe class="raw-thumb" data-hidx="' + i + '" sandbox="allow-scripts" scrolling="no"' +
                         ' style="position:absolute;top:0;left:calc(50% - 34px);width:390px;height:844px;transform:scale(0.1754);transform-origin:top left;border:none;pointer-events:none;display:block"></iframe>' +
                         '</div>';
                 } else {
@@ -2072,6 +2097,125 @@ $('btPlay').addEventListener('click', function () {
     }
     requestAnimationFrame(loop);
 })();
+
+/* =========================================================
+   15b. BIBLIOTECA DE IMAGENS
+   ========================================================= */
+var imagensBib = [];
+
+function abrirBiblioteca() {
+    $('modalImagens').classList.add('abrir');
+    $('donoAddImg').style.display = 'block';
+    carregarImagens();
+}
+
+function carregarImagens() {
+    var g = $('galeriaImagens');
+    g.innerHTML = '<div class="vazio">Carregando...</div>';
+    fetch('/api/studio/imagens', { credentials: 'same-origin' })
+        .then(function (r) {
+            if (r.status === 401) { toast('Sessão expirada — recarregue a página', 'erro'); throw 0; }
+            return r.json();
+        })
+        .then(function (lista) {
+            imagensBib = lista || [];
+            $('imgVazia').style.display = imagensBib.length ? 'none' : 'block';
+            var h = '';
+            for (var i = 0; i < imagensBib.length; i++) {
+                var im = imagensBib[i];
+                h += '<div class="modelo" data-img="' + i + '">' +
+                    '<div class="mini" style="height:120px;background:#06080c;display:flex;align-items:center;justify-content:center">' +
+                    '<img src="' + esc(im.src) + '" style="max-width:100%;max-height:100%;object-fit:contain">' +
+                    '</div>' +
+                    '<button class="apagar-nuvem" data-apagarimg="' + esc(im.id) + '" title="Excluir">×</button>' +
+                    '<div class="txt"><b>' + esc(im.nome) + '</b></div></div>';
+            }
+            g.innerHTML = h || '';
+        })
+        .catch(function () {
+            if (g.innerHTML.indexOf('Carregando') >= 0) g.innerHTML = '<div class="vazio">Não consegui carregar.</div>';
+        });
+}
+
+function salvarImagemBib(nome, src) {
+    fetch('/api/studio/imagens', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: nome, src: src })
+    }).then(function (r) {
+        if (!r.ok) { toast('Falha ao salvar imagem', 'erro'); return; }
+        carregarImagens();
+        toast('Imagem salva na biblioteca', 'ok');
+    }).catch(function () { toast('Erro de conexão', 'erro'); });
+}
+
+$('galeriaImagens').addEventListener('click', function (e) {
+    var ap = e.target.closest('[data-apagarimg]');
+    if (ap) {
+        e.stopPropagation();
+        if (!confirm('Excluir esta imagem da biblioteca?')) return;
+        fetch('/api/studio/imagens/' + ap.dataset.apagarimg, { method: 'DELETE', credentials: 'same-origin' })
+            .then(function () { carregarImagens(); toast('Imagem excluída', 'ok'); });
+        return;
+    }
+    var no = e.target.closest('[data-img]');
+    if (!no) return;
+    var im = imagensBib[+no.dataset.img];
+    var el = sel();
+    if (im && el && el.tipo === 'imagem') {
+        salvarHist();
+        el.src = im.src;
+        var teste = new Image();
+        teste.onload = function () {
+            el.h = Math.max(20, Math.round(el.w * teste.height / teste.width));
+            tudo();
+        };
+        teste.onerror = function () { tudo(); };
+        teste.src = im.src;
+        $('modalImagens').classList.remove('abrir');
+        tudo();
+        toast('Imagem aplicada', 'ok');
+    } else {
+        toast('Selecione um elemento de imagem primeiro', 'erro');
+    }
+});
+
+$('imgAddUrl').addEventListener('click', function () {
+    var url = $('imgUrl').value.trim();
+    if (!url) { toast('Cole uma URL primeiro', 'erro'); return; }
+    salvarImagemBib(url.split('/').pop().slice(0, 40) || 'imagem', url);
+    $('imgUrl').value = '';
+});
+
+$('imgAddUpload').addEventListener('click', function () { $('inputImgBib').click(); });
+
+$('inputImgBib').addEventListener('change', function (e) {
+    var f = e.target.files[0];
+    if (!f) return;
+    if (!/^image\//.test(f.type)) { toast('Isso não é uma imagem', 'erro'); return; }
+    var r = new FileReader();
+    r.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+            var MAX = 1080;
+            var w = img.width, h = img.height;
+            if (w > MAX || h > MAX) {
+                if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+                else { w = Math.round(w * MAX / h); h = MAX; }
+            }
+            var cv = document.createElement('canvas');
+            cv.width = w; cv.height = h;
+            cv.getContext('2d').drawImage(img, 0, 0, w, h);
+            var ehJpg = /jpe?g/.test(f.type);
+            var out = cv.toDataURL(ehJpg ? 'image/jpeg' : 'image/png', ehJpg ? 0.85 : undefined);
+            salvarImagemBib(f.name.slice(0, 40), out);
+        };
+        img.src = r.result;
+    };
+    r.readAsDataURL(f);
+    e.target.value = '';
+});
 
 /* =========================================================
    16. TOPO / TECLADO / INÍCIO
