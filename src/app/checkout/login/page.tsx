@@ -2,7 +2,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Lock, User, ArrowRight, ShieldCheck } from 'lucide-react'
+import { Lock, User } from 'lucide-react'
+
+const MONO = "'JetBrains Mono', ui-monospace, Consolas, monospace"
 
 export default function ECLoginPage() {
   const router = useRouter()
@@ -13,6 +15,7 @@ export default function ECLoginPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (!u.trim() || !p) { setErr('Preencha todos os campos.'); return }
     setLoading(true); setErr('')
     try {
       const r = await fetch('/api/ec/auth/login', {
@@ -29,171 +32,113 @@ export default function ECLoginPage() {
   return (
     <>
       <style>{`
-        input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus,input:-webkit-autofill:active{
-          -webkit-box-shadow:0 0 0 1000px #14030b inset !important;-webkit-text-fill-color:#f4dede !important;caret-color:#ef4444;
+        input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus{
+          -webkit-box-shadow:0 0 0 1000px #08080f inset !important;-webkit-text-fill-color:#e4e4f4 !important;caret-color:#ff2b4a;
           transition:background-color 9999s ease-in-out 0s;
         }
-        @keyframes ec-aura{0%,100%{transform:scale(1);opacity:.55}50%{transform:scale(1.12);opacity:.8}}
-        @keyframes ec-scan{0%{top:6%}100%{top:94%}}
-        @keyframes ec-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-        @keyframes ec-sheen{0%{transform:translateX(-120%) skewX(-18deg)}60%,100%{transform:translateX(220%) skewX(-18deg)}}
-        @keyframes ec-gridpan{0%{background-position:0 0}100%{background-position:44px 44px}}
-        .ec-field{transition:border-color .2s,box-shadow .2s,background .2s}
-        .ec-field:focus{border-color:rgba(239,68,68,.55)!important;background:rgba(197,0,32,.06)!important;box-shadow:0 0 0 3px rgba(197,0,32,.14),0 0 22px rgba(197,0,32,.12)}
-        .ec-cta{position:relative;overflow:hidden}
-        .ec-cta::after{content:'';position:absolute;top:0;bottom:0;width:45%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);transform:translateX(-120%) skewX(-18deg)}
-        .ec-cta:hover::after{animation:ec-sheen 1.1s ease}
-        .ec-corner{position:fixed;width:34px;height:34px;border-color:rgba(197,0,32,.35);pointer-events:none;z-index:10}
+        .ec2-input{background:#08080f;border:1px solid #1c1c33;border-radius:8px;color:#e4e4f4;font-family:${MONO};transition:border-color .2s,box-shadow .2s}
+        .ec2-input::placeholder{color:#52526e}
+        .ec2-input:focus{border-color:#ff2b4a;box-shadow:0 0 10px rgba(255,43,74,.15)}
+        @keyframes ec2-scan{0%{transform:translateY(-12px)}100%{transform:translateY(152px)}}
+        @keyframes ec2-aura{0%,100%{opacity:.5;transform:scale(.95)}50%{opacity:1;transform:scale(1.05)}}
+        @keyframes ec2-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
       `}</style>
 
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden select-none"
-        style={{ background: '#07020a' }}>
+      <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#060610', color: '#e4e4f4', fontFamily: MONO, overflow: 'hidden', userSelect: 'none' }}>
+        {/* grid */}
+        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', opacity: 0.3,
+          backgroundImage: 'linear-gradient(rgba(28,28,51,.4) 1px,transparent 1px),linear-gradient(90deg,rgba(28,28,51,.4) 1px,transparent 1px)',
+          backgroundSize: '40px 40px' }} />
+        {/* spotlight vermelho no topo */}
+        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none',
+          background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,43,74,.08) 0%, transparent 60%)' }} />
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 256, pointerEvents: 'none',
+          background: 'linear-gradient(to bottom, rgba(255,43,74,.04), transparent)' }} />
+        {/* blobs */}
+        <div style={{ position: 'absolute', top: '22%', left: '22%', width: 500, height: 500, borderRadius: '50%', background: 'rgba(255,43,74,.06)', filter: 'blur(90px)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '22%', right: '22%', width: 500, height: 500, borderRadius: '50%', background: 'rgba(255,43,74,.06)', filter: 'blur(90px)', pointerEvents: 'none' }} />
 
-        {/* Atmosfera */}
-        <div className="pointer-events-none fixed inset-0 overflow-hidden">
-          {/* grid sutil */}
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'linear-gradient(rgba(197,0,32,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(197,0,32,.05) 1px,transparent 1px)',
-            backgroundSize: '44px 44px', animation: 'ec-gridpan 14s linear infinite',
-            maskImage: 'radial-gradient(ellipse 62% 55% at 50% 32%,#000,transparent 82%)',
-            WebkitMaskImage: 'radial-gradient(ellipse 62% 55% at 50% 32%,#000,transparent 82%)',
-          }} />
-          {/* aura carmim de topo */}
-          <div className="absolute top-[-14%] left-1/2 -translate-x-1/2 w-[900px] h-[420px] rounded-full"
-            style={{ background: 'radial-gradient(ellipse,rgba(197,0,32,.16),transparent 68%)', filter: 'blur(30px)' }} />
-          {/* vinheta base */}
-          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 90% 70% at 50% 120%,rgba(0,0,0,.7),transparent 60%)' }} />
-        </div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: 'easeOut' }}
+          style={{ position: 'relative', zIndex: 10, width: 420, maxWidth: '92vw' }}>
 
-        {/* Molduras de canto */}
-        <div className="ec-corner top-6 left-6 border-t border-l" />
-        <div className="ec-corner top-6 right-6 border-t border-r" />
-        <div className="ec-corner bottom-6 left-6 border-b border-l" />
-        <div className="ec-corner bottom-6 right-6 border-b border-r" />
-
-        {/* Status */}
-        <motion.div initial={{ opacity: 0, y: -18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-          className="relative z-10 mb-9 flex items-center gap-2 rounded-full px-4 py-1.5"
-          style={{ background: 'rgba(120,0,20,.18)', border: '1px solid rgba(239,68,68,.2)' }}>
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-60" />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
-          </span>
-          <span className="text-[10px] font-mono tracking-[0.32em] text-red-500/75 uppercase">SYS::ENCRYPTED · Panel Access</span>
-        </motion.div>
-
-        {/* Logo grande, flutuando, com aura */}
-        <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.06, type: 'spring', stiffness: 200, damping: 20 }}
-          className="relative z-10 mb-5">
-          <div className="relative" style={{ width: 150, height: 150, animation: 'ec-float 5s ease-in-out infinite' }}>
-            {/* aura pulsante */}
-            <div className="absolute inset-0 rounded-full pointer-events-none"
-              style={{ background: 'radial-gradient(circle,rgba(239,68,68,.30),rgba(197,0,32,.10) 45%,transparent 70%)', filter: 'blur(14px)', animation: 'ec-aura 4s ease-in-out infinite' }} />
-            {/* logo */}
-            <img src="/logo.png" alt="Encrypted" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-              className="relative z-10 w-full h-full object-contain"
-              style={{ filter: 'drop-shadow(0 0 26px rgba(239,68,68,.5)) drop-shadow(0 8px 24px rgba(0,0,0,.6))' }} />
-            {/* scanner — só a linha */}
-            <div className="absolute left-[10%] right-[10%] z-20 pointer-events-none" style={{
-              height: 1, top: '6%',
-              background: 'linear-gradient(90deg,transparent,rgba(239,68,68,.35) 20%,#ff5a5a 50%,rgba(239,68,68,.35) 80%,transparent)',
-              boxShadow: '0 0 8px 1px rgba(239,68,68,.9),0 0 18px 4px rgba(239,68,68,.35)',
-              animation: 'ec-scan 2.8s linear infinite alternate',
-            }} />
-          </div>
-        </motion.div>
-
-        {/* Marca */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="relative z-10 text-center">
-          <div className="font-black tracking-tight leading-none" style={{ fontSize: 30 }}>
-            <span className="text-zinc-100">ENCRYPTED</span><span className="text-red-500" style={{ textShadow: '0 0 22px rgba(197,0,32,.55)' }}>SOFTWARE</span>
-          </div>
-          <div className="text-[10px] font-mono text-zinc-600 tracking-[0.4em] mt-2 uppercase">Checkout · Mercado Pago</div>
-        </motion.div>
-
-        {/* Card */}
-        <motion.form onSubmit={submit}
-          initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, type: 'spring', stiffness: 220, damping: 24 }}
-          className="w-full max-w-[380px] relative z-10 mt-9">
-          <div className="relative rounded-3xl p-7"
-            style={{
-              background: 'linear-gradient(158deg,rgba(28,4,20,.94),rgba(12,2,10,.97))',
-              border: '1px solid rgba(197,0,32,.20)',
-              boxShadow: '0 0 70px rgba(140,0,20,.14),0 30px 60px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,120,120,.08)',
-            }}>
-            {/* barra de luz no topo */}
-            <div className="absolute top-0 left-8 right-8 h-px" style={{ background: 'linear-gradient(90deg,transparent,rgba(239,68,68,.7),transparent)' }} />
-            {/* ticks de canto internos */}
-            <div className="absolute top-3 left-3 w-3 h-3 border-t border-l rounded-tl" style={{ borderColor: 'rgba(239,68,68,.35)' }} />
-            <div className="absolute top-3 right-3 w-3 h-3 border-t border-r rounded-tr" style={{ borderColor: 'rgba(239,68,68,.35)' }} />
-            <div className="absolute bottom-3 left-3 w-3 h-3 border-b border-l rounded-bl" style={{ borderColor: 'rgba(239,68,68,.35)' }} />
-            <div className="absolute bottom-3 right-3 w-3 h-3 border-b border-r rounded-br" style={{ borderColor: 'rgba(239,68,68,.35)' }} />
-
-            <div className="flex items-center gap-2.5 mb-6">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: 'rgba(197,0,32,.14)', border: '1px solid rgba(239,68,68,.25)' }}>
-                <ShieldCheck size={16} className="text-red-400" />
-              </div>
-              <div>
-                <div className="text-[13px] font-black text-zinc-100 tracking-wide">Acesso ao Painel</div>
-                <div className="text-[10px] font-mono text-zinc-600 tracking-widest uppercase">Autenticação segura</div>
+          {/* Marca */}
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+              <div style={{ position: 'relative', width: 140, height: 140, animation: 'ec2-float 3.5s ease-in-out infinite' }}>
+                <div style={{ position: 'absolute', inset: -24, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,43,74,.45) 0%, transparent 65%)', filter: 'blur(24px)', animation: 'ec2-aura 3s ease-in-out infinite' }} />
+                <div style={{ position: 'absolute', inset: -8, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,43,74,.35) 0%, transparent 70%)', filter: 'blur(10px)' }} />
+                <img src="/logo.png" alt="enCrypteD" draggable={false} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  style={{ position: 'relative', width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0 0 16px rgba(255,43,74,.55))', zIndex: 10 }} />
+                <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: '50%', pointerEvents: 'none', mixBlendMode: 'screen' }}>
+                  <div style={{ position: 'absolute', left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, rgba(255,43,74,.9), transparent)', animation: 'ec2-scan 3.5s linear infinite' }} />
+                </div>
               </div>
             </div>
+            <div style={{ fontWeight: 700, fontSize: 30, letterSpacing: '0.14em' }}>
+              <span style={{ color: '#e4e4f4' }}>ENCRYPTED</span><span style={{ color: '#ff2b4a' }}>SOFTWARE</span>
+            </div>
+            <div style={{ color: '#52526e', fontSize: 12, marginTop: 8, letterSpacing: '0.35em', textTransform: 'uppercase' }}>
+              Checkout Mercado Pago
+            </div>
+          </div>
+
+          {/* Card glass */}
+          <form onSubmit={submit} style={{ position: 'relative', overflow: 'hidden', borderRadius: 16, padding: 32,
+            background: 'rgba(11,11,22,.7)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid #1c1c33' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, #ff2b4a, transparent)' }} />
+
+            <h2 style={{ fontWeight: 700, fontSize: 13, color: '#ff2b4a', letterSpacing: '0.2em', marginBottom: 24, textTransform: 'uppercase' }}>▸ Entrar</h2>
 
             {/* Usuário */}
-            <div className="mb-4">
-              <label className="flex items-center gap-1.5 text-[10px] font-mono tracking-[0.24em] text-zinc-500 uppercase mb-2">
-                <User size={10} /> Usuário
-              </label>
-              <div className="relative">
-                <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-red-500/50 pointer-events-none" />
-                <input value={u} onChange={e => setU(e.target.value)} autoComplete="username" autoFocus spellCheck={false}
-                  placeholder="seu usuário"
-                  className="ec-field w-full rounded-xl pl-10 pr-4 py-3.5 text-sm font-mono outline-none placeholder-zinc-700"
-                  style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)', color: '#f4dede' }} />
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: '#52526e', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Usuário</label>
+              <div style={{ position: 'relative' }}>
+                <User size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#52526e' }} />
+                <input value={u} onChange={e => setU(e.target.value)} autoFocus autoComplete="username" placeholder="Digite seu usuário"
+                  className="ec2-input" style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px 10px 36px', fontSize: 14, outline: 'none' }} />
               </div>
             </div>
 
             {/* Senha */}
-            <div className="mb-5">
-              <label className="flex items-center gap-1.5 text-[10px] font-mono tracking-[0.24em] text-zinc-500 uppercase mb-2">
-                <Lock size={10} /> Senha
-              </label>
-              <div className="relative">
-                <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-red-500/50 pointer-events-none" />
-                <input type="password" value={p} onChange={e => setP(e.target.value)} autoComplete="current-password" spellCheck={false}
-                  onKeyDown={e => e.key === 'Enter' && submit(e as any)}
-                  placeholder="••••••••"
-                  className="ec-field w-full rounded-xl pl-10 pr-4 py-3.5 text-sm font-mono outline-none placeholder-zinc-700"
-                  style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)', color: '#f4dede' }} />
+            <div style={{ marginBottom: 8 }}>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 600, color: '#52526e', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Senha</label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#52526e' }} />
+                <input type="password" value={p} onChange={e => setP(e.target.value)} autoComplete="current-password" placeholder="••••••••"
+                  className="ec2-input" style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px 10px 36px', fontSize: 14, outline: 'none' }} />
               </div>
-              {err && (
-                <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                  className="text-[11px] font-mono text-red-400/90 mt-2.5 flex items-center gap-1.5">
-                  <span className="w-1 h-1 rounded-full bg-red-500 shrink-0" />{err}
-                </motion.p>
-              )}
             </div>
 
-            {/* Botão */}
-            <motion.button type="submit" disabled={loading} whileTap={{ scale: 0.97 }}
-              className="ec-cta w-full py-4 rounded-2xl font-black tracking-[0.16em] text-sm text-white uppercase disabled:opacity-50 flex items-center justify-center gap-2"
-              style={{
-                background: 'linear-gradient(135deg,#6b0011 0%,#a8001a 42%,#d10022 60%,#8c0018 100%)',
-                boxShadow: '0 0 26px rgba(197,0,32,.5),inset 0 1px 0 rgba(255,120,120,.18)',
-              }}>
-              {loading
-                ? <><span className="w-4 h-4 border-2 border-white/25 border-t-white rounded-full animate-spin" /> Entrando…</>
-                : <>Acessar Painel <ArrowRight size={15} /></>}
-            </motion.button>
-          </div>
-        </motion.form>
+            {err && (
+              <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+                style={{ marginTop: 14, fontSize: 12, color: '#ff2b4a', letterSpacing: '0.02em', background: 'rgba(255,43,74,.10)', border: '1px solid rgba(255,43,74,.2)', borderRadius: 8, padding: '8px 12px' }}>
+                ⚠ {err}
+              </motion.div>
+            )}
 
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-          className="relative z-10 mt-8 text-[9px] font-mono text-zinc-700/80 tracking-[0.35em] uppercase">
-          Anti-Detect · IP Cloud · v2
+            <button type="submit" disabled={loading}
+              style={{ width: '100%', marginTop: 18, padding: '13px', borderRadius: 8, border: 'none', cursor: loading ? 'default' : 'pointer',
+                background: loading ? '#cc1b35' : '#cc1b35', color: '#fff', fontWeight: 600, fontSize: 14, letterSpacing: '0.05em', fontFamily: MONO,
+                boxShadow: '0 0 10px rgba(255,43,74,.15)', transition: 'background .2s', opacity: loading ? 0.8 : 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+              onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#ff2b4a' }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#cc1b35' }}>
+              {loading ? <><span className="animate-spin" style={{ width: 15, height: 15, border: '2px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block' }} /> ENTRANDO…</> : 'ENTRAR'}
+            </button>
+          </form>
+
+          {/* Rodapé */}
+          <div style={{ marginTop: 28, textAlign: 'center' }}>
+            <div style={{ fontSize: 11, letterSpacing: '0.35em' }}>
+              <span style={{ color: '#ff2b4a', fontWeight: 700 }}>ENCRYPTED</span><span style={{ color: '#52526e' }}> CHECKOUT</span>
+            </div>
+            <div style={{ color: '#2a2a42', fontSize: 9, letterSpacing: '0.25em', marginTop: 6 }}>v3.53.0 · MERCADO PAGO · 48 SLOTS</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 6 }}>
+              <div style={{ height: 1, width: 24, background: 'linear-gradient(to right, transparent, #1c1c33)' }} />
+              <div style={{ color: '#52526e', fontSize: 9, letterSpacing: '0.2em' }}>by <span style={{ color: '#ff2b4a', fontWeight: 700 }}>enCrypteD</span></div>
+              <div style={{ height: 1, width: 24, background: 'linear-gradient(to left, transparent, #1c1c33)' }} />
+            </div>
+          </div>
         </motion.div>
       </div>
     </>
