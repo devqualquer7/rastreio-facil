@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ScrollText, RefreshCw, Trash2, Link2,
@@ -157,18 +157,25 @@ function CancelModal({ log, onClose, onConfirm }: CancelModalProps) {
   )
 }
 
+const TAB_STORAGE_KEY = 'ec_logs_tab'
+
 // ── Main Logs component ───────────────────────────────────────────────────────
 export function Logs() {
   const { toast, isAdmin } = useApp()
   const [logs, setLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
-  const [tab, setTab] = useState<TabId>('todos')
-  const [cancelLog, setCancelLog] = useState<any | null>(null)   // log row pending cancellation
+  const [tab, setTab] = useState<TabId>(() => {
+    try { return (localStorage.getItem(TAB_STORAGE_KEY) as TabId) || 'todos' } catch { return 'todos' }
+  })
+  const [cancelLog, setCancelLog] = useState<any | null>(null)
   const [canceledRefs, setCanceledRefs] = useState<Set<string>>(new Set())
+
+  // Keep a ref to the active tab so the auto-refresh interval always fetches the right data
+  const tabRef = useRef<TabId>(tab)
 
   const visibleTabs = TABS.filter(t => !t.adminOnly || isAdmin)
 
-  async function load(t: TabId = tab) {
+  async function load(t: TabId = tabRef.current) {
     setLoading(true)
     try {
       const r = await fetch(`/api/ec/logs?tab=${t}&limit=500`)
@@ -190,7 +197,9 @@ export function Logs() {
   }
 
   function switchTab(t: TabId) {
+    tabRef.current = t
     setTab(t)
+    try { localStorage.setItem(TAB_STORAGE_KEY, t) } catch {}
     load(t)
   }
 
@@ -215,7 +224,12 @@ export function Logs() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  // Load on mount + auto-refresh every 15 s so new logs appear without manual refresh
+  useEffect(() => {
+    load()
+    const interval = setInterval(() => load(), 15_000)
+    return () => clearInterval(interval)
+  }, [])
 
   const activeTabMeta = TABS.find(t => t.id === tab)!
 
