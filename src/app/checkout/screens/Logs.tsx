@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   ScrollText, RefreshCw, Trash2, Link2,
   LogIn, CheckCircle2, XCircle, Clock, RotateCcw, LayoutList, ShieldCheck,
-  OctagonX, AlertTriangle, ArrowLeft
+  OctagonX, AlertTriangle, ArrowLeft, Copy, Check
 } from 'lucide-react'
 import { SectionTitle, Button } from '@/components/ec/ui/Base'
 import { useApp } from '@/lib/ec-store'
@@ -169,6 +169,7 @@ export function Logs() {
   })
   const [cancelLog, setCancelLog] = useState<any | null>(null)
   const [canceledRefs, setCanceledRefs] = useState<Set<string>>(new Set())
+  const [copiedRef, setCopiedRef] = useState<string | null>(null)
 
   // Keep a ref to the active tab so the auto-refresh interval always fetches the right data
   const tabRef = useRef<TabId>(tab)
@@ -201,6 +202,19 @@ export function Logs() {
     setTab(t)
     try { localStorage.setItem(TAB_STORAGE_KEY, t) } catch {}
     load(t)
+  }
+
+  async function handleCopy(log: any) {
+    const url = log.link
+    if (!url) { toast('error', 'Link não encontrado'); return }
+    const ref = extractRef(log.message) ?? ''
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiedRef(ref)
+      setTimeout(() => setCopiedRef(r => r === ref ? null : r), 2000)
+    } catch {
+      toast('error', 'Falha ao copiar')
+    }
   }
 
   async function handleCancel() {
@@ -298,6 +312,8 @@ export function Logs() {
               const isPaymentLink = log.level === 'link' && log.message?.startsWith('Link gerado')
               const ref = isPaymentLink ? extractRef(log.message) : null
               const alreadyCanceled = ref ? canceledRefs.has(ref) : false
+              const isCopied = ref ? copiedRef === ref : false
+              const hasLink = isPaymentLink && !!log.link
 
               return (
                 <motion.div
@@ -317,16 +333,40 @@ export function Logs() {
                       <div className="text-[11px] font-mono text-zinc-300 leading-relaxed break-all">{log.message}</div>
                       <div className="flex items-center gap-2 shrink-0">
                         <div className="text-[10px] font-mono text-zinc-700 tabular-nums whitespace-nowrap">{fmtDate(log.created_at)}</div>
+
+                        {/* Action group — só para links de pagamento não cancelados */}
                         {isPaymentLink && ref && !alreadyCanceled && (
-                          <button
-                            onClick={() => setCancelLog(log)}
-                            title="Cancelar este link"
-                            className="w-6 h-6 rounded-lg flex items-center justify-center text-zinc-600 hover:text-red-400 hover:bg-red-500/10 transition">
-                            <OctagonX size={13} />
-                          </button>
+                          <div className="flex items-center gap-0.5 rounded-lg border border-white/[0.07] bg-white/[0.025] p-0.5">
+                            {/* Copiar link */}
+                            {hasLink && (
+                              <button
+                                onClick={() => handleCopy(log)}
+                                title="Copiar link de pagamento"
+                                className={cn(
+                                  'flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-mono font-bold tracking-wider uppercase transition-all',
+                                  isCopied
+                                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                                    : 'text-zinc-500 hover:text-purple-300 hover:bg-purple-500/10'
+                                )}>
+                                {isCopied
+                                  ? <><Check size={10} className="shrink-0" /> Copiado</>
+                                  : <><Copy size={10} className="shrink-0" /> Copiar</>
+                                }
+                              </button>
+                            )}
+
+                            {/* Cancelar link */}
+                            <button
+                              onClick={() => setCancelLog(log)}
+                              title="Cancelar este link"
+                              className="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-mono font-bold tracking-wider uppercase text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all">
+                              <OctagonX size={10} className="shrink-0" /> Cancelar
+                            </button>
+                          </div>
                         )}
+
                         {alreadyCanceled && (
-                          <span className="text-[9px] font-mono text-red-500/60 font-bold tracking-wider">CANCELADO</span>
+                          <span className="text-[9px] font-mono text-red-500/60 font-bold tracking-wider px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/[0.06]">CANCELADO</span>
                         )}
                       </div>
                     </div>

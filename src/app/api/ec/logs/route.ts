@@ -41,6 +41,30 @@ export async function GET(req: NextRequest) {
 
     const { data } = await query
     const logs = (data ?? []).map(mapLog)
+
+    // Batch-fetch link URLs (MP checkout URL) for payment-link logs so the frontend can offer a copy button
+    const payLogs = logs.filter(l => l.level === 'link' && typeof l.message === 'string' && l.message.startsWith('Link gerado'))
+    if (payLogs.length > 0) {
+      const refs = payLogs
+        .map(l => (l.message as string).match(/\bEC-\d+-[A-Z0-9]+\b/)?.[0])
+        .filter((r): r is string => Boolean(r))
+      if (refs.length > 0) {
+        const { data: sales } = await sb
+          .from('web_sales')
+          .select('external_reference,link')
+          .in('external_reference', refs)
+        const linkMap = new Map<string, string | null>(
+          (sales ?? []).map((s: any) => [s.external_reference, s.link ?? null])
+        )
+        logs.forEach(l => {
+          const ref = typeof l.message === 'string'
+            ? l.message.match(/\bEC-\d+-[A-Z0-9]+\b/)?.[0]
+            : undefined
+          if (ref) (l as any).link = linkMap.get(ref) ?? null
+        })
+      }
+    }
+
     return NextResponse.json({ ok: true, logs })
   } catch (e: any) {
     if (e.message === 'UNAUTHORIZED') return NextResponse.json({ ok: false, error: 'Não autenticado' }, { status: 401 })
