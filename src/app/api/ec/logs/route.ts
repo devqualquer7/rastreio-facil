@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSession } from '@/lib/ec-auth'
-import { db, getSupabase } from '@/lib/ec-supabase'
+import { db, addLog, getSupabase } from '@/lib/ec-supabase'
 
 // Maps web_logs DB columns to the API response shape the frontend expects
 function mapLog(row: any) {
   // Actor: coluna dedicada `username` quando existir, senão extrai do "· por @x" da descrição.
   const inlineUser = typeof row.description === 'string'
-    ? (row.description.match(/·\s*por\s*@([\w.\-]+)\s*$/i)?.[1] ?? null)
+    ? (row.description.match(/\s*·\s*por\s*@([\w.\-]+)\s*$/i)?.[1] ?? null)
     : null
+  // Strip the "· por @username" suffix from the displayed message — it's shown separately as a badge.
+  const rawDesc: string = row.description ?? ''
+  const message = rawDesc.replace(/\s*·\s*por\s*@[\w.\-]+\s*$/i, '').trim()
   return {
     id:         row.id,
-    level:      row.type,        // DB: type  → frontend: level
-    message:    row.description, // DB: description → frontend: message
-    context:    row.slot_name ?? row.reference ?? null,
+    level:      row.type,   // DB: type  → frontend: level
+    message,                // DB: description without the inline "· por @x" actor suffix
+    context:    row.slot_name ?? null,
     slot:       row.slot ?? null,
     amount:     row.amount ?? null,
     username:   row.username ?? inlineUser,
@@ -47,9 +50,11 @@ export async function GET(req: NextRequest) {
 
 export async function DELETE() {
   try {
-    await requireSession()
+    const { username } = await requireSession()
     const supabase = getSupabase()
-    await supabase.from('web_logs').delete().neq('id', 0)
+    // Delete all log rows — Supabase requires at least one filter, use a always-true condition
+    await supabase.from('web_logs').delete().gte('created_at', '2000-01-01T00:00:00Z')
+    await addLog('error', 'Todos os logs foram apagados', 'admin', username)
     return NextResponse.json({ ok: true })
   } catch (e: any) {
     if (e.message === 'UNAUTHORIZED') return NextResponse.json({ ok: false, error: 'Não autenticado' }, { status: 401 })

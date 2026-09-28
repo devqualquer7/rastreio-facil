@@ -281,8 +281,8 @@ export function Logs() {
             {logs.map((log, i) => {
               const s = levelStyle(log.level)
               const Icon = s.icon
-              const isLink = log.level === 'link'
-              const ref = isLink ? extractRef(log.message) : null
+              const isPaymentLink = log.level === 'link' && log.message?.startsWith('Link gerado')
+              const ref = isPaymentLink ? extractRef(log.message) : null
               const alreadyCanceled = ref ? canceledRefs.has(ref) : false
 
               return (
@@ -303,11 +303,11 @@ export function Logs() {
                       <div className="text-[11px] font-mono text-zinc-300 leading-relaxed break-all">{log.message}</div>
                       <div className="flex items-center gap-2 shrink-0">
                         <div className="text-[10px] font-mono text-zinc-700 tabular-nums whitespace-nowrap">{fmtDate(log.created_at)}</div>
-                        {isLink && ref && !alreadyCanceled && (
+                        {isPaymentLink && ref && !alreadyCanceled && (
                           <button
                             onClick={() => setCancelLog(log)}
                             title="Cancelar este link"
-                            className="w-6 h-6 rounded-lg flex items-center justify-center text-zinc-700 hover:text-red-400 hover:bg-red-500/10 transition opacity-0 group-hover:opacity-100">
+                            className="w-6 h-6 rounded-lg flex items-center justify-center text-zinc-600 hover:text-red-400 hover:bg-red-500/10 transition">
                             <OctagonX size={13} />
                           </button>
                         )}
