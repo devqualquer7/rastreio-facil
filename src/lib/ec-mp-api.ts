@@ -54,6 +54,7 @@ export class MPAPI {
     payerEmail?: string
     categoryId?: string | null
     excludedPaymentTypes?: string[]
+    excludedPaymentMethods?: string[]
     statementDescriptor?: string
     backUrls?: { success?: string; failure?: string; pending?: string }
     autoReturn?: string
@@ -81,10 +82,14 @@ export class MPAPI {
       const clean = input.statementDescriptor.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 22)
       if (clean) body.statement_descriptor = clean
     }
-    if (input.excludedPaymentTypes?.length) {
+    if (input.excludedPaymentTypes?.length || input.excludedPaymentMethods?.length) {
       const FORBIDDEN = new Set(['account_money'])
-      const cleaned = input.excludedPaymentTypes.filter(t => t && !FORBIDDEN.has(t))
-      if (cleaned.length) body.payment_methods = { excluded_payment_types: cleaned.map(t => ({ id: t })) }
+      const cleanTypes   = (input.excludedPaymentTypes   ?? []).filter(t => t && !FORBIDDEN.has(t))
+      const cleanMethods = (input.excludedPaymentMethods ?? []).filter(m => m && !FORBIDDEN.has(m))
+      const pm: any = {}
+      if (cleanTypes.length)   pm.excluded_payment_types   = cleanTypes.map(t => ({ id: t }))
+      if (cleanMethods.length) pm.excluded_payment_methods = cleanMethods.map(m => ({ id: m }))
+      if (Object.keys(pm).length) body.payment_methods = pm
     }
 
     const r = await fetch(`${BASE}/checkout/preferences`, {

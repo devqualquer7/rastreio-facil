@@ -1,12 +1,81 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Zap, X, Copy, ExternalLink, CheckCircle2, RefreshCw, DollarSign, FileText } from 'lucide-react'
+import {
+  Sparkles, Zap, X, Copy, ExternalLink, CheckCircle2, RefreshCw,
+  DollarSign, FileText, CreditCard, Landmark, Building2, Wallet,
+  ChevronDown, ChevronUp
+} from 'lucide-react'
 import { ModalBackdrop, Button } from '@/components/ec/ui/Base'
 import { useApp } from '@/lib/ec-store'
 import { fmtBRL } from '@/lib/ec-utils'
 
 type Step = 'form' | 'result'
+
+const ALL_METHOD_IDS = ['credit_card', 'debit_card', 'pix', 'boleto', 'loterica', 'prepaid_card']
+
+const PAYMENT_OPTIONS = [
+  {
+    id: 'credit_card',
+    label: 'Cartão de Crédito',
+    desc: 'Visa, Master, Elo, Amex…',
+    icon: CreditCard,
+    color: 'text-violet-400',
+  },
+  {
+    id: 'debit_card',
+    label: 'Cartão de Débito',
+    desc: 'Débito em conta bancária',
+    icon: Landmark,
+    color: 'text-blue-400',
+  },
+  {
+    id: 'pix',
+    label: 'Pix',
+    desc: 'Transferência instantânea',
+    icon: Zap,
+    color: 'text-emerald-400',
+  },
+  {
+    id: 'boleto',
+    label: 'Boleto Bancário',
+    desc: 'Paga em qualquer banco',
+    icon: FileText,
+    color: 'text-amber-400',
+  },
+  {
+    id: 'loterica',
+    label: 'Lotérica / Caixa',
+    desc: 'Pagamento em lotéricas',
+    icon: Building2,
+    color: 'text-orange-400',
+  },
+  {
+    id: 'prepaid_card',
+    label: 'Cartão Pré-pago',
+    desc: 'Crédito pré-carregado',
+    icon: Wallet,
+    color: 'text-cyan-400',
+  },
+]
+
+function Toggle({ enabled, onChange }: { enabled: boolean; onChange: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onChange}
+      className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${
+        enabled ? 'bg-emerald-500' : 'bg-white/10'
+      }`}
+      aria-pressed={enabled}>
+      <span
+        className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${
+          enabled ? 'left-[18px]' : 'left-0.5'
+        }`}
+      />
+    </button>
+  )
+}
 
 export function GenerateModal() {
   const { closeModal, activeCred, toast } = useApp()
@@ -17,6 +86,8 @@ export function GenerateModal() {
   const [email, setEmail] = useState('')
   const [result, setResult] = useState<{ link?: string; ref?: string; amount?: number } | null>(null)
   const [copied, setCopied] = useState(false)
+  const [selectedMethods, setSelectedMethods] = useState<string[]>(ALL_METHOD_IDS)
+  const [methodsOpen, setMethodsOpen] = useState(false)
 
   // Load default title on mount
   useEffect(() => {
@@ -26,16 +97,32 @@ export function GenerateModal() {
       .catch(() => {})
   }, [])
 
+  function toggleMethod(id: string) {
+    setSelectedMethods(prev =>
+      prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
+    )
+  }
+
+  function toggleAll() {
+    setSelectedMethods(prev => prev.length === ALL_METHOD_IDS.length ? [] : [...ALL_METHOD_IDS])
+  }
+
   async function generate() {
     const amt = parseFloat(amount.replace(',', '.'))
     if (!amt || amt <= 0) { toast('error', 'Valor inválido'); return }
     if (!title.trim()) { toast('error', 'Título obrigatório'); return }
+    if (selectedMethods.length === 0) { toast('error', 'Selecione ao menos um método de pagamento'); return }
     setLoading(true)
     try {
       const r = await fetch('/api/ec/sales/generate', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ amount: amt, title: title.trim(), email: email.trim() || undefined })
+        body: JSON.stringify({
+          amount: amt,
+          title: title.trim(),
+          email: email.trim() || undefined,
+          selectedMethods,
+        })
       })
       const d = await r.json()
       if (d.ok) {
@@ -61,8 +148,11 @@ export function GenerateModal() {
     setEmail('')
     setResult(null)
     setCopied(false)
-    // Keep title for convenience (user can clear if needed)
+    // Keep title + selectedMethods for convenience
   }
+
+  const allSelected = selectedMethods.length === ALL_METHOD_IDS.length
+  const noneSelected = selectedMethods.length === 0
 
   return (
     <ModalBackdrop onClose={closeModal}>
@@ -154,7 +244,80 @@ export function GenerateModal() {
                     />
                   </div>
 
-                  <button onClick={generate} disabled={loading || !activeCred?.connected}
+                  {/* Métodos de Pagamento */}
+                  <div className="rounded-xl border border-white/[0.08] overflow-hidden">
+                    {/* Accordion header */}
+                    <button
+                      type="button"
+                      onClick={() => setMethodsOpen(v => !v)}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.03] transition-colors">
+                      <div className="flex items-center gap-2">
+                        <CreditCard size={11} className="text-purple-400" />
+                        <span className="text-[10px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase">
+                          Métodos de Pagamento
+                        </span>
+                        {!allSelected && (
+                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-400 tracking-wider">
+                            {selectedMethods.length}/{ALL_METHOD_IDS.length}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={e => { e.stopPropagation(); toggleAll() }}
+                          className="text-[9px] font-mono font-bold tracking-widest text-purple-400/70 hover:text-purple-300 transition uppercase px-2 py-1 rounded-lg hover:bg-purple-500/10">
+                          {allSelected ? 'DESMARCAR' : 'MARCAR'} TODOS
+                        </button>
+                        {methodsOpen ? (
+                          <ChevronUp size={13} className="text-zinc-600" />
+                        ) : (
+                          <ChevronDown size={13} className="text-zinc-600" />
+                        )}
+                      </div>
+                    </button>
+
+                    {/* Accordion body */}
+                    <AnimatePresence>
+                      {methodsOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden">
+                          <div className="border-t border-white/[0.05] divide-y divide-white/[0.04]">
+                            {PAYMENT_OPTIONS.map(opt => {
+                              const Icon = opt.icon
+                              const enabled = selectedMethods.includes(opt.id)
+                              return (
+                                <div key={opt.id}
+                                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.02] transition-colors cursor-pointer"
+                                  onClick={() => toggleMethod(opt.id)}>
+                                  <div className={`w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.07] flex items-center justify-center shrink-0`}>
+                                    <Icon size={12} className={opt.color} />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-[11px] font-mono text-zinc-300 leading-none mb-0.5">{opt.label}</div>
+                                    <div className="text-[9px] font-mono text-zinc-600">{opt.desc}</div>
+                                  </div>
+                                  <Toggle enabled={enabled} onChange={() => toggleMethod(opt.id)} />
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {noneSelected && (
+                      <div className="px-4 pb-3 text-[10px] font-mono text-red-400/80">
+                        ⚠ Selecione ao menos um método
+                      </div>
+                    )}
+                  </div>
+
+                  <button onClick={generate} disabled={loading || !activeCred?.connected || noneSelected}
                     className="relative w-full py-3.5 rounded-2xl bg-gradient-to-br from-violet-700 via-purple-500 to-cyan-300 text-white font-black tracking-wide text-sm uppercase shadow-[0_0_25px_rgba(168,85,247,.45)] hover:shadow-[0_0_40px_rgba(168,85,247,.6)] active:scale-95 disabled:opacity-40 transition-all flex items-center justify-center gap-2">
                     {loading ? (
                       <><RefreshCw size={14} className="animate-spin" /> Gerando…</>

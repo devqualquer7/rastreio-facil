@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   let cred: any = null
   try {
     const { username } = await requireSession()
-    const { amount, title, email } = await req.json()
+    const { amount, title, email, selectedMethods } = await req.json()
 
     if (!amount || amount <= 0) return NextResponse.json({ ok: false, error: 'Valor inválido' })
     if (!title?.trim()) return NextResponse.json({ ok: false, error: 'Título obrigatório' })
@@ -25,6 +25,25 @@ export async function POST(req: NextRequest) {
     const api = new MPAPI(token)
     const ref = genRef()
 
+    // Compute MP payment method exclusions based on which methods were deselected
+    const ALL_METHODS = ['credit_card', 'debit_card', 'pix', 'boleto', 'loterica', 'prepaid_card']
+    const METHOD_TO_TYPES: Record<string, string[]> = {
+      credit_card:  ['credit_card'],
+      debit_card:   ['debit_card'],
+      prepaid_card: ['prepaid_card'],
+    }
+    const METHOD_TO_METHODS: Record<string, string[]> = {
+      pix:      ['pix'],
+      boleto:   ['bolbradesco', 'pec'],
+      loterica: ['lotex'],
+    }
+    const selected = Array.isArray(selectedMethods) && selectedMethods.length > 0
+      ? selectedMethods
+      : ALL_METHODS
+    const deselected = ALL_METHODS.filter(m => !selected.includes(m))
+    const excludedTypes: string[]   = deselected.flatMap(m => METHOD_TO_TYPES[m]   ?? [])
+    const excludedMethods: string[] = deselected.flatMap(m => METHOD_TO_METHODS[m] ?? [])
+
     // back_urls / auto_return deliberately omitted — they add a "Voltar pra loja"
     // button on mobile that exposes the panel URL to payers
     const preference = await api.createPreference({
@@ -32,6 +51,8 @@ export async function POST(req: NextRequest) {
       amount: Number(amount),
       externalReference: ref,
       ...(email && { payerEmail: email }),
+      ...(excludedTypes.length   && { excludedPaymentTypes:   excludedTypes }),
+      ...(excludedMethods.length && { excludedPaymentMethods: excludedMethods }),
     })
 
     if (!preference?.init_point) {

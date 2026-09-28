@@ -1,9 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   ScrollText, RefreshCw, Trash2, Link2,
-  LogIn, CheckCircle2, XCircle, Clock, RotateCcw, LayoutList, ShieldCheck
+  LogIn, CheckCircle2, XCircle, Clock, RotateCcw, LayoutList, ShieldCheck,
+  OctagonX, AlertTriangle, ArrowLeft
 } from 'lucide-react'
 import { SectionTitle, Button } from '@/components/ec/ui/Base'
 import { useApp } from '@/lib/ec-store'
@@ -38,11 +39,132 @@ function levelStyle(level: string) {
   }
 }
 
+/** Extracts the EC-xxx-xxx reference from a log message */
+function extractRef(message: string): string | null {
+  return message?.match(/\bEC-\d+-[A-Z0-9]+\b/)?.[0] ?? null
+}
+
+/** Extracts a short title (3rd segment after ·) from a "Link gerado · R$ x · Título · ref" message */
+function extractTitle(message: string): string {
+  const parts = message?.split(' · ')
+  if (parts && parts.length >= 3) return parts[2]
+  return message ?? ''
+}
+
+// ── Cancel confirmation modal ─────────────────────────────────────────────────
+interface CancelModalProps {
+  log: any
+  onClose: () => void
+  onConfirm: () => Promise<void>
+}
+
+function CancelModal({ log, onClose, onConfirm }: CancelModalProps) {
+  const [loading, setLoading] = useState(false)
+  const title = extractTitle(log.message)
+  const ref   = extractRef(log.message)
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'Enter' && !loading) handleConfirm()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [loading])
+
+  async function handleConfirm() {
+    setLoading(true)
+    try { await onConfirm() } finally { setLoading(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 8 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+        className="relative z-10 w-full max-w-sm bg-gradient-to-b from-[#0d0d18]/98 to-[#09090f]/98 backdrop-blur-2xl border border-red-500/25 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(239,68,68,.2)]">
+
+        {/* Top glow */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
+        <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-40 h-40 rounded-full bg-red-500/12 blur-3xl pointer-events-none" />
+
+        <div className="relative p-6 text-center">
+          {/* Icon */}
+          <div className="relative w-14 h-14 mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full bg-red-500/30 blur-xl animate-pulse" />
+            <div className="relative w-full h-full rounded-full bg-gradient-to-br from-red-500/20 to-red-500/5 border-2 border-red-500/40 flex items-center justify-center">
+              <OctagonX size={24} className="text-red-400" strokeWidth={2} />
+            </div>
+          </div>
+
+          {/* Title */}
+          <div className="font-black text-lg text-zinc-100 tracking-tight mb-1">Cancelar link?</div>
+          {title && (
+            <div className="text-xs font-mono text-purple-300/80 mb-4 truncate px-2">{title}</div>
+          )}
+
+          {/* Warning */}
+          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-red-500/[0.08] border border-red-500/20 text-left mb-5">
+            <AlertTriangle size={13} className="text-red-400 shrink-0 mt-0.5" />
+            <p className="text-[11px] font-mono text-red-300/80 leading-relaxed">
+              O link vai parar de aceitar pagamentos <strong className="text-red-300">imediatamente</strong>.
+              Esta ação <strong className="text-red-300">NÃO pode ser desfeita</strong>.
+            </p>
+          </div>
+
+          {ref && (
+            <div className="text-[9px] font-mono text-zinc-700 mb-5 tracking-widest">{ref}</div>
+          )}
+
+          {/* Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 py-3 rounded-xl border border-white/[0.08] bg-white/[0.03] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] text-xs font-mono font-bold tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 disabled:opacity-40">
+              <ArrowLeft size={12} /> Voltar
+            </button>
+            <button
+              onClick={handleConfirm}
+              disabled={loading}
+              className="flex-1 py-3 rounded-xl bg-gradient-to-br from-red-700 to-red-500 text-white text-xs font-black tracking-widest uppercase shadow-[0_0_20px_rgba(239,68,68,.35)] hover:shadow-[0_0_30px_rgba(239,68,68,.5)] active:scale-95 disabled:opacity-40 transition-all flex items-center justify-center gap-1.5">
+              {loading ? (
+                <><RefreshCw size={12} className="animate-spin" /> Cancelando…</>
+              ) : (
+                <><OctagonX size={12} /> Cancelar Link</>
+              )}
+            </button>
+          </div>
+
+          <div className="mt-3 text-[9px] font-mono text-zinc-700 tracking-widest">
+            ESC · voltar &nbsp;·&nbsp; ENTER · confirmar
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
+// ── Main Logs component ───────────────────────────────────────────────────────
 export function Logs() {
   const { toast, isAdmin } = useApp()
   const [logs, setLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [tab, setTab] = useState<TabId>('todos')
+  const [cancelLog, setCancelLog] = useState<any | null>(null)   // log row pending cancellation
+  const [canceledRefs, setCanceledRefs] = useState<Set<string>>(new Set())
 
   const visibleTabs = TABS.filter(t => !t.adminOnly || isAdmin)
 
@@ -72,6 +194,27 @@ export function Logs() {
     load(t)
   }
 
+  async function handleCancel() {
+    if (!cancelLog) return
+    const ref = extractRef(cancelLog.message)
+    if (!ref) { toast('error', 'Referência não encontrada no log'); setCancelLog(null); return }
+
+    const r = await fetch('/api/ec/sales/cancel', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ref }),
+    })
+    const d = await r.json()
+    if (d.ok) {
+      toast('success', 'Link cancelado com sucesso')
+      setCanceledRefs(prev => new Set([...prev, ref]))
+      setCancelLog(null)
+    } else {
+      toast('error', d.error || 'Falha ao cancelar link')
+      setCancelLog(null)
+    }
+  }
+
   useEffect(() => { load() }, [])
 
   const activeTabMeta = TABS.find(t => t.id === tab)!
@@ -94,7 +237,7 @@ export function Logs() {
         </>}
       />
 
-      {/* Tabs — style matching the design reference */}
+      {/* Tabs */}
       <div className="flex items-center gap-1.5 mb-5 flex-wrap">
         {visibleTabs.map(t => {
           const Icon = t.icon
@@ -138,20 +281,40 @@ export function Logs() {
             {logs.map((log, i) => {
               const s = levelStyle(log.level)
               const Icon = s.icon
+              const isLink = log.level === 'link'
+              const ref = isLink ? extractRef(log.message) : null
+              const alreadyCanceled = ref ? canceledRefs.has(ref) : false
+
               return (
                 <motion.div
                   key={log.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: Math.min(i * 0.006, 0.18) }}
-                  className="px-4 py-3 flex items-start gap-3 hover:bg-white/[0.02] transition group">
+                  className={cn(
+                    'px-4 py-3 flex items-start gap-3 transition group',
+                    alreadyCanceled ? 'opacity-40' : 'hover:bg-white/[0.02]'
+                  )}>
                   <div className={cn('w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5', s.bg, s.border)}>
                     <Icon size={12} className={s.text} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-3 mb-0.5">
                       <div className="text-[11px] font-mono text-zinc-300 leading-relaxed break-all">{log.message}</div>
-                      <div className="text-[10px] font-mono text-zinc-700 shrink-0 tabular-nums whitespace-nowrap">{fmtDate(log.created_at)}</div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="text-[10px] font-mono text-zinc-700 tabular-nums whitespace-nowrap">{fmtDate(log.created_at)}</div>
+                        {isLink && ref && !alreadyCanceled && (
+                          <button
+                            onClick={() => setCancelLog(log)}
+                            title="Cancelar este link"
+                            className="w-6 h-6 rounded-lg flex items-center justify-center text-zinc-700 hover:text-red-400 hover:bg-red-500/10 transition opacity-0 group-hover:opacity-100">
+                            <OctagonX size={13} />
+                          </button>
+                        )}
+                        {alreadyCanceled && (
+                          <span className="text-[9px] font-mono text-red-500/60 font-bold tracking-wider">CANCELADO</span>
+                        )}
+                      </div>
                     </div>
                     {log.username && (
                       <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded border bg-red-500/10 border-red-500/25 text-red-400 uppercase mt-0.5 mr-1">
@@ -173,6 +336,17 @@ export function Logs() {
           </div>
         )}
       </div>
+
+      {/* Cancel confirmation modal */}
+      <AnimatePresence>
+        {cancelLog && (
+          <CancelModal
+            log={cancelLog}
+            onClose={() => setCancelLog(null)}
+            onConfirm={handleCancel}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
