@@ -369,13 +369,21 @@ export async function addLog(level: string, message: string, context?: string, u
     ...(context != null ? { slot_name: context } : {}),
   }
   try {
-    // Tenta gravar a coluna `username` (best-effort — se não existir, faz fallback).
-    await sb.from('web_logs').insert(username ? { ...base, username } : base)
-  } catch (e: any) {
-    try {
-      await sb.from('web_logs').insert(base)  // retry sem a coluna extra
-    } catch (e2) {
-      console.error('[addLog]', e2)
+    // Supabase v2 returns { error } instead of throwing — must check explicitly.
+    // Try with the dedicated `username` column first; fall back without it if the column doesn't exist.
+    if (username) {
+      const { error } = await sb.from('web_logs').insert({ ...base, username })
+      if (error) {
+        // Column may not exist yet — retry without it (username is already in the description)
+        const { error: e2 } = await sb.from('web_logs').insert(base)
+        if (e2) console.error('[addLog] retry failed:', e2)
+      }
+    } else {
+      const { error } = await sb.from('web_logs').insert(base)
+      if (error) console.error('[addLog] insert failed:', error)
     }
+  } catch (e) {
+    // Network-level errors still throw
+    console.error('[addLog] unexpected error:', e)
   }
 }
