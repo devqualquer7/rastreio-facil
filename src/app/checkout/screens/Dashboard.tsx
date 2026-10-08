@@ -7,9 +7,14 @@ import { StatCard } from '@/components/ec/StatCard'
 import { useApp } from '@/lib/ec-store'
 import { fmtBRL, fmtDate } from '@/lib/ec-utils'
 
+// Última lista recebida: ao voltar para o Dashboard os números aparecem na hora,
+// em vez de zerarem enquanto a API responde.
+let salesCache: any[] | null = null
+
 export function Dashboard() {
   const { openModal, setScreen, toast, username } = useApp()
-  const [sales, setSales] = useState<any[]>([])
+  const [sales, setSales] = useState<any[]>(salesCache ?? [])
+  const [loaded, setLoaded] = useState(salesCache !== null)
   const [loading, setLoading] = useState(false)
 
   const stats = useMemo(() => {
@@ -34,8 +39,9 @@ export function Dashboard() {
         body: JSON.stringify({ limit: 500 })
       })
       const d = await r.json()
-      if (d.ok) setSales(d.sales || [])
-    } finally { setLoading(false) }
+      if (d.ok) { salesCache = d.sales || []; setSales(salesCache!) }
+    } catch { /* mantém o que já está na tela */ }
+    finally { setLoading(false); setLoaded(true) }
   }
 
   async function pollNow() {
@@ -46,7 +52,19 @@ export function Dashboard() {
     } catch { toast('error', 'Erro no poll') }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    // A página já busca as vendas a cada 15s para as notificações — reaproveita
+    // essa lista para manter o Dashboard ao vivo sem outra requisição.
+    function onSales(e: Event) {
+      const list = (e as CustomEvent).detail
+      if (Array.isArray(list)) { salesCache = list; setSales(list); setLoaded(true) }
+    }
+    window.addEventListener('ec:sales', onSales)
+    return () => window.removeEventListener('ec:sales', onSales)
+  }, [])
+
+  const dash = (v: string) => (loaded ? v : '—')
 
   const approvalRate = useMemo(() => {
     const fin = stats.approved + stats.rejected
@@ -72,12 +90,12 @@ export function Dashboard() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <StatCard icon={<CheckCircle2 size={20} />} label="Aprovadas" value={String(stats.approved)}
-          sub={fmtBRL(stats.totalApprovedAmount)} color="success" delay={0.05} onClick={() => setScreen('extrato')} />
-        <StatCard icon={<XCircle size={20} />} label="Recusadas" value={String(stats.rejected)} color="danger" delay={0.1} onClick={() => setScreen('extrato')} />
-        <StatCard icon={<Clock size={20} />} label="Pendentes" value={String(stats.pending)} color="warning" delay={0.15} onClick={() => setScreen('extrato')} />
-        <StatCard icon={<DollarSign size={20} />} label="Líquido" value={fmtBRL(stats.totalNetAmount)}
-          sub={`taxa · ${approvalRate.toFixed(1)}%`} color="primary" delay={0.2} />
+        <StatCard icon={<CheckCircle2 size={20} />} label="Aprovadas" value={dash(String(stats.approved))}
+          sub={loaded ? fmtBRL(stats.totalApprovedAmount) : undefined} color="success" delay={0.05} onClick={() => setScreen('extrato')} />
+        <StatCard icon={<XCircle size={20} />} label="Recusadas" value={dash(String(stats.rejected))} color="danger" delay={0.1} onClick={() => setScreen('extrato')} />
+        <StatCard icon={<Clock size={20} />} label="Pendentes" value={dash(String(stats.pending))} color="warning" delay={0.15} onClick={() => setScreen('extrato')} />
+        <StatCard icon={<DollarSign size={20} />} label="Líquido" value={dash(fmtBRL(stats.totalNetAmount))}
+          sub={loaded ? `taxa · ${approvalRate.toFixed(1)}%` : undefined} color="primary" delay={0.2} />
       </div>
 
       {(stats.approved + stats.rejected > 0) && (
@@ -114,7 +132,20 @@ export function Dashboard() {
             VER TODAS →
           </button>
         </div>
-        {recent.length === 0 ? (
+        {!loaded ? (
+          <div className="divide-y divide-red-600/[0.06]">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="px-5 py-3.5 flex items-center justify-between gap-4 animate-pulse">
+                <div className="flex-1 space-y-2">
+                  <div className="h-3.5 rounded bg-white/[0.07]" style={{ width: `${38 + (i % 3) * 12}%` }} />
+                  <div className="h-2.5 w-1/4 rounded bg-white/[0.04]" />
+                </div>
+                <div className="h-3.5 w-20 rounded bg-white/[0.07]" />
+                <div className="h-5 w-16 rounded-full bg-white/[0.05]" />
+              </div>
+            ))}
+          </div>
+        ) : recent.length === 0 ? (
           <div className="py-12 text-center text-zinc-500 text-xs font-mono">
             Nenhuma venda ainda. Clique em <span className="text-red-400">GERAR LINK</span>.
           </div>

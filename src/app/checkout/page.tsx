@@ -90,6 +90,8 @@ export default function CheckoutPage() {
       const d = await listResp.json()
       if (!d.ok) return
       const list: any[] = d.sales || []
+      // O Dashboard escuta esse evento e se atualiza sem fazer outra requisição
+      window.dispatchEvent(new CustomEvent('ec:sales', { detail: list }))
 
       if (initializedRef.current) {
         for (const sale of list) {

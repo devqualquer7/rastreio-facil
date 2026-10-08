@@ -22,7 +22,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Pusher from 'pusher'
 import { db } from '@/lib/ec-supabase'
-import { BRIDGE_ID_SETTING } from '@/lib/ec-autopix'
+import { BRIDGE_ID_SETTING, BRIDGE_SERVER_ID_SETTING } from '@/lib/ec-autopix'
 
 function getPusher(): Pusher | null {
   const appId   = process.env.PUSHER_APP_ID
@@ -79,7 +79,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Auth inválido.' }, { status: 401 })
       }
       // Guarda o id da ponte do desktop: o painel /checkout usa para pedir Pix automático
-      await db.setSetting(BRIDGE_ID_SETTING, channelName.replace('presence-bridge-', '')).catch(() => {})
+      // O app em "modo servidor" (máquina 24h) se identifica; ele tem prioridade sobre o PC de uso
+      const isServer = request.headers.get('x-bridge-role') === 'server'
+      await db.setSetting(isServer ? BRIDGE_SERVER_ID_SETTING : BRIDGE_ID_SETTING, channelName.replace('presence-bridge-', '')).catch(() => {})
       const presenceData = {
         user_id: 'desktop',
         user_info: { role: 'desktop' },

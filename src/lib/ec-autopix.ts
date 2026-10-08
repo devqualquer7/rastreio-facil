@@ -16,6 +16,20 @@ import { db } from '@/lib/ec-supabase'
 
 /** web_settings key onde o bridge-auth grava o id do último desktop conectado */
 export const BRIDGE_ID_SETTING = 'bridge:desktop_id'
+/** idem, para o app rodando em "modo servidor" (máquina sempre ligada) */
+export const BRIDGE_SERVER_ID_SETTING = 'bridge:server_id'
+
+const VALID_ID = /^[a-f0-9]+$/
+
+/** Alguém está conectado nesse canal agora? Na dúvida (erro na consulta) assume que sim. */
+async function isOnline(pusher: Pusher, bridgeId: string): Promise<boolean> {
+  try {
+    const r = await pusher.get({ path: `/channels/presence-bridge-${bridgeId}/users` })
+    if (r.status !== 200) return true
+    const body: any = await r.json()
+    return Array.isArray(body?.users) && body.users.some((u: any) => u.id === 'desktop')
+  } catch { return true }
+}
 
 export type AutoPixResult =
   | { ok: true; code: string; qrBase64: string }
@@ -33,12 +47,22 @@ export async function requestAutoPix(link: string): Promise<AutoPixResult> {
       return { ok: false, reason: 'offline', message: 'Ponte com o PC não configurada no servidor.' }
     }
 
-    const bridgeId = process.env.BRIDGE_ID || await db.getSetting(BRIDGE_ID_SETTING)
-    if (!bridgeId || !/^[a-f0-9]+$/.test(String(bridgeId))) {
+    const pusher = new Pusher({ appId, key, secret, cluster: process.env.PUSHER_CLUSTER || 'sa1', useTLS: true })
+
+    // Ordem de preferência: máquina 24h (modo servidor) → PC de uso. Usa a primeira que estiver online.
+    const candidates = [
+      await db.getSetting(BRIDGE_SERVER_ID_SETTING),
+      process.env.BRIDGE_ID || await db.getSetting(BRIDGE_ID_SETTING),
+    ].map(v => String(v || '')).filter(v => VALID_ID.test(v))
+    if (!candidates.length) {
       return { ok: false, reason: 'offline', message: 'Nenhum PC pareado ainda — abra o app desktop atualizado.' }
     }
+    let bridgeId = ''
+    for (const c of candidates) { if (await isOnline(pusher, c)) { bridgeId = c; break } }
+    if (!bridgeId) {
+      return { ok: false, reason: 'offline', message: 'Nenhuma máquina com o app está online agora.' }
+    }
 
-    const pusher = new Pusher({ appId, key, secret, cluster: process.env.PUSHER_CLUSTER || 'sa1', useTLS: true })
     const id = randomUUID()
     const envelope = { id, command: 'mp:auto-pix', args: { link }, ts: Date.now() }
     const sig = sign(JSON.stringify(envelope))

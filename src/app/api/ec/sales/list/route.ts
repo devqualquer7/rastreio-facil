@@ -17,9 +17,16 @@ export async function POST(req: NextRequest) {
         const sb = getSupabase()
         const keys = refs.map((r: string) => `sale:by:${r}`)
         const byMap: Record<string, string> = {}
-        // .in() aguenta bem algumas centenas de chaves
-        const { data } = await sb.from('web_settings').select('key,value').in('key', keys)
-        for (const row of (data ?? [])) byMap[(row as any).key.replace('sale:by:', '')] = (row as any).value
+        // Em lotes paralelos de 100: com 500 chaves num único .in() a URL da consulta
+        // passava de 17 KB e a resposta ficava lenta (ou falhava e vinha sem created_by).
+        const chunks: string[][] = []
+        for (let i = 0; i < keys.length; i += 100) chunks.push(keys.slice(i, i + 100))
+        const results = await Promise.all(
+          chunks.map(c => sb.from('web_settings').select('key,value').in('key', c))
+        )
+        for (const { data } of results) {
+          for (const row of (data ?? [])) byMap[(row as any).key.replace('sale:by:', '')] = (row as any).value
+        }
         for (const s of sales) (s as any).created_by = byMap[s.external_reference] ?? null
       }
     } catch { /* se falhar, segue sem created_by — a tela cai no comportamento antigo */ }
