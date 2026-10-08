@@ -57,7 +57,10 @@ export function SwitchAccountModal() {
         <div className="relative p-4 space-y-2 max-h-80 overflow-y-auto">
           {creds.length === 0 ? (
             <div className="py-8 text-center text-zinc-500 text-xs font-mono">Nenhuma conta cadastrada</div>
-          ) : creds.map((c, i) => {
+          ) : [...creds].sort((a, b) => {
+            const rank = (c: (typeof creds)[number]) => c.is_active ? 0 : c.health_status === 'banned' ? 3 : c.locked ? 2 : 1
+            return rank(a) - rank(b) || a.slot - b.slot
+          }).map((c, i) => {
             const isActive = c.is_active
             const banned = c.health_status === 'banned'
             const blocked = !!c.locked && !isAdmin   // bloqueada pelo admin: aparece, mas não dá para escolher

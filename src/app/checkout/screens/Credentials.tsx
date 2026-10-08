@@ -143,6 +143,12 @@ export function Credentials() {
 
   const bannedCount = creds.filter(c => c.health_status === 'banned').length
 
+  // Ordem dos cartões: a conta em uso, depois as liberadas, as bloqueadas e por fim as banidas
+  // (dentro de cada grupo, pelo número do slot)
+  const rank = (c: (typeof creds)[number]) =>
+    c.is_active ? 0 : c.health_status === 'banned' ? 3 : c.locked ? 2 : 1
+  const sortedCreds = [...creds].sort((a, b) => rank(a) - rank(b) || a.slot - b.slot)
+
   return (
     <div>
       <SectionTitle
@@ -293,7 +299,7 @@ export function Credentials() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
-          {[...creds].sort((a, b) => Number(!!b.is_active) - Number(!!a.is_active)).map((c, i) => {
+          {sortedCreds.map((c, i) => {
             const active = c.is_active
             const banned = c.health_status === 'banned'
             const tokenRevoked = banned && c.health_message?.toLowerCase().includes('token')
