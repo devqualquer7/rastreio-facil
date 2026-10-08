@@ -92,6 +92,7 @@ export function GenerateModal() {
   const [email, setEmail] = useState('')
   const [result, setResult] = useState<{ link?: string; ref?: string; amount?: number } | null>(null)
   const [copied, setCopied] = useState(false)
+  const [paid, setPaid] = useState<{ amount: number; method: string | null } | null>(null)
   const [selectedMethods, setSelectedMethods] = useState<string[]>(ALL_METHOD_IDS)
   const [methodsOpen, setMethodsOpen] = useState(false)
 
@@ -162,7 +163,32 @@ export function GenerateModal() {
     setTimeout(() => setPixCopied(false), 2000)
   }
 
+  // Enquanto a janela mostra o link/Pix, pergunta ao servidor se já foi pago.
+  // É só leitura; ao detectar, dispara o tick que registra a venda e as notificações.
+  useEffect(() => {
+    if (step !== 'result' || !result?.ref || paid) return
+    let alive = true
+    const started = Date.now()
+    const timer = setInterval(async () => {
+      if (Date.now() - started > 30 * 60_000) { clearInterval(timer); return }   // desiste após 30 min
+      try {
+        const r = await fetch('/api/ec/sales/status', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ref: result.ref }),
+        })
+        const d = await r.json()
+        if (alive && d.ok && d.paid) {
+          setPaid({ amount: Number(d.amount) || result.amount || 0, method: d.method ?? null })
+          fetch('/api/ec/poll/tick', { method: 'POST' }).catch(() => {})
+        }
+      } catch { /* tenta de novo no próximo ciclo */ }
+    }, 4000)
+    return () => { alive = false; clearInterval(timer) }
+  }, [step, result?.ref, paid])
+
   function reset() {
+    setPaid(null)
     setPix(null)
     setPixCopied(false)
     setStep('form')
@@ -360,6 +386,34 @@ export function GenerateModal() {
                   )}
                 </div>
               </motion.div>
+            ) : paid ? (
+              <motion.div key="paid" initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 20 }} className="text-center py-6">
+                <div className="relative w-24 h-24 mx-auto mb-5">
+                  <div className="absolute inset-0 rounded-full bg-emerald-500/40 blur-2xl animate-pulse" />
+                  <div className="relative w-full h-full rounded-full bg-gradient-to-br from-emerald-500/40 to-emerald-500/10 border-2 border-emerald-400 flex items-center justify-center">
+                    <CheckCircle2 size={48} className="text-emerald-400" strokeWidth={2.5} />
+                  </div>
+                </div>
+                <div className="font-black text-2xl text-emerald-400 tracking-tight">PAGAMENTO CONFIRMADO</div>
+                <div className="font-black text-4xl text-zinc-100 tabular-nums mt-3">{fmtBRL(paid.amount)}</div>
+                <div className="text-xs font-mono text-zinc-400 mt-2">
+                  {paid.method === 'bank_transfer' || paid.method === 'pix' ? 'Pago via Pix'
+                    : paid.method === 'credit_card' ? 'Pago no cartão de crédito'
+                    : paid.method === 'debit_card' ? 'Pago no cartão de débito' : 'Pago'}
+                  {' · Ref '}{result?.ref}
+                </div>
+                <div className="grid grid-cols-2 gap-3 mt-8">
+                  <button onClick={reset}
+                    className="py-3 rounded-xl bg-white/[0.04] border border-white/[0.1] text-zinc-200 font-bold text-xs tracking-widest uppercase hover:bg-white/[0.08] transition">
+                    Gerar outro
+                  </button>
+                  <button onClick={closeModal}
+                    className="py-3 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-500 text-white font-black text-xs tracking-widest uppercase hover:brightness-110 transition">
+                    Fechar
+                  </button>
+                </div>
+              </motion.div>
             ) : (
               <motion.div key="result" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                 <div className="text-center mb-5">
@@ -371,6 +425,13 @@ export function GenerateModal() {
                   </div>
                   <div className="font-black text-xl text-emerald-400 tracking-tight mb-1">{pix?.ok ? 'PIX GERADO' : 'LINK GERADO'}</div>
                   <div className="text-xs font-mono text-zinc-400">{fmtBRL(result?.amount || 0)} · Ref {result?.ref}</div>
+                  <div className="inline-flex items-center gap-2 mt-2.5 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-mono">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75 animate-ping" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
+                    </span>
+                    Aguardando pagamento…
+                  </div>
                   {pix?.ok && pix.via && (
                     <div className="text-xs font-mono text-zinc-500 mt-1">
                       Gerado {pix.via === 'server' ? 'pela máquina 24h' : 'pelo seu PC'}
