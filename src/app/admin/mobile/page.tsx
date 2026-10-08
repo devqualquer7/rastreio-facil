@@ -810,6 +810,7 @@ function ExtratoTab({ send, toast, online, creds, activeSlot }: Common) {
   const [items, setItems]   = useState<any[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [open, setOpen]     = useState<any | null>(null)
+  const [refundNow, setRefundNow] = useState(false)   // abriu pelo botão Estornar da linha
 
   useEffect(() => {
     if (slot === null && activeSlot && creds.some(c => c.slot === activeSlot)) setSlot(activeSlot)
@@ -854,31 +855,44 @@ function ExtratoTab({ send, toast, online, creds, activeSlot }: Common) {
           : items === null ? <Loading text="Consultando o Mercado Pago…" />
           : items.length === 0 ? <Empty icon={Wallet} text="Nenhum pagamento nesta conta." />
           : <div className="divide-y divide-white/[0.05]">
-              {items.map(p => (
-                <button key={p.id} onClick={() => setOpen(p)} className="w-full text-left px-4 py-3 flex items-center gap-3 active:bg-ec-card2">
-                  <span className="w-9 h-9 rounded-lg border border-ec-line bg-ec-card2 text-ec-dim flex items-center justify-center flex-shrink-0">
-                    {p.payment_type_id === 'credit_card' || p.payment_type_id === 'debit_card' ? <CreditCard size={15} /> : <QrCode size={15} />}
-                  </span>
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-sm font-bold truncate">{p.description || 'Pagamento'}</span>
-                    <span className="block text-xs text-ec-muted truncate mt-0.5">{METHOD[p.payment_type_id] || p.payment_type_id} · {fmtWhen(p.date_created)}</span>
-                  </span>
-                  <span className="text-right flex-shrink-0">
-                    <span className="block text-[15px] font-black tabular-nums">{fmtBRL(p.transaction_amount)}</span>
-                    <span className="block mt-1"><Pill status={p.status} /></span>
-                  </span>
-                </button>
-              ))}
+              {items.map(p => {
+                const refundable = p.status === 'approved'
+                const cancellable = p.status === 'pending' || p.status === 'in_process'
+                return (
+                  <div key={p.id} className="px-4 py-3">
+                    <button onClick={() => { setRefundNow(false); setOpen(p) }} className="w-full text-left flex items-center gap-3 active:opacity-70">
+                      <span className="w-9 h-9 rounded-lg border border-ec-line bg-ec-card2 text-ec-dim flex items-center justify-center flex-shrink-0">
+                        {p.payment_type_id === 'credit_card' || p.payment_type_id === 'debit_card' ? <CreditCard size={15} /> : <QrCode size={15} />}
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm font-bold truncate">{p.description || 'Pagamento'}</span>
+                        <span className="block text-xs text-ec-muted truncate mt-0.5">{METHOD[p.payment_type_id] || p.payment_type_id} · {fmtWhen(p.date_created)}</span>
+                      </span>
+                      <span className="text-right flex-shrink-0">
+                        <span className="block text-[15px] font-black tabular-nums">{fmtBRL(p.transaction_amount)}</span>
+                        <span className="block mt-1"><Pill status={p.status} /></span>
+                      </span>
+                    </button>
+                    {/* Atalho visível: estorno parcial/total (aprovado) ou cancelamento (pendente) */}
+                    {(refundable || cancellable) && (
+                      <button onClick={() => { setRefundNow(true); setOpen(p) }}
+                        className="mt-2.5 ml-12 h-9 px-3 rounded-lg border border-ec-yellow/40 bg-ec-yellow/10 text-ec-yellow text-xs font-bold tracking-wider uppercase flex items-center gap-1.5 active:scale-95">
+                        <RotateCcw size={13} /> {refundable ? 'Estornar (parcial ou total)' : 'Cancelar pagamento'}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
             </div>}
       </Card>
 
       {picker && <AccountPicker creds={creds} value={slot} onPick={setSlot} onClose={() => setPicker(false)} />}
-      {open && slot && <PaymentSheet payment={open} slot={slot} send={send} toast={toast} onClose={() => setOpen(null)} onChanged={() => { setOpen(null); load() }} />}
+      {open && slot && <PaymentSheet payment={open} slot={slot} autoStart={refundNow} send={send} toast={toast} onClose={() => setOpen(null)} onChanged={() => { setOpen(null); load() }} />}
     </div>
   )
 }
 
-function PaymentSheet({ payment: p, slot, send, toast, onClose, onChanged }: { payment: any; slot: number; send: Send; toast: Toast; onClose: () => void; onChanged: () => void }) {
+function PaymentSheet({ payment: p, slot, autoStart, send, toast, onClose, onChanged }: { payment: any; slot: number; autoStart?: boolean; send: Send; toast: Toast; onClose: () => void; onChanged: () => void }) {
   const [info, setInfo]     = useState<{ status: string; amount: number; refunded: number; refundable: number } | null>(null)
   const [mode, setMode]     = useState<'view' | 'amount' | 'confirm'>('view')
   const [amount, setAmount] = useState('')
@@ -896,6 +910,9 @@ function PaymentSheet({ payment: p, slot, send, toast, onClose, onChanged }: { p
     } catch (e: any) { toast(e.message, 'err') }
     finally { setBusy(false) }
   }
+
+  // Veio do botão Estornar da lista: já consulta o saldo e abre no valor
+  useEffect(() => { if (autoStart) start() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const value = parseBRL(amount)
   const ok = !!info && value > 0 && value <= info.refundable
