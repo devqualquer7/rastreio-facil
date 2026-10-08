@@ -77,7 +77,7 @@ export function Sidebar() {
           </span>
           <span className="flex-1 min-w-0">
             <span className="block font-black text-[15px] leading-tight" style={{ letterSpacing: '0.06em' }}>GERAR LINK</span>
-            <span className="block text-[11px] font-semibold leading-tight mt-0.5" style={{ color: 'rgba(0,0,0,.62)' }}>Link ou Pix na hora</span>
+            <span className="block text-[11px] font-semibold leading-tight mt-0.5" style={{ color: 'rgba(0,0,0,.62)' }}>Link ou Pix</span>
           </span>
           <ArrowRight size={16} className="flex-shrink-0 transition-transform duration-150 group-hover:translate-x-1" />
         </button>
@@ -85,7 +85,7 @@ export function Sidebar() {
         {/* Ações secundárias — mesmo cartão neutro, só o ícone muda de cor */}
         <div className="mt-2.5 space-y-1.5">
           {([
-            { id: 'saque',    label: 'Gerador de PIX', hint: 'Cobranças por gateway', color: '#ff2b4a',
+            { id: 'saque',    label: 'Gerador de PIX', hint: 'Pix por gateway', color: '#ff2b4a',
               icon: <QrCode size={15} /> },
             { id: 'pushover', label: 'Notificações',   hint: 'Avisos no celular',     color: '#ffc83d',
               icon: <Bell size={15} /> },
