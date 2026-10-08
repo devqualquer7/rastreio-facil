@@ -120,7 +120,7 @@ export default function CheckoutPage() {
   const Screen = SCREENS[screen] || Dashboard
 
   return (
-    <div className="h-screen flex flex-col md:flex-row overflow-hidden" style={{ background: '#060610', color: '#e4e4f4', fontFamily: "'JetBrains Mono', ui-monospace, Consolas, monospace" }}>
+    <div className="h-screen flex flex-col md:flex-row overflow-hidden" style={{ background: '#060610', color: '#e4e4f4', scrollbarColor: '#2a2a42 transparent', fontFamily: "'JetBrains Mono', ui-monospace, Consolas, monospace" }}>
       {/* Ambient bg — desktop (grid + spotlight) */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="ec-grid-pattern absolute inset-0" style={{ opacity: 0.3 }} />
@@ -150,7 +150,7 @@ export default function CheckoutPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.18 }}>
-                <div className="max-w-[1500px] mx-auto"><Screen /></div>
+                <div className="max-w-[1680px] mx-auto"><Screen /></div>
               </motion.div>
             </AnimatePresence>
           </main>

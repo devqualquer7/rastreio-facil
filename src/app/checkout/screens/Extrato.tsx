@@ -447,7 +447,7 @@ export function Extrato() {
         </div>
 
         {/* Table */}
-        <div className="bg-gradient-to-br from-[#12000c] to-[#0a0006] border border-red-900/15 rounded-2xl overflow-hidden">
+        <div className="bg-ec-card border border-ec-line rounded-xl overflow-hidden">
           {loading ? (
             <div className="py-16 flex items-center justify-center gap-3">
               <RefreshCw size={18} className="animate-spin text-red-400" />
@@ -456,7 +456,7 @@ export function Extrato() {
           ) : filtered.length === 0 ? (
             <div className="py-16 text-center text-zinc-500 text-xs font-mono">Nenhuma transação encontrada</div>
           ) : (
-            <div className="divide-y divide-red-900/[0.12]">
+            <div className="divide-y divide-white/[0.05]">
               {/* Header */}
               <div className="hidden md:grid px-5 py-3 text-xs font-mono font-bold tracking-widest text-zinc-500 uppercase border-b border-red-900/15"
                 style={{ gridTemplateColumns: GRID, gap: '0 12px' }}>
@@ -469,13 +469,10 @@ export function Extrato() {
                 <div className="text-right">Ações</div>
               </div>
 
-              {filtered.map((s, i) => (
-                <motion.div
+              {filtered.map(s => (
+                <div
                   key={s.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: Math.min(i * 0.015, 0.3) }}
-                  className="px-5 py-3.5 hover:bg-red-600/[0.04] transition"
+                  className="px-5 py-3.5 hover:bg-ec-card2/60 transition-colors"
                 >
                   {/* Desktop layout */}
                   <div className="hidden md:grid items-center min-h-[44px]"
@@ -552,7 +549,7 @@ export function Extrato() {
                       </button>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           )}

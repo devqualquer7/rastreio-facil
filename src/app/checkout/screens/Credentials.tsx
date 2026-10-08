@@ -362,8 +362,8 @@ export function Credentials() {
                   )}
                   {tone === 'ok' && (
                     <button onClick={() => setActive(c.slot)} disabled={activating === c.slot}
-                      className="flex-1 h-9 rounded-lg bg-ec-red-deep hover:bg-ec-red hover:shadow-ec-glow-sm text-white text-xs font-bold tracking-widest uppercase transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5">
-                      <Zap size={13} fill="white" /> {activating === c.slot ? 'Ativando…' : 'Ativar'}
+                      className="flex-1 h-9 rounded-lg border border-ec-red/40 bg-ec-red/10 hover:bg-ec-red-deep hover:border-ec-red text-ec-red hover:text-white text-xs font-bold tracking-widest uppercase transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5">
+                      <Zap size={13} fill="currentColor" /> {activating === c.slot ? 'Ativando…' : 'Ativar'}
                     </button>
                   )}
                   {tone === 'off' && (
