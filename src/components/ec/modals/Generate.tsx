@@ -4,13 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles, Zap, X, Copy, ExternalLink, CheckCircle2, RefreshCw,
   DollarSign, FileText, CreditCard, Landmark, Building2, Wallet,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, QrCode, AlertTriangle
 } from 'lucide-react'
 import { ModalBackdrop, Button } from '@/components/ec/ui/Base'
 import { useApp } from '@/lib/ec-store'
 import { fmtBRL } from '@/lib/ec-utils'
 
 type Step = 'form' | 'result'
+
+type PixResult =
+  | { ok: true; code: string; qrBase64: string }
+  | { ok: false; reason: string; message: string }
 
 const ALL_METHOD_IDS = ['credit_card', 'debit_card', 'pix', 'boleto', 'loterica', 'prepaid_card']
 
@@ -80,7 +84,9 @@ function Toggle({ enabled, onChange }: { enabled: boolean; onChange: () => void 
 export function GenerateModal() {
   const { closeModal, activeCred, toast } = useApp()
   const [step, setStep] = useState<Step>('form')
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState<false | 'link' | 'pix'>(false)
+  const [pix, setPix] = useState<PixResult | null>(null)
+  const [pixCopied, setPixCopied] = useState(false)
   const [amount, setAmount] = useState('')
   const [title, setTitle] = useState('')
   const [email, setEmail] = useState('')
@@ -107,12 +113,13 @@ export function GenerateModal() {
     setSelectedMethods(prev => prev.length === ALL_METHOD_IDS.length ? [] : [...ALL_METHOD_IDS])
   }
 
-  async function generate() {
+  // withPix: além do link, pede ao app desktop o Pix copia e cola já pronto
+  async function generate(withPix = false) {
     const amt = parseFloat(amount.replace(',', '.'))
     if (!amt || amt <= 0) { toast('error', 'Valor inválido'); return }
     if (!title.trim()) { toast('error', 'Título obrigatório'); return }
     if (selectedMethods.length === 0) { toast('error', 'Selecione ao menos um método de pagamento'); return }
-    setLoading(true)
+    setLoading(withPix ? 'pix' : 'link')
     try {
       const r = await fetch('/api/ec/sales/generate', {
         method: 'POST',
@@ -122,12 +129,18 @@ export function GenerateModal() {
           title: title.trim(),
           email: email.trim() || undefined,
           selectedMethods,
+          autoPix: withPix,
         })
       })
       const d = await r.json()
       if (d.ok) {
         setResult({ link: d.link, ref: d.ref, amount: amt })
+        setPix(d.pix ?? null)
         setStep('result')
+        if (d.pix && !d.pix.ok) {
+          toast(d.pix.reason === 'rejected' ? 'error' : 'info',
+            d.pix.reason === 'rejected' ? `Mercado Pago recusou o Pix: ${d.pix.message}` : 'Não deu para gerar o Pix. O link está pronto.')
+        }
       } else {
         toast('error', d.error || 'Falha ao gerar link')
       }
@@ -142,7 +155,16 @@ export function GenerateModal() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  function copyPix() {
+    if (!pix?.ok) return
+    navigator.clipboard.writeText(pix.code)
+    setPixCopied(true)
+    setTimeout(() => setPixCopied(false), 2000)
+  }
+
   function reset() {
+    setPix(null)
+    setPixCopied(false)
     setStep('form')
     setAmount('')
     setEmail('')
@@ -209,7 +231,7 @@ export function GenerateModal() {
                         type="text" inputMode="decimal" value={amount}
                         onChange={e => setAmount(e.target.value.replace(/[^0-9,.]/g, ''))}
                         placeholder="0,00"
-                        onKeyDown={e => e.key === 'Enter' && generate()}
+                        onKeyDown={e => e.key === 'Enter' && !loading && generate()}
                         className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-10 pr-4 py-3 text-sm font-mono text-zinc-100 outline-none focus:border-purple-500/50 focus:bg-purple-500/[0.04] transition-all"
                       />
                     </div>
@@ -225,7 +247,7 @@ export function GenerateModal() {
                       onChange={e => setTitle(e.target.value)}
                       placeholder="Ex: Produto / Serviço"
                       maxLength={100}
-                      onKeyDown={e => e.key === 'Enter' && generate()}
+                      onKeyDown={e => e.key === 'Enter' && !loading && generate()}
                       className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm font-mono text-zinc-100 outline-none focus:border-purple-500/50 focus:bg-purple-500/[0.04] transition-all"
                     />
                   </div>
@@ -239,7 +261,7 @@ export function GenerateModal() {
                       type="email" value={email}
                       onChange={e => setEmail(e.target.value)}
                       placeholder="comprador@email.com"
-                      onKeyDown={e => e.key === 'Enter' && generate()}
+                      onKeyDown={e => e.key === 'Enter' && !loading && generate()}
                       className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm font-mono text-zinc-100 outline-none focus:border-purple-500/50 focus:bg-purple-500/[0.04] transition-all"
                     />
                   </div>
@@ -317,14 +339,25 @@ export function GenerateModal() {
                     )}
                   </div>
 
-                  <button onClick={generate} disabled={loading || !activeCred?.connected || noneSelected}
-                    className="relative w-full py-3.5 rounded-2xl bg-gradient-to-br from-violet-700 via-purple-500 to-cyan-300 text-white font-black tracking-wide text-sm uppercase shadow-[0_0_25px_rgba(168,85,247,.45)] hover:shadow-[0_0_40px_rgba(168,85,247,.6)] active:scale-95 disabled:opacity-40 transition-all flex items-center justify-center gap-2">
-                    {loading ? (
-                      <><RefreshCw size={14} className="animate-spin" /> Gerando…</>
-                    ) : (
-                      <><Sparkles size={14} /> Gerar Link de Pagamento <Zap size={14} fill="white" /></>
-                    )}
-                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button onClick={() => generate(false)} disabled={!!loading || !activeCred?.connected || noneSelected}
+                      className="py-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.1] text-zinc-200 font-black tracking-wide text-xs uppercase hover:bg-white/[0.08] hover:border-purple-500/40 active:scale-95 disabled:opacity-40 transition-all flex items-center justify-center gap-2">
+                      {loading === 'link'
+                        ? <><RefreshCw size={14} className="animate-spin" /> Gerando…</>
+                        : <><Sparkles size={14} /> Gerar Link</>}
+                    </button>
+                    <button onClick={() => generate(true)} disabled={!!loading || !activeCred?.connected}
+                      className="py-3.5 rounded-2xl bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-300 text-white font-black tracking-wide text-xs uppercase shadow-[0_0_25px_rgba(16,185,129,.4)] hover:shadow-[0_0_40px_rgba(16,185,129,.55)] active:scale-95 disabled:opacity-40 transition-all flex items-center justify-center gap-2">
+                      {loading === 'pix'
+                        ? <><RefreshCw size={14} className="animate-spin" /> Gerando Pix…</>
+                        : <><QrCode size={14} /> Gerar Pix</>}
+                    </button>
+                  </div>
+                  {loading === 'pix' && (
+                    <div className="text-[10px] font-mono text-zinc-500 text-center">
+                      Gerando o Pix no checkout do Mercado Pago… leva uns 10 segundos.
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ) : (
@@ -336,9 +369,48 @@ export function GenerateModal() {
                       <CheckCircle2 size={28} className="text-emerald-400" strokeWidth={2.5} />
                     </div>
                   </div>
-                  <div className="font-black text-xl text-emerald-400 tracking-tight mb-1">LINK GERADO</div>
+                  <div className="font-black text-xl text-emerald-400 tracking-tight mb-1">{pix?.ok ? 'PIX GERADO' : 'LINK GERADO'}</div>
                   <div className="text-xs font-mono text-zinc-500">{fmtBRL(result?.amount || 0)} · Ref {result?.ref}</div>
                 </div>
+
+                {pix?.ok && (
+                  <div className="mb-5">
+                    <div className="flex justify-center mb-4">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={pix.qrBase64} alt="QR Code Pix" className="w-44 h-44 rounded-xl bg-white p-1.5" />
+                    </div>
+                    <div className="bg-white/[0.04] border border-emerald-500/20 rounded-2xl p-4 mb-3">
+                      <div className="text-[10px] font-mono text-zinc-600 mb-2 tracking-widest">PIX COPIA E COLA</div>
+                      <div className="text-[11px] font-mono text-emerald-300 break-all leading-relaxed">{pix.code}</div>
+                    </div>
+                    <button onClick={copyPix}
+                      className={`w-full py-3.5 rounded-xl font-black text-xs tracking-widest uppercase transition-all flex items-center justify-center gap-2 border ${
+                        pixCopied
+                          ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
+                          : 'bg-gradient-to-br from-emerald-600 to-emerald-500 border-emerald-400/40 text-white hover:shadow-[0_0_30px_rgba(16,185,129,.45)]'
+                      }`}>
+                      <Copy size={13} /> {pixCopied ? 'Copiado!' : 'Copiar Pix'}
+                    </button>
+                  </div>
+                )}
+
+                {pix && !pix.ok && (
+                  <div className={`mb-4 p-3.5 rounded-xl border flex gap-3 text-[11px] font-mono leading-relaxed ${
+                    pix.reason === 'rejected'
+                      ? 'bg-red-500/10 border-red-500/25 text-red-300'
+                      : 'bg-amber-500/10 border-amber-500/25 text-amber-300'
+                  }`}>
+                    <AlertTriangle size={15} className="shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold">
+                        {pix.reason === 'rejected' ? 'Mercado Pago recusou o Pix. '
+                          : pix.reason === 'offline' ? 'PC indisponível. '
+                          : 'Não deu para gerar o Pix sozinho. '}
+                      </span>
+                      {pix.message} Use o link abaixo normalmente.
+                    </div>
+                  </div>
+                )}
 
                 <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 mb-4">
                   <div className="text-[10px] font-mono text-zinc-600 mb-2 tracking-widest">LINK DE PAGAMENTO</div>

@@ -21,6 +21,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import Pusher from 'pusher'
+import { db } from '@/lib/ec-supabase'
+import { BRIDGE_ID_SETTING } from '@/lib/ec-autopix'
 
 function getPusher(): Pusher | null {
   const appId   = process.env.PUSHER_APP_ID
@@ -76,6 +78,8 @@ export async function POST(request: NextRequest) {
       if (diff !== 0) {
         return NextResponse.json({ error: 'Auth inválido.' }, { status: 401 })
       }
+      // Guarda o id da ponte do desktop: o painel /checkout usa para pedir Pix automático
+      await db.setSetting(BRIDGE_ID_SETTING, channelName.replace('presence-bridge-', '')).catch(() => {})
       const presenceData = {
         user_id: 'desktop',
         user_info: { role: 'desktop' },
