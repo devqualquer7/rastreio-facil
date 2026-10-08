@@ -144,10 +144,15 @@ export class MPAPI {
     return await parseJson(r)
   }
 
-  async refund(paymentId: string) {
+  /** Sem `amount` o MP estorna tudo o que ainda está disponível; com `amount` é estorno parcial. */
+  async refund(paymentId: string, amount?: number) {
     const r = await fetch(
-      `${BASE}/v1/payments/${paymentId}/refunds`,
-      { method: 'POST', headers: stealthHeaders(this.token, 'application/json', true), body: '{}' }
+      `${BASE}/v1/payments/${encodeURIComponent(paymentId)}/refunds`,
+      {
+        method: 'POST',
+        headers: stealthHeaders(this.token, 'application/json', true),
+        body: amount != null ? JSON.stringify({ amount }) : '{}',
+      }
     )
     return await parseJson(r)
   }

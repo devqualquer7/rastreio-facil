@@ -194,12 +194,41 @@ function DetailModal({ sale, onClose }: { sale: any; onClose: () => void }) {
 }
 
 // ── Refund modal ──────────────────────────────────────────────────────────────
+// Aprovado: estorno por valor (parcial), com atalho "Valor total". Pendente: cancelamento.
+type RefundInfo = { status: string; amount: number; refunded: number; refundable: number }
+
 function RefundModal({ sale, slotName, onClose, onDone }: {
   sale: any; slotName: string; onClose: () => void; onDone: () => void
 }) {
   const { toast } = useApp()
   const [loading, setLoading] = useState(false)
-  const isCancel = CANCELLABLE.has(sale.status)
+  const [info, setInfo] = useState<RefundInfo | null>(null)
+  const [infoError, setInfoError] = useState('')
+  const [amount, setAmount] = useState('')
+  const [confirming, setConfirming] = useState(false)
+  const isCancel = CANCELLABLE.has(info?.status ?? sale.status)
+
+  // Consulta no MP quanto ainda pode ser estornado (o extrato pode estar desatualizado)
+  useEffect(() => {
+    let alive = true
+    fetch('/api/ec/extrato/refund', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ payment_id: sale.id, info: true }),
+    })
+      .then(r => r.json())
+      .then(d => { if (!alive) return; if (d.ok) setInfo(d.info); else setInfoError(d.error || 'Falha ao consultar o pagamento') })
+      .catch(() => { if (alive) setInfoError('Erro de rede ao consultar o pagamento') })
+    return () => { alive = false }
+  }, [sale.id])
+
+  const value = Math.round(parseFloat(amount.replace(',', '.')) * 100) / 100
+  const isTotal = !!info && value === info.refundable
+  const amountOk = !!info && value > 0 && value <= info.refundable
+  const amountError =
+    !amount || !info          ? '' :
+    !(value > 0)              ? 'Valor inválido.' :
+    value > info.refundable   ? `Máximo disponível: ${fmtBRL(info.refundable)}` : ''
 
   async function confirm() {
     setLoading(true)
@@ -207,18 +236,24 @@ function RefundModal({ sale, slotName, onClose, onDone }: {
       const r = await fetch('/api/ec/extrato/refund', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ payment_id: sale.id }),
+        body: JSON.stringify({ payment_id: sale.id, ...(isCancel ? {} : { amount: value }) }),
       })
       const d = await r.json()
       if (d.ok) {
-        toast('success', isCancel ? 'Pagamento cancelado com sucesso' : 'Estorno realizado com sucesso')
+        toast('success',
+          d.action === 'cancelled' ? 'Pagamento cancelado com sucesso'
+          : d.action === 'partially_refunded' ? `Estorno parcial de ${fmtBRL(value)} realizado`
+          : 'Estorno total realizado com sucesso')
         onDone()
       } else {
         toast('error', d.error || 'Falha ao processar')
+        setConfirming(false)
       }
-    } catch { toast('error', 'Erro de rede') }
+    } catch { toast('error', 'Erro de rede'); setConfirming(false) }
     finally { setLoading(false) }
   }
+
+  const nothingLeft = !!info && !isCancel && info.refundable <= 0
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -229,59 +264,132 @@ function RefundModal({ sale, slotName, onClose, onDone }: {
         exit={{ opacity: 0, scale: 0.95, y: 12 }}
         transition={{ duration: 0.18 }}
         onClick={e => e.stopPropagation()}
-        className="relative w-full max-w-sm bg-[#120009] border border-red-900/25 rounded-3xl overflow-hidden shadow-2xl"
+        className="relative w-full max-w-sm bg-ec-card border border-ec-line rounded-2xl overflow-hidden shadow-2xl"
       >
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-600/50 to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-ec-yellow/60 to-transparent" />
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/[0.06]">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold tracking-[0.25em] text-red-400 uppercase">
-            <RotateCcw size={12} />
-            {isCancel ? 'CANCELAR PAGAMENTO' : 'ESTORNAR PAGAMENTO'}
+          <div className="flex items-center gap-2 text-xs font-mono font-bold tracking-[0.25em] text-ec-yellow uppercase">
+            <RotateCcw size={13} />
+            {isCancel ? 'Cancelar pagamento' : 'Estornar pagamento'}
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06] transition">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-ec-muted hover:text-ec-text hover:bg-white/[0.06] transition">
             <X size={15} />
           </button>
         </div>
 
         <div className="px-5 py-4 space-y-4">
-          {/* Account */}
-          <div className="text-[13px] font-mono text-zinc-400">Usando conta: <span className="text-zinc-300">{slotName}</span></div>
+          <div className="text-[13px] font-mono text-ec-dim">Usando conta: <span className="text-ec-text font-bold">{slotName}</span></div>
 
-          {/* Warning */}
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3.5 text-[13px] font-mono text-zinc-400 leading-relaxed">
-            <div className="flex items-start gap-2">
-              <span className="text-amber-400 mt-0.5 flex-shrink-0">⚠</span>
-              <span>
-                Pagamentos <span className="text-emerald-400 font-bold">aprovados</span> serão estornados integralmente.
-                Pagamentos <span className="text-amber-400 font-bold">pendentes</span> serão cancelados.
-                A ação é irreversível.
-              </span>
+          {/* Resumo do pagamento */}
+          <div className="bg-ec-card2 border border-ec-line rounded-xl p-3.5 space-y-1.5 text-[13px] font-mono">
+            <div className="flex justify-between gap-3">
+              <span className="text-ec-muted">ID</span>
+              <span className="text-ec-text tabular-nums">{sale.id}</span>
             </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-ec-muted flex-shrink-0">Título</span>
+              <span className="text-ec-dim truncate">{sale.title}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-ec-muted">Valor do pagamento</span>
+              <span className="text-ec-text tabular-nums">{fmtBRL(info ? info.amount : Number(sale.amount))}</span>
+            </div>
+            {!!info && info.refunded > 0 && (
+              <div className="flex justify-between gap-3">
+                <span className="text-ec-muted">Já estornado</span>
+                <span className="text-ec-blue tabular-nums">{fmtBRL(info.refunded)}</span>
+              </div>
+            )}
+            {!!info && !isCancel && (
+              <div className="flex justify-between gap-3 pt-1.5 mt-1.5 border-t border-white/[0.06]">
+                <span className="text-ec-muted">Disponível para estorno</span>
+                <span className="text-ec-green font-bold tabular-nums">{fmtBRL(info.refundable)}</span>
+              </div>
+            )}
           </div>
 
-          {/* Payment info */}
-          <div>
-            <div className="text-[11px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase mb-1.5">ID DO PAGAMENTO</div>
-            <div className="bg-white/[0.04] border border-red-500/30 rounded-xl px-4 py-2.5 font-mono text-sm text-zinc-200 tabular-nums">
-              {sale.id}
+          {!info && !infoError && (
+            <div className="py-3 flex items-center justify-center gap-2 text-xs font-mono text-ec-dim">
+              <RefreshCw size={13} className="animate-spin" /> Consultando pagamento…
             </div>
-            <div className="mt-2 flex items-center justify-between text-xs font-mono">
-              <span className="text-zinc-500">{sale.title}</span>
-              <span className="text-zinc-400 font-bold tabular-nums">{fmtBRL(Number(sale.amount))}</span>
+          )}
+          {infoError && (
+            <div className="bg-ec-red/10 border border-ec-red/30 rounded-xl p-3 text-[13px] font-mono text-ec-red-soft">{infoError}</div>
+          )}
+          {nothingLeft && (
+            <div className="bg-ec-card2 border border-ec-line rounded-xl p-3 text-[13px] font-mono text-ec-dim">
+              Este pagamento já foi estornado integralmente.
             </div>
-          </div>
+          )}
 
-          {/* Action button */}
-          <button
-            onClick={confirm}
-            disabled={loading}
-            className="w-full py-3 rounded-xl font-mono text-xs font-bold tracking-[0.2em] uppercase transition-all
-              bg-amber-500/90 hover:bg-amber-500 text-black disabled:opacity-50 disabled:cursor-not-allowed
-              flex items-center justify-center gap-2"
-          >
-            {loading ? <RefreshCw size={13} className="animate-spin" /> : <RotateCcw size={13} />}
-            {loading ? 'PROCESSANDO…' : 'PROSSEGUIR'}
-          </button>
+          {/* Cancelamento (pendente) */}
+          {!!info && isCancel && (
+            <>
+              <div className="bg-ec-yellow/10 border border-ec-yellow/25 rounded-xl p-3 text-[13px] font-mono text-ec-dim leading-relaxed">
+                Este pagamento está <span className="text-ec-yellow font-bold">pendente</span> e será cancelado. A ação é irreversível.
+              </div>
+              <button onClick={confirm} disabled={loading}
+                className="w-full py-3 rounded-xl font-mono text-xs font-bold tracking-[0.2em] uppercase transition-all bg-ec-yellow hover:brightness-110 text-black disabled:opacity-50 flex items-center justify-center gap-2">
+                {loading ? <RefreshCw size={13} className="animate-spin" /> : <RotateCcw size={13} />}
+                {loading ? 'Processando…' : 'Cancelar pagamento'}
+              </button>
+            </>
+          )}
+
+          {/* Estorno por valor (aprovado) */}
+          {!!info && !isCancel && !nothingLeft && !confirming && (
+            <>
+              <div>
+                <div className="text-[11px] font-mono font-bold tracking-[0.25em] text-ec-muted uppercase mb-1.5">Valor do estorno (R$)</div>
+                <div className="flex items-stretch gap-2">
+                  <input
+                    type="text" inputMode="decimal" autoFocus value={amount}
+                    onChange={e => setAmount(e.target.value.replace(/[^\d.,]/g, ''))}
+                    onKeyDown={e => e.key === 'Enter' && amountOk && setConfirming(true)}
+                    placeholder="0,00"
+                    className="flex-1 min-w-0 bg-ec-input border border-ec-line rounded-xl px-4 py-2.5 font-mono text-sm text-ec-text tabular-nums outline-none focus:border-ec-yellow/60 transition"
+                  />
+                  <button type="button" onClick={() => setAmount(info.refundable.toFixed(2).replace('.', ','))}
+                    className="px-3 rounded-xl border border-ec-line bg-ec-card2 hover:border-ec-yellow/50 hover:text-ec-yellow text-ec-dim text-[11px] font-mono font-bold tracking-widest uppercase transition flex-shrink-0">
+                    Valor total
+                  </button>
+                </div>
+                {amountError && <div className="text-xs font-mono text-ec-red mt-1.5">{amountError}</div>}
+              </div>
+              <button onClick={() => setConfirming(true)} disabled={!amountOk}
+                className="w-full py-3 rounded-xl font-mono text-xs font-bold tracking-[0.2em] uppercase transition-all bg-ec-yellow hover:brightness-110 text-black disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                <RotateCcw size={13} /> Prosseguir
+              </button>
+            </>
+          )}
+
+          {/* Confirmação */}
+          {!!info && !isCancel && confirming && (
+            <>
+              <div className="text-center py-2">
+                <div className="text-sm font-mono font-bold text-ec-text">
+                  {isTotal ? 'Confirmar estorno total?' : 'Confirmar estorno parcial?'}
+                </div>
+                <div className="text-2xl font-mono font-black text-ec-yellow tabular-nums mt-1.5">{fmtBRL(value)}</div>
+                {!isTotal && (
+                  <div className="text-xs font-mono text-ec-muted mt-1">de {fmtBRL(info.refundable)} disponíveis</div>
+                )}
+                <div className="text-xs font-mono text-ec-muted mt-2">A ação é irreversível.</div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => setConfirming(false)} disabled={loading}
+                  className="py-3 rounded-xl border border-ec-line bg-ec-card2 hover:border-ec-line-glow text-ec-dim hover:text-ec-text font-mono text-xs font-bold tracking-[0.2em] uppercase transition disabled:opacity-50">
+                  Voltar
+                </button>
+                <button onClick={confirm} disabled={loading}
+                  className="py-3 rounded-xl font-mono text-xs font-bold tracking-[0.2em] uppercase transition-all bg-ec-yellow hover:brightness-110 text-black disabled:opacity-50 flex items-center justify-center gap-2">
+                  {loading ? <RefreshCw size={13} className="animate-spin" /> : <RotateCcw size={13} />}
+                  {loading ? 'Processando…' : 'Confirmar'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </motion.div>
     </div>
