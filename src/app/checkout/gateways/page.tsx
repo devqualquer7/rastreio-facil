@@ -71,7 +71,7 @@ export default function GatewaysPage() {
     <div className="space-y-6 max-w-2xl">
       <div>
         <h1 className="text-xl font-semibold text-white">Gateways de Pagamento</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Configure suas credenciais para cada gateway</p>
+        <p className="text-sm text-zinc-400 mt-0.5">Configure suas credenciais para cada gateway</p>
       </div>
 
       {success && (
@@ -85,10 +85,10 @@ export default function GatewaysPage() {
               <div className="flex items-center gap-3">
                 <div>
                   <p className="text-sm font-medium text-white">{gw.label}</p>
-                  <p className="text-xs text-zinc-500">{gw.configured ? 'Configurada' : 'Não configurada'}</p>
+                  <p className="text-xs text-zinc-400">{gw.configured ? 'Configurada' : 'Não configurada'}</p>
                 </div>
                 {gw.configured && (
-                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-semibold">ATIVA</span>
+                  <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-semibold">ATIVA</span>
                 )}
               </div>
               <div className="flex gap-2">
@@ -113,7 +113,7 @@ export default function GatewaysPage() {
               <div className="px-4 pb-3 space-y-1">
                 {gw.fields.map(f => (
                   <div key={f.key} className="flex items-center gap-2">
-                    <span className="text-xs text-zinc-500 w-24">{f.label}:</span>
+                    <span className="text-xs text-zinc-400 w-24">{f.label}:</span>
                     <span className="text-xs font-mono text-zinc-400">{gw.redacted[f.key] ?? '—'}</span>
                   </div>
                 ))}

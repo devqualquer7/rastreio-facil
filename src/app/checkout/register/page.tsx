@@ -40,7 +40,7 @@ function RegisterForm() {
     }
   }
 
-  const inputCls = 'w-full rounded-xl px-4 py-3 text-sm font-mono text-zinc-100 outline-none focus:border-red-600/40 transition-all placeholder:text-zinc-700'
+  const inputCls = 'w-full rounded-xl px-4 py-3 text-sm font-mono text-zinc-100 outline-none focus:border-red-600/40 transition-all placeholder:text-zinc-500'
   const inputStyle: React.CSSProperties = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }
 
   return (
@@ -71,7 +71,7 @@ function RegisterForm() {
           <div className="mt-3 font-black text-[20px] tracking-tight">
             <span className="text-zinc-100">ENCRYPTED</span><span className="text-red-500">SOFTWARE</span>
           </div>
-          <div className="text-[10px] font-mono text-zinc-700 tracking-[0.35em] mt-1 uppercase">Criar conta · Checkout</div>
+          <div className="text-xs font-mono text-zinc-500 tracking-[0.35em] mt-1 uppercase">Criar conta · Checkout</div>
         </motion.div>
 
         {/* Card */}
@@ -91,13 +91,13 @@ function RegisterForm() {
                 <CheckCircle2 size={28} className="text-emerald-400" />
               </div>
               <div className="font-black text-lg text-zinc-100 mb-1">Conta criada!</div>
-              <div className="text-sm font-mono text-zinc-500">Redirecionando para o login…</div>
+              <div className="text-sm font-mono text-zinc-400">Redirecionando para o login…</div>
             </div>
           ) : (
             <form onSubmit={submit} className="space-y-4">
               {/* Key */}
               <div>
-                <label className="text-[10px] font-mono font-bold tracking-[0.22em] text-zinc-600 uppercase mb-2 flex items-center gap-1.5">
+                <label className="text-xs font-mono font-bold tracking-[0.22em] text-zinc-500 uppercase mb-2 flex items-center gap-1.5">
                   <Key size={10} /> Chave de acesso
                 </label>
                 <input type="text" value={key} onChange={e => setKey(e.target.value)}
@@ -107,18 +107,18 @@ function RegisterForm() {
 
               {/* Username */}
               <div>
-                <label className="text-[10px] font-mono font-bold tracking-[0.22em] text-zinc-600 uppercase mb-2 flex items-center gap-1.5">
+                <label className="text-xs font-mono font-bold tracking-[0.22em] text-zinc-500 uppercase mb-2 flex items-center gap-1.5">
                   <User size={10} /> Usuário
                 </label>
                 <input type="text" value={username} onChange={e => setUsername(e.target.value)}
                   placeholder="Escolha um username" required minLength={3} maxLength={40}
                   className={inputCls} style={inputStyle} />
-                <div className="text-[10px] font-mono text-zinc-700 mt-1">Letras, números, _ e - apenas</div>
+                <div className="text-xs font-mono text-zinc-500 mt-1">Letras, números, _ e - apenas</div>
               </div>
 
               {/* Password */}
               <div>
-                <label className="text-[10px] font-mono font-bold tracking-[0.22em] text-zinc-600 uppercase mb-2 flex items-center gap-1.5">
+                <label className="text-xs font-mono font-bold tracking-[0.22em] text-zinc-500 uppercase mb-2 flex items-center gap-1.5">
                   <Lock size={10} /> Senha
                 </label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)}
@@ -128,7 +128,7 @@ function RegisterForm() {
 
               {/* Confirm */}
               <div>
-                <label className="text-[10px] font-mono font-bold tracking-[0.22em] text-zinc-600 uppercase mb-2 flex items-center gap-1.5">
+                <label className="text-xs font-mono font-bold tracking-[0.22em] text-zinc-500 uppercase mb-2 flex items-center gap-1.5">
                   <Lock size={10} /> Confirmar senha
                 </label>
                 <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
@@ -153,7 +153,7 @@ function RegisterForm() {
               </motion.button>
 
               <div className="text-center pt-1">
-                <a href="/checkout/login" className="text-[10px] font-mono text-zinc-600 hover:text-red-400 transition tracking-wider">
+                <a href="/checkout/login" className="text-xs font-mono text-zinc-500 hover:text-red-400 transition tracking-wider">
                   Já tem uma conta? Entrar
                 </a>
               </div>

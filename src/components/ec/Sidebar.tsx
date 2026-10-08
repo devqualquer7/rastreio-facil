@@ -47,7 +47,7 @@ export function Sidebar() {
           <div className="font-bold text-[14px] leading-none" style={{ letterSpacing: '0.14em' }}>
             <span style={{ color: '#e4e4f4' }}>ENCRYPTED</span><span style={{ color: '#ff2b4a' }}>SOFTWARE</span>
           </div>
-          <div className="text-[9px] mt-1" style={{ color: '#52526e', letterSpacing: '0.2em' }}>CHECKOUT · MP</div>
+          <div className="text-[11px] mt-1" style={{ color: '#52526e', letterSpacing: '0.2em' }}>CHECKOUT · MP</div>
         </div>
       </div>
 
@@ -78,7 +78,7 @@ export function Sidebar() {
           style={{ background: 'rgba(124,58,237,.08)', border: '1px solid rgba(124,58,237,.3)', color: '#a78bfa', letterSpacing: '0.02em' }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,58,237,.16)' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'rgba(124,58,237,.08)' }}>
-          <span className="w-[18px] h-[18px] rounded-md flex items-center justify-center text-white font-black text-[11px] flex-shrink-0"
+          <span className="w-[18px] h-[18px] rounded-md flex items-center justify-center text-white font-black text-[13px] flex-shrink-0"
             style={{ background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)' }}>U</span>
           <span>UTMIFY</span>
         </button>
@@ -123,12 +123,12 @@ export function Sidebar() {
             <div className="w-1.5 h-1.5 rounded-full" style={activeCred?.connected
               ? { background: '#00e396', boxShadow: '0 0 15px rgba(0,227,150,.3)' }
               : { background: '#2a2a42' }} />
-            <div className="ec-label text-[9px]">Conta Ativa</div>
+            <div className="ec-label text-[11px]">Conta Ativa</div>
             <ChevronsUpDown size={11} className="ml-auto flex-shrink-0" style={{ color: '#52526e' }} />
           </div>
           <div className="flex items-center justify-between gap-2 ml-3.5">
             <span className="text-xs truncate" style={{ color: '#e4e4f4' }}>{activeCred?.name || 'Selecionar conta'}</span>
-            <span className="text-[9px] font-mono flex-shrink-0 opacity-0 group-hover:opacity-100 transition" style={{ color: '#ff2b4a', letterSpacing: '0.1em' }}>TROCAR</span>
+            <span className="text-[11px] font-mono flex-shrink-0 opacity-0 group-hover:opacity-100 transition" style={{ color: '#ff2b4a', letterSpacing: '0.1em' }}>TROCAR</span>
           </div>
         </button>
       </div>
@@ -136,12 +136,12 @@ export function Sidebar() {
       {/* Logado + sair */}
       <div className="p-3">
         <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm" style={{ background: 'rgba(17,17,31,.5)', border: '1px solid #1c1c33' }}>
-          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
+          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0"
             style={{ background: 'linear-gradient(to bottom right,#ff2b4a,#cc1b35)' }}>
             {username?.slice(0, 1).toUpperCase() || '?'}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[10px]" style={{ color: '#9a9ab5' }}>Logado</div>
+            <div className="text-xs" style={{ color: '#9a9ab5' }}>Logado</div>
             <div className="text-xs truncate" style={{ color: '#e4e4f4' }}>{username || '—'}</div>
           </div>
           <button onClick={logout} title="Sair" className="p-1 transition" style={{ color: '#52526e' }}

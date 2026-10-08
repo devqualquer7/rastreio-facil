@@ -28,7 +28,7 @@ function MethodChip({ typeId, methodId }: { typeId: string | null; methodId?: st
   const m = getMethodInfo(methodId, typeId)
   const Icon = m.Icon
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold"
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[13px] font-mono font-bold"
       style={{ color: m.color, borderColor: tint(m.color, 0.28), background: tint(m.color, 0.1) }}>
       <Icon size={12} />
       {m.label}
@@ -44,7 +44,7 @@ function feeRate(bruto: number, fee: number | null) {
 function StatBox({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div className={`rounded-2xl border p-4 ${color}`}>
-      <div className="text-[9px] font-mono font-bold tracking-[0.3em] text-current/60 uppercase mb-1.5">{label}</div>
+      <div className="text-[11px] font-mono font-bold tracking-[0.3em] text-current/60 uppercase mb-1.5">{label}</div>
       <div className="text-lg font-black tabular-nums leading-none">{value}</div>
     </div>
   )
@@ -76,7 +76,7 @@ function DetailModal({ sale, onClose }: { sale: any; onClose: () => void }) {
       k: 'E-MAIL PAG.',
       v: emailVisible
         ? (sale.payer_email || '—')
-        : <span className="cursor-pointer text-zinc-500 hover:text-zinc-300 transition" onClick={() => setEmailVisible(true)}>
+        : <span className="cursor-pointer text-zinc-400 hover:text-zinc-300 transition" onClick={() => setEmailVisible(true)}>
             {sale.payer_email ? '•••••••••••• (clique para ver)' : '—'}
           </span>
     },
@@ -99,13 +99,13 @@ function DetailModal({ sale, onClose }: { sale: any; onClose: () => void }) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/[0.06]">
           <div>
-            <div className="flex items-center gap-2 text-[10px] font-mono font-bold tracking-[0.25em] text-red-400 uppercase mb-1">
+            <div className="flex items-center gap-2 text-xs font-mono font-bold tracking-[0.25em] text-red-400 uppercase mb-1">
               <Eye size={12} />
               DETALHES DO PAGAMENTO
             </div>
-            <div className="text-[11px] font-mono text-zinc-500">ID: {sale.id}</div>
+            <div className="text-[13px] font-mono text-zinc-400">ID: {sale.id}</div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-white/[0.06] transition">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06] transition">
             <X size={15} />
           </button>
         </div>
@@ -126,11 +126,11 @@ function DetailModal({ sale, onClose }: { sale: any; onClose: () => void }) {
             style={{ borderColor: tint(activity.color, 0.3), background: tint(activity.color, 0.08) }}>
             <div className="flex items-center gap-2 mb-1.5">
               <Clock size={13} style={{ color: activity.color }} />
-              <span className="text-[11px] font-mono font-bold tracking-widest uppercase" style={{ color: activity.color }}>
+              <span className="text-[13px] font-mono font-bold tracking-widest uppercase" style={{ color: activity.color }}>
                 {activity.label}
               </span>
             </div>
-            <div className="text-[11px] font-mono text-zinc-400 leading-relaxed">{activity.detail}</div>
+            <div className="text-[13px] font-mono text-zinc-400 leading-relaxed">{activity.detail}</div>
           </div>
         )}
 
@@ -139,10 +139,10 @@ function DetailModal({ sale, onClose }: { sale: any; onClose: () => void }) {
           <div className="mx-5 mb-4 rounded-2xl p-4 border border-red-500/30 bg-red-500/[0.08]">
             <div className="flex items-center gap-2 mb-1.5">
               <AlertTriangle size={13} className="text-red-400" />
-              <span className="text-[11px] font-mono font-bold tracking-widest uppercase text-red-400">Recusado</span>
+              <span className="text-[13px] font-mono font-bold tracking-widest uppercase text-red-400">Recusado</span>
             </div>
             <div className="text-sm font-mono font-bold text-red-300 mb-1">{translateStatusDetail(sale.status_detail)}</div>
-            <div className="text-[10px] font-mono text-zinc-500 leading-relaxed">
+            <div className="text-xs font-mono text-zinc-400 leading-relaxed">
               Código MP: <span className="text-zinc-400">{sale.status_detail}</span>
             </div>
           </div>
@@ -150,7 +150,7 @@ function DetailModal({ sale, onClose }: { sale: any; onClose: () => void }) {
 
         {/* Financial summary */}
         <div className="mx-5 mb-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4">
-          <div className="text-[9px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase mb-3 flex items-center gap-1.5">
+          <div className="text-[11px] font-mono font-bold tracking-[0.25em] text-zinc-400 uppercase mb-3 flex items-center gap-1.5">
             <DollarSign size={10} /> RESUMO FINANCEIRO
           </div>
           <div className="space-y-2">
@@ -172,7 +172,7 @@ function DetailModal({ sale, onClose }: { sale: any; onClose: () => void }) {
             </div>
           </div>
           {sale.status === 'approved' && (
-            <div className="mt-3 flex items-center gap-1.5 text-[10px] font-mono text-zinc-600">
+            <div className="mt-3 flex items-center gap-1.5 text-xs font-mono text-zinc-500">
               <MIcon size={11} />
               Pagamento à vista via {method.label}
             </div>
@@ -182,8 +182,8 @@ function DetailModal({ sale, onClose }: { sale: any; onClose: () => void }) {
         {/* Data rows */}
         <div className="px-5 pb-5 space-y-2">
           {rows.map(({ k, v }) => (
-            <div key={k} className="flex justify-between items-start gap-3 text-[11px]">
-              <span className="font-mono text-zinc-600 uppercase tracking-wider flex-shrink-0 pt-0.5" style={{ fontSize: '9px', letterSpacing: '0.2em' }}>{k}</span>
+            <div key={k} className="flex justify-between items-start gap-3 text-[13px]">
+              <span className="font-mono text-zinc-500 uppercase tracking-wider flex-shrink-0 pt-0.5" style={{ fontSize: '9px', letterSpacing: '0.2em' }}>{k}</span>
               <span className="font-mono text-zinc-300 text-right break-all">{v}</span>
             </div>
           ))}
@@ -234,21 +234,21 @@ function RefundModal({ sale, slotName, onClose, onDone }: {
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-600/50 to-transparent" />
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/[0.06]">
-          <div className="flex items-center gap-2 text-[10px] font-mono font-bold tracking-[0.25em] text-red-400 uppercase">
+          <div className="flex items-center gap-2 text-xs font-mono font-bold tracking-[0.25em] text-red-400 uppercase">
             <RotateCcw size={12} />
             {isCancel ? 'CANCELAR PAGAMENTO' : 'ESTORNAR PAGAMENTO'}
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-white/[0.06] transition">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06] transition">
             <X size={15} />
           </button>
         </div>
 
         <div className="px-5 py-4 space-y-4">
           {/* Account */}
-          <div className="text-[11px] font-mono text-zinc-500">Usando conta: <span className="text-zinc-300">{slotName}</span></div>
+          <div className="text-[13px] font-mono text-zinc-400">Usando conta: <span className="text-zinc-300">{slotName}</span></div>
 
           {/* Warning */}
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3.5 text-[11px] font-mono text-zinc-400 leading-relaxed">
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3.5 text-[13px] font-mono text-zinc-400 leading-relaxed">
             <div className="flex items-start gap-2">
               <span className="text-amber-400 mt-0.5 flex-shrink-0">⚠</span>
               <span>
@@ -261,12 +261,12 @@ function RefundModal({ sale, slotName, onClose, onDone }: {
 
           {/* Payment info */}
           <div>
-            <div className="text-[9px] font-mono font-bold tracking-[0.25em] text-zinc-600 uppercase mb-1.5">ID DO PAGAMENTO</div>
+            <div className="text-[11px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase mb-1.5">ID DO PAGAMENTO</div>
             <div className="bg-white/[0.04] border border-red-500/30 rounded-xl px-4 py-2.5 font-mono text-sm text-zinc-200 tabular-nums">
               {sale.id}
             </div>
-            <div className="mt-2 flex items-center justify-between text-[10px] font-mono">
-              <span className="text-zinc-600">{sale.title}</span>
+            <div className="mt-2 flex items-center justify-between text-xs font-mono">
+              <span className="text-zinc-500">{sale.title}</span>
               <span className="text-zinc-400 font-bold tabular-nums">{fmtBRL(Number(sale.amount))}</span>
             </div>
           </div>
@@ -424,7 +424,7 @@ export function Extrato() {
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3 mb-5">
           <div className="relative flex-1">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
             <input
               type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Buscar por título, conta, ID ou referência…"
@@ -432,13 +432,13 @@ export function Extrato() {
             />
           </div>
           <div className="flex items-center gap-1.5 flex-wrap">
-            <Filter size={13} className="text-zinc-600" />
+            <Filter size={13} className="text-zinc-500" />
             {STATUS_OPTIONS.map(s => (
               <button key={s} onClick={() => setFilter(s)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold tracking-widest uppercase transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold tracking-widest uppercase transition-all ${
                   filter === s
                     ? 'bg-red-600/20 border border-red-600/40 text-red-300'
-                    : 'bg-white/[0.03] border border-white/[0.06] text-zinc-600 hover:border-white/[0.12] hover:text-zinc-400'
+                    : 'bg-white/[0.03] border border-white/[0.06] text-zinc-500 hover:border-white/[0.12] hover:text-zinc-400'
                 }`}>
                 {s === 'todos' ? 'TODOS' : s.toUpperCase()}
               </button>
@@ -451,14 +451,14 @@ export function Extrato() {
           {loading ? (
             <div className="py-16 flex items-center justify-center gap-3">
               <RefreshCw size={18} className="animate-spin text-red-400" />
-              <span className="text-xs font-mono text-zinc-500">Carregando…</span>
+              <span className="text-xs font-mono text-zinc-400">Carregando…</span>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="py-16 text-center text-zinc-600 text-xs font-mono">Nenhuma transação encontrada</div>
+            <div className="py-16 text-center text-zinc-500 text-xs font-mono">Nenhuma transação encontrada</div>
           ) : (
             <div className="divide-y divide-red-900/[0.12]">
               {/* Header */}
-              <div className="hidden md:grid px-5 py-3 text-[10px] font-mono font-bold tracking-widest text-zinc-600 uppercase border-b border-red-900/15"
+              <div className="hidden md:grid px-5 py-3 text-xs font-mono font-bold tracking-widest text-zinc-500 uppercase border-b border-red-900/15"
                 style={{ gridTemplateColumns: GRID, gap: '0 12px' }}>
                 <div>Título / Referência</div>
                 <div>Conta</div>
@@ -483,20 +483,20 @@ export function Extrato() {
                     {/* Title */}
                     <div>
                       <div className="text-sm font-mono text-zinc-300 truncate">{s.title}</div>
-                      <div className="text-[10px] font-mono text-zinc-600 tabular-nums">
+                      <div className="text-xs font-mono text-zinc-500 tabular-nums">
                         {s.external_reference || s.ref || `id-${s.id}`}
                       </div>
                     </div>
                     {/* Conta */}
-                    <div className="text-[11px] font-mono text-zinc-500 truncate">{s.slot_name}</div>
+                    <div className="text-[13px] font-mono text-zinc-400 truncate">{s.slot_name}</div>
                     {/* Data */}
-                    <div className="text-[11px] font-mono text-zinc-600 tabular-nums">{fmtDate(s.created_at)}</div>
+                    <div className="text-[13px] font-mono text-zinc-500 tabular-nums">{fmtDate(s.created_at)}</div>
                     {/* Valor — líq só quando aprovado E > 0. Sem isso o "0 &&" imprimia um 0 solto. */}
                     <div className="leading-tight">
                       <div className="text-sm font-mono font-bold text-zinc-200 tabular-nums">{fmtBRL(Number(s.amount))}</div>
                       {s.status === 'approved' && Number(s.net_amount) > 0
-                        ? <div className="text-[10px] font-mono text-zinc-600 tabular-nums">líq: {fmtBRL(Number(s.net_amount))}</div>
-                        : <div className="text-[10px] text-transparent select-none">·</div>}
+                        ? <div className="text-xs font-mono text-zinc-500 tabular-nums">líq: {fmtBRL(Number(s.net_amount))}</div>
+                        : <div className="text-xs text-transparent select-none">·</div>}
                     </div>
                     {/* Método */}
                     <div><MethodChip typeId={s.payment_type_id} methodId={s.payment_method_id} /></div>
@@ -508,7 +508,7 @@ export function Extrato() {
                         <button
                           title="Estornar / Cancelar"
                           onClick={() => { setRefundSale(s); setSlotName(s.slot_name || '') }}
-                          className="p-1.5 rounded-lg border border-transparent text-zinc-600 hover:text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/10 transition"
+                          className="p-1.5 rounded-lg border border-transparent text-zinc-500 hover:text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/10 transition"
                         >
                           <RotateCcw size={14} />
                         </button>
@@ -516,7 +516,7 @@ export function Extrato() {
                       <button
                         title="Ver detalhes"
                         onClick={() => setDetailSale(s)}
-                        className="p-1.5 rounded-lg border border-transparent text-zinc-600 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition"
+                        className="p-1.5 rounded-lg border border-transparent text-zinc-500 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition"
                       >
                         <Eye size={14} />
                       </button>
@@ -527,7 +527,7 @@ export function Extrato() {
                   <div className="md:hidden flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-mono text-zinc-300 truncate">{s.title}</div>
-                      <div className="text-[10px] font-mono text-zinc-600 flex items-center gap-2">
+                      <div className="text-xs font-mono text-zinc-500 flex items-center gap-2">
                         {fmtDate(s.created_at)} <MethodChip typeId={s.payment_type_id} methodId={s.payment_method_id} />
                       </div>
                     </div>
@@ -539,14 +539,14 @@ export function Extrato() {
                       {canRefund(s.status) && (
                         <button
                           onClick={() => { setRefundSale(s); setSlotName(s.slot_name || '') }}
-                          className="p-1.5 rounded-lg text-zinc-600 hover:text-amber-400 transition"
+                          className="p-1.5 rounded-lg text-zinc-500 hover:text-amber-400 transition"
                         >
                           <RotateCcw size={14} />
                         </button>
                       )}
                       <button
                         onClick={() => setDetailSale(s)}
-                        className="p-1.5 rounded-lg text-zinc-600 hover:text-red-400 transition"
+                        className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 transition"
                       >
                         <Eye size={14} />
                       </button>
@@ -559,7 +559,7 @@ export function Extrato() {
         </div>
 
         {!loading && (
-          <div className="text-center mt-4 text-[10px] font-mono text-zinc-700">
+          <div className="text-center mt-4 text-xs font-mono text-zinc-500">
             {filtered.length} de {sales.length} transações
           </div>
         )}

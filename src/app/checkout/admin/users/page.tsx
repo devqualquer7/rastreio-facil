@@ -68,7 +68,7 @@ export default function AdminUsersPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-white">Usuários</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">{users.length} usuário{users.length !== 1 ? 's' : ''} cadastrado{users.length !== 1 ? 's' : ''}</p>
+        <p className="text-sm text-zinc-400 mt-0.5">{users.length} usuário{users.length !== 1 ? 's' : ''} cadastrado{users.length !== 1 ? 's' : ''}</p>
       </div>
 
       {msg && (
@@ -77,7 +77,7 @@ export default function AdminUsersPage() {
 
       <div className="bg-[#141414] border border-white/[0.06] rounded-xl overflow-hidden">
         {users.length === 0 ? (
-          <p className="text-sm text-zinc-600 text-center py-8">Nenhum usuário ainda</p>
+          <p className="text-sm text-zinc-500 text-center py-8">Nenhum usuário ainda</p>
         ) : (
           <div className="divide-y divide-white/[0.04]">
             {users.map(u => (
@@ -89,13 +89,13 @@ export default function AdminUsersPage() {
                   <div className="flex items-center gap-2">
                     <p className="text-sm text-white font-medium truncate">{u.username}</p>
                     {u.is_admin === 1 && (
-                      <span className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded font-semibold">ADMIN</span>
+                      <span className="text-xs bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded font-semibold">ADMIN</span>
                     )}
                     {u.is_banned === 1 && (
-                      <span className="text-[10px] bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded font-semibold">BANIDO</span>
+                      <span className="text-xs bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded font-semibold">BANIDO</span>
                     )}
                   </div>
-                  <p className="text-xs text-zinc-600">Cadastrado em {fmtDate(u.created_at)}</p>
+                  <p className="text-xs text-zinc-500">Cadastrado em {fmtDate(u.created_at)}</p>
                 </div>
                 {u.id !== me?.id && (
                   <div className="flex gap-1.5 shrink-0">

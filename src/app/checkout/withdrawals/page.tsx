@@ -82,7 +82,7 @@ export default function WithdrawalsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-white">Saques</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Solicite saques para sua chave PIX</p>
+        <p className="text-sm text-zinc-400 mt-0.5">Solicite saques para sua chave PIX</p>
       </div>
 
       <div className="bg-[#141414] border border-white/[0.06] rounded-xl p-4 max-w-2xl">
@@ -167,23 +167,23 @@ export default function WithdrawalsPage() {
             <div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
           </div>
         ) : withdrawals.length === 0 ? (
-          <p className="text-sm text-zinc-600 text-center py-8">Nenhum saque ainda</p>
+          <p className="text-sm text-zinc-500 text-center py-8">Nenhum saque ainda</p>
         ) : (
           <div className="divide-y divide-white/[0.04]">
             {withdrawals.map(w => (
               <div key={w.id} className="flex items-center gap-3 px-4 py-3">
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${statusColor(w.status)}`}>
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${statusColor(w.status)}`}>
                   {statusLabel(w.status)}
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-zinc-300 font-mono truncate">{w.pix_key}</p>
-                  <p className="text-xs text-zinc-600">{PIX_TYPES.find(t => t.value === w.pix_key_type)?.label ?? w.pix_key_type}</p>
+                  <p className="text-xs text-zinc-500">{PIX_TYPES.find(t => t.value === w.pix_key_type)?.label ?? w.pix_key_type}</p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-sm text-white font-medium">{fmt(w.amount)}</p>
-                  <p className="text-xs text-zinc-600">{GATEWAY_LABELS[w.gateway] ?? w.gateway}</p>
+                  <p className="text-xs text-zinc-500">{GATEWAY_LABELS[w.gateway] ?? w.gateway}</p>
                 </div>
-                <p className="text-xs text-zinc-600 shrink-0 hidden sm:block">{fmtDate(w.created_at)}</p>
+                <p className="text-xs text-zinc-500 shrink-0 hidden sm:block">{fmtDate(w.created_at)}</p>
               </div>
             ))}
           </div>

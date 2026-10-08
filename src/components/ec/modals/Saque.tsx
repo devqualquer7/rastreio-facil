@@ -74,10 +74,10 @@ function QRCard({ item, amount, paid }: { item: any; amount: number; paid?: bool
 
       {/* Header */}
       <div className="w-full px-4 py-2.5 flex items-center justify-between border-b border-white/[0.06]">
-        <div className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">
+        <div className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-widest">
           {item.index ? `#${item.index}` : 'PIX'}
         </div>
-        {amount > 0 && <div className="text-[10px] font-mono text-emerald-400 font-bold">{fmtBRL(amount)}</div>}
+        {amount > 0 && <div className="text-xs font-mono text-emerald-400 font-bold">{fmtBRL(amount)}</div>}
       </div>
 
       {/* QR */}
@@ -85,7 +85,7 @@ function QRCard({ item, amount, paid }: { item: any; amount: number; paid?: bool
         {isError ? (
           <div className="w-44 h-24 flex flex-col items-center justify-center gap-2">
             <AlertCircle size={20} className="text-red-400" />
-            <div className="text-[10px] font-mono text-red-400 text-center px-2">{item.error}</div>
+            <div className="text-xs font-mono text-red-400 text-center px-2">{item.error}</div>
           </div>
         ) : loading ? (
           <div className="w-44 h-44 flex items-center justify-center">
@@ -107,12 +107,12 @@ function QRCard({ item, amount, paid }: { item: any; amount: number; paid?: bool
           </div>
         ) : (
           <div className="w-44 h-44 flex items-center justify-center rounded-xl border border-red-500/20 bg-red-500/5">
-            <div className="text-[10px] font-mono text-red-400 text-center px-3">Erro ao gerar QR</div>
+            <div className="text-xs font-mono text-red-400 text-center px-3">Erro ao gerar QR</div>
           </div>
         )}
 
         {!isError && (
-          <div className="w-full text-[9px] font-mono text-zinc-700 break-all leading-relaxed max-h-10 overflow-hidden text-center">
+          <div className="w-full text-[11px] font-mono text-zinc-500 break-all leading-relaxed max-h-10 overflow-hidden text-center">
             {(item.pixCode || item.payload || '').slice(0, 80)}
             {(item.pixCode || item.payload || '').length > 80 ? '…' : ''}
           </div>
@@ -123,7 +123,7 @@ function QRCard({ item, amount, paid }: { item: any; amount: number; paid?: bool
       {!isError && (
         <div className="flex gap-2 w-full px-3 pb-3">
           <button onClick={copy}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-mono font-bold tracking-wider uppercase transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-mono font-bold tracking-wider uppercase transition-all ${
               copied
                 ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400'
                 : 'bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/25'
@@ -132,7 +132,7 @@ function QRCard({ item, amount, paid }: { item: any; amount: number; paid?: bool
           </button>
           {dataUrl && (
             <button onClick={download}
-              className="px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-500 hover:text-zinc-300 transition">
+              className="px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-zinc-300 transition">
               <Download size={11} />
             </button>
           )}
@@ -165,7 +165,7 @@ function GatewayCard({ gw, selected, onSelect }: { gw: any; selected: boolean; o
           {gw.label}
         </div>
         {gw.id === 'pix_estatico' && (
-          <div className="text-[9px] font-mono text-zinc-600 mt-0.5">Escaneie · qualquer valor</div>
+          <div className="text-[11px] font-mono text-zinc-500 mt-0.5">Escaneie · qualquer valor</div>
         )}
       </div>
 
@@ -303,12 +303,12 @@ export function SaqueModal() {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-emerald-500/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/30 to-cyan-400/20 border border-emerald-500/30 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/30 to-rose-400/20 border border-emerald-500/30 flex items-center justify-center">
               <ArrowDownToLine size={16} className="text-emerald-400" />
             </div>
             <div>
               <div className="font-black text-base text-zinc-100">Saque</div>
-              <div className="text-[10px] font-mono text-zinc-600">
+              <div className="text-xs font-mono text-zinc-500">
                 {loadingGw
                   ? 'Carregando…'
                   : selectedGwInfo
@@ -318,7 +318,7 @@ export function SaqueModal() {
             </div>
           </div>
           <button onClick={closeModal}
-            className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.08] flex items-center justify-center transition">
+            className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.08] flex items-center justify-center transition">
             <X size={15} />
           </button>
         </div>
@@ -329,7 +329,7 @@ export function SaqueModal() {
           {loadingGw && (
             <div className="py-20 flex items-center justify-center gap-3">
               <RefreshCw size={18} className="animate-spin text-emerald-400" />
-              <span className="text-xs font-mono text-zinc-500">Carregando gateways…</span>
+              <span className="text-xs font-mono text-zinc-400">Carregando gateways…</span>
             </div>
           )}
 
@@ -338,7 +338,7 @@ export function SaqueModal() {
             <div className="py-16 flex flex-col items-center gap-3 px-6">
               <AlertCircle size={28} className="text-amber-400" />
               <div className="text-sm font-mono text-amber-400 text-center">Nenhum gateway configurado</div>
-              <div className="text-[11px] font-mono text-zinc-600 text-center">
+              <div className="text-[13px] font-mono text-zinc-500 text-center">
                 Vá em Gateways PIX e configure pelo menos um gateway antes de gerar saques.
               </div>
             </div>
@@ -347,7 +347,7 @@ export function SaqueModal() {
           {/* PIX Estático view */}
           {!loadingGw && !noneConfigured && isPixEstatico && (
             <div className="p-6 flex flex-col gap-6">
-              <div className="text-[10px] font-mono text-zinc-600 uppercase tracking-[0.3em] text-center">
+              <div className="text-xs font-mono text-zinc-500 uppercase tracking-[0.3em] text-center">
                 PIX Estático — escaneie para pagar qualquer valor
               </div>
               {staticPayload ? (
@@ -356,15 +356,15 @@ export function SaqueModal() {
                 </div>
               ) : (
                 <div className="py-8 text-center">
-                  <div className="text-[11px] font-mono text-red-400">Chave PIX não encontrada</div>
-                  <div className="text-[10px] font-mono text-zinc-600 mt-1">Configure a chave PIX estática nas Gateways.</div>
+                  <div className="text-[13px] font-mono text-red-400">Chave PIX não encontrada</div>
+                  <div className="text-xs font-mono text-zinc-500 mt-1">Configure a chave PIX estática nas Gateways.</div>
                 </div>
               )}
 
               {/* Gateway selector (only if more than one gateway) */}
               {allGateways.length > 1 && (
                 <div>
-                  <div className="text-[10px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase mb-2.5">
+                  <div className="text-xs font-mono font-bold tracking-[0.25em] text-zinc-400 uppercase mb-2.5">
                     Gateway
                   </div>
                   <div className="flex flex-col gap-2">
@@ -386,11 +386,11 @@ export function SaqueModal() {
           {!loadingGw && !noneConfigured && !isPixEstatico && done && items.length > 0 && (
             <div className="p-5">
               <div className="flex items-center justify-between mb-4">
-                <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                <div className="text-xs font-mono text-zinc-400 uppercase tracking-widest">
                   {items.filter(i => i.ok).length} de {items.length} gerados · {fmtBRL(amountNum)} cada
                 </div>
                 <button onClick={reset}
-                  className="text-[10px] font-mono text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition">
+                  className="text-xs font-mono text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition">
                   <RefreshCw size={10} /> Novo saque
                 </button>
               </div>
@@ -408,11 +408,11 @@ export function SaqueModal() {
             <div className="p-6 space-y-5">
               {/* Amount */}
               <div>
-                <div className="text-[10px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase mb-2">
+                <div className="text-xs font-mono font-bold tracking-[0.25em] text-zinc-400 uppercase mb-2">
                   Valor por PIX
                 </div>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 font-bold text-sm">R$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-sm">R$</span>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -426,12 +426,12 @@ export function SaqueModal() {
 
               {/* Quantity */}
               <div>
-                <div className="text-[10px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase mb-2">
+                <div className="text-xs font-mono font-bold tracking-[0.25em] text-zinc-400 uppercase mb-2">
                   Quantidade de links
                 </div>
                 <div className="flex items-center gap-3">
                   <button onClick={() => adjustQty(-5)}
-                    className="px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.08] text-[10px] font-mono font-bold transition">
+                    className="px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.08] text-xs font-mono font-bold transition">
                     -5
                   </button>
                   <button onClick={() => adjustQty(-1)}
@@ -444,11 +444,11 @@ export function SaqueModal() {
                     <Plus size={14} />
                   </button>
                   <button onClick={() => adjustQty(5)}
-                    className="px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.08] text-[10px] font-mono font-bold transition">
+                    className="px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.08] text-xs font-mono font-bold transition">
                     +5
                   </button>
                 </div>
-                <div className="mt-2 text-[10px] font-mono text-zinc-700 text-center">máx. 50 por vez</div>
+                <div className="mt-2 text-xs font-mono text-zinc-500 text-center">máx. 50 por vez</div>
               </div>
 
               {/* Summary */}
@@ -456,7 +456,7 @@ export function SaqueModal() {
                 {amountNum > 0 && (
                   <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
                     className="flex items-center justify-between bg-emerald-500/8 border border-emerald-500/15 rounded-xl px-4 py-3">
-                    <div className="text-[11px] font-mono text-zinc-500">Total a gerar</div>
+                    <div className="text-[13px] font-mono text-zinc-400">Total a gerar</div>
                     <div className="text-base font-black text-emerald-300 tabular-nums">
                       {quantity}× {fmtBRL(amountNum)} = {fmtBRL(amountNum * quantity)}
                     </div>
@@ -467,7 +467,7 @@ export function SaqueModal() {
               {/* Gateway selector */}
               {allGateways.length > 1 && (
                 <div>
-                  <div className="text-[10px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase mb-2.5">
+                  <div className="text-xs font-mono font-bold tracking-[0.25em] text-zinc-400 uppercase mb-2.5">
                     Gateway
                   </div>
                   <div className="flex flex-col gap-2">
@@ -487,8 +487,8 @@ export function SaqueModal() {
               {hasDynamicGateways && allGateways.length === 1 && (
                 <div className="flex items-center gap-2 bg-emerald-500/8 border border-emerald-500/20 rounded-xl px-4 py-2.5">
                   <Zap size={12} className="text-emerald-400" />
-                  <span className="text-[11px] font-mono text-zinc-400">Gateway:</span>
-                  <span className="text-[11px] font-mono font-bold text-emerald-400">{selectedGwInfo?.label}</span>
+                  <span className="text-[13px] font-mono text-zinc-400">Gateway:</span>
+                  <span className="text-[13px] font-mono font-bold text-emerald-400">{selectedGwInfo?.label}</span>
                 </div>
               )}
             </div>
@@ -501,7 +501,7 @@ export function SaqueModal() {
             <button
               onClick={generate}
               disabled={generating || !amount || !selectedGw}
-              className="w-full py-4 rounded-2xl bg-gradient-to-br from-emerald-700 via-emerald-500 to-cyan-400 text-white font-black tracking-widest text-sm uppercase shadow-[0_0_25px_rgba(16,185,129,.3)] hover:shadow-[0_0_40px_rgba(16,185,129,.5)] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2">
+              className="w-full py-4 rounded-2xl bg-gradient-to-br from-emerald-700 via-emerald-500 to-rose-400 text-white font-black tracking-widest text-sm uppercase shadow-[0_0_25px_rgba(16,185,129,.3)] hover:shadow-[0_0_40px_rgba(16,185,129,.5)] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2">
               {generating ? (
                 <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Gerando {quantity} PIX…</>
               ) : (

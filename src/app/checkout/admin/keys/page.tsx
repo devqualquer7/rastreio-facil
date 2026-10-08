@@ -81,7 +81,7 @@ export default function AdminKeysPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-white">Chaves de Ativação</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">{unused.length} disponíveis · {used.length} utilizadas</p>
+        <p className="text-sm text-zinc-400 mt-0.5">{unused.length} disponíveis · {used.length} utilizadas</p>
       </div>
 
       <div className="bg-[#141414] border border-white/[0.06] rounded-xl p-4 max-w-sm">
@@ -131,7 +131,7 @@ export default function AdminKeysPage() {
             {unused.map(k => (
               <div key={k.id} className="flex items-center gap-3 px-4 py-3">
                 <span className="font-mono text-sm text-zinc-300 flex-1">{k.key_value}</span>
-                <span className="text-xs text-zinc-600">{fmtDate(k.created_at)}</span>
+                <span className="text-xs text-zinc-500">{fmtDate(k.created_at)}</span>
                 <button
                   onClick={() => del(k.id)}
                   className="text-xs text-red-400 hover:text-red-300 bg-red-500/[0.06] hover:bg-red-500/[0.12] px-2.5 py-1 rounded-lg transition-colors"
@@ -147,13 +147,13 @@ export default function AdminKeysPage() {
       {used.length > 0 && (
         <div className="bg-[#141414] border border-white/[0.06] rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-white/[0.06]">
-            <h2 className="text-sm font-medium text-zinc-500">Chaves Utilizadas ({used.length})</h2>
+            <h2 className="text-sm font-medium text-zinc-400">Chaves Utilizadas ({used.length})</h2>
           </div>
           <div className="divide-y divide-white/[0.04]">
             {used.slice(0, 20).map(k => (
               <div key={k.id} className="flex items-center gap-3 px-4 py-3 opacity-50">
-                <span className="font-mono text-sm text-zinc-500 flex-1 line-through">{k.key_value}</span>
-                <span className="text-xs text-zinc-600">usada em {fmtDate(k.used_at)}</span>
+                <span className="font-mono text-sm text-zinc-400 flex-1 line-through">{k.key_value}</span>
+                <span className="text-xs text-zinc-500">usada em {fmtDate(k.used_at)}</span>
               </div>
             ))}
           </div>

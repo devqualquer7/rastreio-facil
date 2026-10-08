@@ -98,7 +98,7 @@ export default function TransactionsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-white">Transações</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Gere PIX e acompanhe pagamentos</p>
+        <p className="text-sm text-zinc-400 mt-0.5">Gere PIX e acompanhe pagamentos</p>
       </div>
 
       <div className="bg-[#141414] border border-white/[0.06] rounded-xl p-4">
@@ -161,14 +161,14 @@ export default function TransactionsPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-sm font-medium text-white">PIX Gerado — {fmt(activePix.amount)}</h2>
-              <p className="text-xs text-zinc-500 mt-0.5 flex items-center gap-1">
+              <p className="text-xs text-zinc-400 mt-0.5 flex items-center gap-1">
                 {polling ? <span className="inline-block w-2 h-2 rounded-full bg-zinc-500 animate-pulse" /> : null}
                 Aguardando pagamento...
               </p>
             </div>
             <button
               onClick={() => setActivePix(null)}
-              className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="text-xs text-zinc-400 hover:text-zinc-300 transition-colors"
             >
               Fechar
             </button>
@@ -182,7 +182,7 @@ export default function TransactionsPage() {
               />
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-zinc-500 mb-1.5">Código copia e cola</p>
+              <p className="text-xs text-zinc-400 mb-1.5">Código copia e cola</p>
               <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-lg p-3 font-mono text-xs text-zinc-300 break-all select-all mb-2">
                 {activePix.pixCode}
               </div>
@@ -206,13 +206,13 @@ export default function TransactionsPage() {
             <div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
           </div>
         ) : txs.length === 0 ? (
-          <p className="text-sm text-zinc-600 text-center py-8">Nenhuma transação ainda</p>
+          <p className="text-sm text-zinc-500 text-center py-8">Nenhuma transação ainda</p>
         ) : (
           <div className="divide-y divide-white/[0.04]">
             {txs.map(tx => (
               <div key={tx.id} className="flex items-center gap-3 px-4 py-3">
                 <span className={`
-                  text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0
+                  text-xs font-semibold px-2 py-0.5 rounded-full shrink-0
                   ${tx.status === 'paid'
                     ? 'bg-emerald-500/10 text-emerald-400'
                     : 'bg-zinc-500/10 text-zinc-400'}
@@ -221,13 +221,13 @@ export default function TransactionsPage() {
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-zinc-300 font-mono truncate">{tx.external_id ?? tx.id}</p>
-                  {tx.description && <p className="text-xs text-zinc-600 truncate">{tx.description}</p>}
+                  {tx.description && <p className="text-xs text-zinc-500 truncate">{tx.description}</p>}
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-sm text-white font-medium">{fmt(tx.amount)}</p>
-                  <p className="text-xs text-zinc-600">{GATEWAY_LABELS[tx.gateway] ?? tx.gateway}</p>
+                  <p className="text-xs text-zinc-500">{GATEWAY_LABELS[tx.gateway] ?? tx.gateway}</p>
                 </div>
-                <p className="text-xs text-zinc-600 shrink-0 hidden sm:block">{fmtDate(tx.created_at)}</p>
+                <p className="text-xs text-zinc-500 shrink-0 hidden sm:block">{fmtDate(tx.created_at)}</p>
               </div>
             ))}
           </div>

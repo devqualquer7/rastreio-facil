@@ -86,7 +86,7 @@ export function Dashboard() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <TrendingUp size={15} className="text-red-400" />
-              <div className="text-xs font-mono font-bold tracking-widest text-zinc-500">TAXA DE APROVAÇÃO</div>
+              <div className="text-xs font-mono font-bold tracking-widest text-zinc-400">TAXA DE APROVAÇÃO</div>
             </div>
             <div className="text-lg font-mono font-black text-red-400">{approvalRate.toFixed(1)}%</div>
           </div>
@@ -98,8 +98,8 @@ export function Dashboard() {
             />
           </div>
           <div className="flex justify-between mt-2">
-            <div className="text-[10px] font-mono text-emerald-500">{stats.approved} aprovadas</div>
-            <div className="text-[10px] font-mono text-red-400">{stats.rejected} recusadas</div>
+            <div className="text-xs font-mono text-emerald-500">{stats.approved} aprovadas</div>
+            <div className="text-xs font-mono text-red-400">{stats.rejected} recusadas</div>
           </div>
         </motion.div>
       )}
@@ -108,14 +108,14 @@ export function Dashboard() {
         <div className="px-5 py-4 border-b border-red-600/10 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LinkIcon size={14} className="text-red-400" />
-            <div className="text-xs font-mono font-bold tracking-widest text-zinc-500">TRANSAÇÕES RECENTES</div>
+            <div className="text-xs font-mono font-bold tracking-widest text-zinc-400">TRANSAÇÕES RECENTES</div>
           </div>
-          <button onClick={() => setScreen('extrato')} className="text-[10px] font-mono text-zinc-600 hover:text-red-400 tracking-widest transition">
+          <button onClick={() => setScreen('extrato')} className="text-xs font-mono text-zinc-500 hover:text-red-400 tracking-widest transition">
             VER TODAS →
           </button>
         </div>
         {recent.length === 0 ? (
-          <div className="py-12 text-center text-zinc-600 text-xs font-mono">
+          <div className="py-12 text-center text-zinc-500 text-xs font-mono">
             Nenhuma venda ainda. Clique em <span className="text-red-400">GERAR LINK</span>.
           </div>
         ) : (
@@ -124,7 +124,7 @@ export function Dashboard() {
               <div key={s.id} className="px-5 py-3 flex items-center justify-between hover:bg-red-600/[0.03] transition">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-mono text-zinc-300 truncate">{s.title}</div>
-                  <div className="text-[10px] font-mono text-zinc-600">
+                  <div className="text-xs font-mono text-zinc-500">
                     Slot #{s.slot} · {s.slot_name} · {fmtDate(s.created_at)}
                   </div>
                 </div>

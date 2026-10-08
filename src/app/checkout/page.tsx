@@ -150,7 +150,7 @@ export default function CheckoutPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.18 }}>
-                <Screen />
+                <div className="max-w-[1500px] mx-auto"><Screen /></div>
               </motion.div>
             </AnimatePresence>
           </main>

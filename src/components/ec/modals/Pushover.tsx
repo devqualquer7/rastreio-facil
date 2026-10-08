@@ -122,10 +122,10 @@ export function PushoverModal() {
             </div>
             <div>
               <div className="font-bold text-sm text-zinc-100 tracking-wide uppercase">Notificações no Celular</div>
-              <div className="text-[10px] font-mono text-zinc-600 mt-0.5">Pushover · receba alertas onde estiver</div>
+              <div className="text-xs font-mono text-zinc-500 mt-0.5">Pushover · receba alertas onde estiver</div>
             </div>
           </div>
-          <button onClick={closeModal} className="w-8 h-8 rounded-xl text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06] flex items-center justify-center transition">
+          <button onClick={closeModal} className="w-8 h-8 rounded-xl text-zinc-400 hover:text-zinc-300 hover:bg-white/[0.06] flex items-center justify-center transition">
             <X size={16} />
           </button>
         </div>
@@ -141,7 +141,7 @@ export function PushoverModal() {
               </div>
               <div className="flex-1">
                 <div className="font-bold text-sm text-zinc-100">Notificações Ativadas</div>
-                <div className="text-[11px] font-mono text-zinc-500">Alertas enviados pro seu celular</div>
+                <div className="text-[13px] font-mono text-zinc-400">Alertas enviados pro seu celular</div>
               </div>
               <Toggle on={cfg.enabled} onClick={() => save({ ...cfg, enabled: !cfg.enabled })} />
             </div>
@@ -149,30 +149,30 @@ export function PushoverModal() {
             {/* Credentials */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-1.5 text-[10px] font-mono font-bold tracking-[0.2em] text-red-400 uppercase">
+                <div className="flex items-center gap-1.5 text-xs font-mono font-bold tracking-[0.2em] text-red-400 uppercase">
                   <KeyRound size={12} /> Credenciais Pushover
                 </div>
                 <a href="https://pushover.net" target="_blank" rel="noreferrer"
-                  className="flex items-center gap-1 text-[10px] font-mono text-red-400 hover:text-red-300 transition">
+                  className="flex items-center gap-1 text-xs font-mono text-red-400 hover:text-red-300 transition">
                   <ExternalLink size={11} /> Abrir pushover.net
                 </a>
               </div>
 
-              <label className="block text-[10px] font-mono text-zinc-500 mb-1.5 tracking-wider">@ USER KEY</label>
+              <label className="block text-xs font-mono text-zinc-400 mb-1.5 tracking-wider">@ USER KEY</label>
               <div className="relative mb-1">
                 <input type={showKey ? 'text' : 'password'} value={cfg.userKey}
                   onChange={e => setCfg({ ...cfg, userKey: e.target.value })}
                   onBlur={() => save(cfg)}
                   placeholder="u2mde8b7moz1xfk9acfeo…" className={inputCls} />
-                <button onClick={() => setShowKey(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-300">
+                <button onClick={() => setShowKey(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">
                   {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-              <div className="text-[10px] font-mono text-zinc-600 mb-4">Achado na home do pushover.net após login — é só isso que você precisa colar</div>
+              <div className="text-xs font-mono text-zinc-500 mb-4">Achado na home do pushover.net após login — é só isso que você precisa colar</div>
 
               <div className="flex items-start gap-2.5 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/20 p-3">
                 <CheckCircle2 size={13} className="text-emerald-400 mt-0.5 flex-shrink-0" />
-                <div className="text-[10px] font-mono text-zinc-500 leading-relaxed">
+                <div className="text-xs font-mono text-zinc-400 leading-relaxed">
                   O <span className="text-emerald-400">API Token</span> já vem configurado no sistema (aplicativo EncryptedSoftware). Você <span className="text-zinc-300">não precisa criar nada</span> — só cola o seu User Key acima.
                 </div>
               </div>
@@ -187,7 +187,7 @@ export function PushoverModal() {
 
             {/* Per-event */}
             <div>
-              <div className="flex items-center gap-1.5 text-[10px] font-mono font-bold tracking-[0.2em] text-red-400 uppercase mb-3">
+              <div className="flex items-center gap-1.5 text-xs font-mono font-bold tracking-[0.2em] text-red-400 uppercase mb-3">
                 <Volume2 size={12} /> Quais notificações receber
               </div>
               <div className="space-y-3">
@@ -203,13 +203,13 @@ export function PushoverModal() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-bold text-sm text-zinc-100">{ev.title}</div>
-                          <div className="text-[10px] font-mono text-zinc-500 leading-relaxed">{ev.desc}</div>
+                          <div className="text-xs font-mono text-zinc-400 leading-relaxed">{ev.desc}</div>
                         </div>
                         <Toggle on={on} color={ev.color} onClick={() => save({ ...cfg, events: { ...cfg.events, [ev.key]: !on } })} />
                       </div>
                       {on && (
                         <div className="mt-3 pl-11">
-                          <label className="block text-[9px] font-mono text-zinc-600 tracking-[0.2em] uppercase mb-1.5">Som da notificação</label>
+                          <label className="block text-[11px] font-mono text-zinc-500 tracking-[0.2em] uppercase mb-1.5">Som da notificação</label>
                           <select value={cfg.sounds[ev.key]}
                             onChange={e => save({ ...cfg, sounds: { ...cfg.sounds, [ev.key]: e.target.value } })}
                             className="w-full bg-[#08080f] border border-[#1c1c33] rounded-xl px-3 py-2.5 text-sm font-mono text-zinc-200 outline-none focus:border-red-500/50 cursor-pointer">
@@ -223,7 +223,7 @@ export function PushoverModal() {
               </div>
             </div>
 
-            <div className="text-[10px] font-mono text-zinc-600 leading-relaxed text-center pt-1">
+            <div className="text-xs font-mono text-zinc-500 leading-relaxed text-center pt-1">
               {saving ? 'Salvando…' : 'Alterações salvas automaticamente. Você só recebe alertas das SUAS vendas.'}
             </div>
           </div>

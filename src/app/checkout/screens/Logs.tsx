@@ -31,11 +31,11 @@ function levelStyle(level: string) {
     case 'refund':
       return { bg: 'bg-amber-500/10',   text: 'text-amber-400',   border: 'border-amber-500/20',   icon: RotateCcw,    label: 'estorno' }
     case 'link':
-      return { bg: 'bg-purple-500/10',  text: 'text-purple-400',  border: 'border-purple-500/20',  icon: Link2,        label: 'link' }
+      return { bg: 'bg-ec-blue/10',    text: 'text-ec-blue',     border: 'border-ec-blue/25',     icon: Link2,        label: 'link' }
     case 'login':
-      return { bg: 'bg-cyan-500/10',    text: 'text-cyan-400',    border: 'border-cyan-500/20',    icon: LogIn,        label: 'login' }
+      return { bg: 'bg-ec-purple/10',  text: 'text-ec-purple',   border: 'border-ec-purple/25',   icon: LogIn,        label: 'login' }
     default:
-      return { bg: 'bg-white/[0.03]',   text: 'text-zinc-500',    border: 'border-white/[0.06]',   icon: Clock,        label: level }
+      return { bg: 'bg-white/[0.03]',   text: 'text-zinc-400',    border: 'border-white/[0.06]',   icon: Clock,        label: level }
   }
 }
 
@@ -112,20 +112,20 @@ function CancelModal({ log, onClose, onConfirm }: CancelModalProps) {
           {/* Title */}
           <div className="font-black text-lg text-zinc-100 tracking-tight mb-1">Cancelar link?</div>
           {title && (
-            <div className="text-xs font-mono text-purple-300/80 mb-4 truncate px-2">{title}</div>
+            <div className="text-xs font-mono text-red-300/80 mb-4 truncate px-2">{title}</div>
           )}
 
           {/* Warning */}
           <div className="flex items-start gap-2.5 p-3 rounded-xl bg-red-500/[0.08] border border-red-500/20 text-left mb-5">
             <AlertTriangle size={13} className="text-red-400 shrink-0 mt-0.5" />
-            <p className="text-[11px] font-mono text-red-300/80 leading-relaxed">
+            <p className="text-[13px] font-mono text-red-300/80 leading-relaxed">
               O link vai parar de aceitar pagamentos <strong className="text-red-300">imediatamente</strong>.
               Esta ação <strong className="text-red-300">NÃO pode ser desfeita</strong>.
             </p>
           </div>
 
           {ref && (
-            <div className="text-[9px] font-mono text-zinc-700 mb-5 tracking-widest">{ref}</div>
+            <div className="text-[11px] font-mono text-zinc-500 mb-5 tracking-widest">{ref}</div>
           )}
 
           {/* Buttons */}
@@ -148,7 +148,7 @@ function CancelModal({ log, onClose, onConfirm }: CancelModalProps) {
             </button>
           </div>
 
-          <div className="mt-3 text-[9px] font-mono text-zinc-700 tracking-widest">
+          <div className="mt-3 text-[11px] font-mono text-zinc-500 tracking-widest">
             ESC · voltar &nbsp;·&nbsp; ENTER · confirmar
           </div>
         </div>
@@ -275,38 +275,35 @@ export function Logs() {
               key={t.id}
               onClick={() => switchTab(t.id)}
               className={cn(
-                'flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[10px] font-mono font-bold tracking-[0.2em] uppercase transition-all border',
+                'flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-mono font-bold tracking-[0.2em] uppercase transition-all border',
                 active
-                  ? 'bg-red-500/12 border-red-500/30 text-red-400'
-                  : 'bg-white/[0.025] border-white/[0.06] text-zinc-600 hover:text-zinc-400 hover:border-white/10 hover:bg-white/[0.04]'
+                  ? 'bg-ec-red/10 border-ec-red/40 text-ec-red'
+                  : 'bg-ec-card border-ec-line text-ec-dim hover:text-ec-text hover:border-ec-line-glow'
               )}>
-              <Icon
-                size={11}
-                className={active ? 'text-red-500' : 'text-zinc-600'}
-              />
+              <Icon size={13} />
               {t.label}
             </button>
           )
         })}
-        <span className="ml-auto text-[10px] font-mono text-zinc-700 tabular-nums">{logs.length} registros</span>
+        <span className="ml-auto text-xs font-mono text-zinc-500 tabular-nums">{logs.length} registros</span>
       </div>
 
       {/* Content */}
-      <div className="bg-[#0d0d14]/80 border border-white/[0.05] rounded-2xl overflow-hidden">
-        {loading ? (
+      <div className="bg-ec-card border border-ec-line rounded-xl overflow-hidden">
+        {loading && logs.length === 0 ? (
           <div className="py-16 flex items-center justify-center gap-3">
-            <RefreshCw size={16} className="animate-spin text-zinc-600" />
-            <span className="text-xs font-mono text-zinc-600">Carregando…</span>
+            <RefreshCw size={16} className="animate-spin text-zinc-500" />
+            <span className="text-xs font-mono text-zinc-500">Carregando…</span>
           </div>
         ) : logs.length === 0 ? (
           <div className="py-16 text-center">
-            <activeTabMeta.icon size={26} className="text-zinc-800 mx-auto mb-3" />
-            <div className="text-xs font-mono text-zinc-700">Nenhum registro encontrado</div>
-            <div className="text-[10px] font-mono text-zinc-800 mt-1">{activeTabMeta.label}</div>
+            <activeTabMeta.icon size={26} className="text-ec-muted mx-auto mb-3" />
+            <div className="text-xs font-mono text-zinc-500">Nenhum registro encontrado</div>
+            <div className="text-xs font-mono text-ec-muted mt-1">{activeTabMeta.label}</div>
           </div>
         ) : (
-          <div className="divide-y divide-white/[0.04] max-h-[600px] overflow-y-auto">
-            {logs.map((log, i) => {
+          <div className="divide-y divide-white/[0.05] max-h-[calc(100vh-240px)] min-h-[200px] overflow-y-auto">
+            {logs.map(log => {
               const s = levelStyle(log.level)
               const Icon = s.icon
               const isPaymentLink = log.level === 'link' && log.message?.startsWith('Link gerado')
@@ -316,75 +313,64 @@ export function Logs() {
               const hasLink = isPaymentLink && !!log.link
 
               return (
-                <motion.div
+                <div
                   key={log.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: Math.min(i * 0.006, 0.18) }}
                   className={cn(
-                    'px-4 py-3 flex items-start gap-3 transition group',
-                    alreadyCanceled ? 'opacity-40' : 'hover:bg-white/[0.02]'
+                    'px-5 py-3.5 flex items-start gap-3.5 transition',
+                    alreadyCanceled ? 'opacity-45' : 'hover:bg-ec-card2/60'
                   )}>
-                  <div className={cn('w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5', s.bg, s.border)}>
-                    <Icon size={12} className={s.text} />
+                  <div className={cn('w-9 h-9 rounded-lg border flex items-center justify-center shrink-0', s.bg, s.border)}>
+                    <Icon size={15} className={s.text} />
                   </div>
+
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3 mb-0.5">
-                      <div className="text-[11px] font-mono text-zinc-300 leading-relaxed break-all">{log.message}</div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <div className="text-[10px] font-mono text-zinc-700 tabular-nums whitespace-nowrap">{fmtDate(log.created_at)}</div>
-
-                        {/* Action group — só para links de pagamento não cancelados */}
-                        {isPaymentLink && ref && !alreadyCanceled && (
-                          <div className="flex items-center gap-0.5 rounded-lg border border-white/[0.07] bg-white/[0.025] p-0.5">
-                            {/* Copiar link */}
-                            {hasLink && (
-                              <button
-                                onClick={() => handleCopy(log)}
-                                title="Copiar link de pagamento"
-                                className={cn(
-                                  'flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-mono font-bold tracking-wider uppercase transition-all',
-                                  isCopied
-                                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
-                                    : 'text-zinc-500 hover:text-purple-300 hover:bg-purple-500/10'
-                                )}>
-                                {isCopied
-                                  ? <><Check size={10} className="shrink-0" /> Copiado</>
-                                  : <><Copy size={10} className="shrink-0" /> Copiar</>
-                                }
-                              </button>
-                            )}
-
-                            {/* Cancelar link */}
-                            <button
-                              onClick={() => setCancelLog(log)}
-                              title="Cancelar este link"
-                              className="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-mono font-bold tracking-wider uppercase text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all">
-                              <OctagonX size={10} className="shrink-0" /> Cancelar
-                            </button>
-                          </div>
-                        )}
-
-                        {alreadyCanceled && (
-                          <span className="text-[9px] font-mono text-red-500/60 font-bold tracking-wider px-1.5 py-0.5 rounded border border-red-500/20 bg-red-500/[0.06]">CANCELADO</span>
-                        )}
-                      </div>
-                    </div>
-                    {log.username && (
-                      <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded border bg-red-500/10 border-red-500/25 text-red-400 uppercase mt-0.5 mr-1">
-                        <LogIn size={9} /> @{log.username}
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className={cn('text-[11px] font-mono font-bold tracking-widest px-1.5 py-0.5 rounded border uppercase', s.bg, s.text, s.border)}>
+                        {s.label}
                       </span>
-                    )}
+                      {log.username && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded border border-ec-line bg-ec-card2 text-ec-dim">
+                          <LogIn size={10} /> @{log.username}
+                        </span>
+                      )}
+                      <span className="text-xs font-mono text-ec-muted tabular-nums whitespace-nowrap">{fmtDate(log.created_at)}</span>
+                    </div>
+                    <div className="text-sm font-mono text-ec-text leading-relaxed break-words">{log.message}</div>
                     {log.context && (
-                      <div className="text-[10px] font-mono text-zinc-600 break-all leading-relaxed border-l-2 border-white/[0.06] pl-2 mt-1 mb-1">
-                        {log.context}
-                      </div>
+                      <div className="text-xs font-mono text-ec-dim break-all leading-relaxed mt-1">{log.context}</div>
                     )}
-                    <span className={cn('inline-block text-[9px] font-mono font-bold tracking-widest px-1.5 py-0.5 rounded border uppercase mt-0.5', s.bg, s.text, s.border)}>
-                      {s.label}
-                    </span>
                   </div>
-                </motion.div>
+
+                  <div className="shrink-0 flex items-center gap-1.5">
+                    {/* Ações — só para links de pagamento não cancelados */}
+                    {isPaymentLink && ref && !alreadyCanceled && (
+                      <>
+                        {hasLink && (
+                          <button
+                            onClick={() => handleCopy(log)}
+                            title="Copiar link de pagamento"
+                            className={cn(
+                              'h-8 px-2.5 rounded-lg border text-[11px] font-mono font-bold tracking-wider uppercase transition flex items-center gap-1.5',
+                              isCopied
+                                ? 'bg-ec-green/15 text-ec-green border-ec-green/30'
+                                : 'bg-ec-card2 border-ec-line text-ec-dim hover:text-ec-text hover:border-ec-line-glow'
+                            )}>
+                            {isCopied ? <><Check size={12} /> Copiado</> : <><Copy size={12} /> Copiar</>}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setCancelLog(log)}
+                          title="Cancelar este link"
+                          className="h-8 px-2.5 rounded-lg border border-ec-line bg-ec-card2 text-[11px] font-mono font-bold tracking-wider uppercase text-ec-dim hover:text-ec-red hover:border-ec-red/40 hover:bg-ec-red/10 transition flex items-center gap-1.5">
+                          <OctagonX size={12} /> Cancelar
+                        </button>
+                      </>
+                    )}
+                    {alreadyCanceled && (
+                      <span className="text-[11px] font-mono text-ec-red font-bold tracking-wider px-2 py-1 rounded border border-ec-red/30 bg-ec-red/10">CANCELADO</span>
+                    )}
+                  </div>
+                </div>
               )
             })}
           </div>

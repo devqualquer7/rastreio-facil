@@ -88,9 +88,9 @@ export function UtmifyModal() {
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#1c1c33] sticky top-0 bg-[#0b0b16] z-10">
           <div className="flex items-center gap-3">
             <UtmifyLogo />
-            <div className="text-[10px] font-mono text-zinc-600 border-l border-[#1c1c33] pl-3">Integração de vendas</div>
+            <div className="text-xs font-mono text-zinc-500 border-l border-[#1c1c33] pl-3">Integração de vendas</div>
           </div>
-          <button onClick={closeModal} className="w-8 h-8 rounded-xl text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06] flex items-center justify-center transition">
+          <button onClick={closeModal} className="w-8 h-8 rounded-xl text-zinc-400 hover:text-zinc-300 hover:bg-white/[0.06] flex items-center justify-center transition">
             <X size={16} />
           </button>
         </div>
@@ -107,7 +107,7 @@ export function UtmifyModal() {
               </div>
               <div className="flex-1">
                 <div className="font-bold text-sm text-zinc-100">Enviar vendas pra UTMIFY</div>
-                <div className="text-[11px] font-mono text-zinc-500">Só vendas <span className="text-emerald-400">aprovadas</span> são reportadas</div>
+                <div className="text-[13px] font-mono text-zinc-400">Só vendas <span className="text-emerald-400">aprovadas</span> são reportadas</div>
               </div>
               <Toggle on={cfg.enabled} onClick={() => save({ ...cfg, enabled: !cfg.enabled })} />
             </div>
@@ -115,9 +115,9 @@ export function UtmifyModal() {
             {/* Token */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <div className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase" style={{ color: '#a78bfa' }}>API Token (Credencial)</div>
+                <div className="text-xs font-mono font-bold tracking-[0.2em] uppercase" style={{ color: '#a78bfa' }}>API Token (Credencial)</div>
                 <a href="https://app.utmify.com.br" target="_blank" rel="noreferrer"
-                  className="flex items-center gap-1 text-[10px] font-mono transition" style={{ color: '#a78bfa' }}>
+                  className="flex items-center gap-1 text-xs font-mono transition" style={{ color: '#a78bfa' }}>
                   <ExternalLink size={11} /> Abrir UTMIFY
                 </a>
               </div>
@@ -127,11 +127,11 @@ export function UtmifyModal() {
                   onBlur={() => save(cfg)}
                   placeholder="cole aqui o token da credencial da UTMIFY"
                   className="w-full bg-[#08080f] border border-[#1c1c33] rounded-xl px-4 py-3 pr-11 text-sm font-mono text-zinc-100 outline-none transition-all focus:border-[#7C3AED]/60" />
-                <button onClick={() => setShow(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-300">
+                <button onClick={() => setShow(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">
                   {show ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-              <div className="text-[10px] font-mono text-zinc-600">Na UTMIFY → Integrações → Webhook/API → "Nova credencial" → copia o token</div>
+              <div className="text-xs font-mono text-zinc-500">Na UTMIFY → Integrações → Webhook/API → "Nova credencial" → copia o token</div>
             </div>
 
             {/* Test */}
@@ -144,12 +144,12 @@ export function UtmifyModal() {
 
             <div className="flex items-start gap-2.5 rounded-xl p-3" style={{ background: 'rgba(124,58,237,.06)', border: '1px solid rgba(124,58,237,.2)' }}>
               <CheckCircle2 size={13} className="mt-0.5 flex-shrink-0" style={{ color: '#a78bfa' }} />
-              <div className="text-[10px] font-mono text-zinc-500 leading-relaxed">
+              <div className="text-xs font-mono text-zinc-400 leading-relaxed">
                 Cada usuário usa o <span className="text-zinc-300">próprio token</span> — você recebe na UTMIFY só as <span className="text-zinc-300">suas</span> vendas. O envio é automático toda vez que um link seu é pago.
               </div>
             </div>
 
-            <div className="text-[10px] font-mono text-zinc-600 text-center">
+            <div className="text-xs font-mono text-zinc-500 text-center">
               {saving ? 'Salvando…' : 'Alterações salvas automaticamente.'}
             </div>
           </div>

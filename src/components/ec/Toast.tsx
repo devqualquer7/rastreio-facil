@@ -24,12 +24,12 @@ export function ToastStack() {
               'pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl backdrop-blur-xl border shadow-lg text-sm font-mono min-w-[240px] max-w-xs',
               t.type === 'success' && 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300',
               t.type === 'error'   && 'bg-red-500/15 border-red-500/30 text-red-300',
-              t.type === 'info'    && 'bg-purple-500/15 border-purple-500/25 text-purple-300',
+              t.type === 'info'    && 'bg-red-500/15 border-red-500/25 text-red-300',
             )}>
             {t.type === 'success' && <CheckCircle2 size={15} className="flex-shrink-0" />}
             {t.type === 'error'   && <XCircle size={15} className="flex-shrink-0" />}
             {t.type === 'info'    && <Info size={15} className="flex-shrink-0" />}
-            <span className="flex-1 text-[11px] leading-snug">{t.msg}</span>
+            <span className="flex-1 text-[13px] leading-snug">{t.msg}</span>
             <button onClick={() => dismissToast(t.id)} className="text-current/50 hover:text-current transition flex-shrink-0">
               <X size={13} />
             </button>
@@ -73,7 +73,7 @@ export function PaymentNotifications() {
             <div className="relative flex items-center justify-between px-4 py-2 border-b border-emerald-500/20">
               <div className="flex items-center gap-1.5">
                 <Zap size={11} className="text-emerald-400" fill="currentColor" />
-                <span className="text-[9px] font-mono font-bold tracking-[0.3em] text-emerald-400 uppercase">Pagamento Aprovado</span>
+                <span className="text-[11px] font-mono font-bold tracking-[0.3em] text-emerald-400 uppercase">Pagamento Aprovado</span>
               </div>
               <button onClick={() => dismissPayment(p.id)} className="text-emerald-600 hover:text-emerald-400 transition">
                 <X size={12} />
@@ -87,16 +87,16 @@ export function PaymentNotifications() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-black text-2xl text-emerald-400 tabular-nums leading-none">{fmtBRL(p.amount)}</div>
-                  <div className="text-[10px] font-mono text-emerald-600 mt-0.5 truncate">{p.title}</div>
+                  <div className="text-xs font-mono text-emerald-600 mt-0.5 truncate">{p.title}</div>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 mt-3">
                 <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-2 py-0.5">
                   <CreditCard size={10} className="text-emerald-500" />
-                  <span className="text-[9px] font-mono text-emerald-500 font-bold tracking-wider">{methodLabel(p.method)}</span>
+                  <span className="text-[11px] font-mono text-emerald-500 font-bold tracking-wider">{methodLabel(p.method)}</span>
                 </div>
-                <div className="text-[9px] font-mono text-zinc-600 truncate">{p.slotName}</div>
+                <div className="text-[11px] font-mono text-zinc-500 truncate">{p.slotName}</div>
               </div>
             </div>
           </motion.div>

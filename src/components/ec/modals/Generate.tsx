@@ -24,7 +24,7 @@ const PAYMENT_OPTIONS = [
     label: 'Cartão de Crédito',
     desc: 'Visa, Master, Elo, Amex…',
     icon: CreditCard,
-    color: 'text-violet-400',
+    color: 'text-sky-400',
   },
   {
     id: 'debit_card',
@@ -59,7 +59,7 @@ const PAYMENT_OPTIONS = [
     label: 'Cartão Pré-pago',
     desc: 'Crédito pré-carregado',
     icon: Wallet,
-    color: 'text-cyan-400',
+    color: 'text-teal-400',
   },
 ]
 
@@ -183,28 +183,28 @@ export function GenerateModal() {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 16, scale: 0.97 }}
         transition={{ type: 'spring', stiffness: 280, damping: 26 }}
-        className="relative bg-gradient-to-b from-[#0d0d18]/98 to-[#09090f]/98 backdrop-blur-2xl border border-purple-500/20 rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(168,85,247,.2)]">
+        className="relative bg-gradient-to-b from-[#0d0d18]/98 to-[#09090f]/98 backdrop-blur-2xl border border-red-500/20 rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(255,43,74,.2)]">
 
         {/* Top glow line */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-500/60 to-transparent" />
         {/* BG orbs */}
-        <div className="absolute -top-32 -right-32 w-64 h-64 rounded-full bg-purple-500/15 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-32 -left-32 w-64 h-64 rounded-full bg-cyan-400/10 blur-3xl pointer-events-none" />
+        <div className="absolute -top-32 -right-32 w-64 h-64 rounded-full bg-red-500/15 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-32 -left-32 w-64 h-64 rounded-full bg-rose-400/10 blur-3xl pointer-events-none" />
 
         {/* Header */}
-        <div className="relative flex items-center justify-between px-6 pt-6 pb-5 border-b border-purple-500/10">
+        <div className="relative flex items-center justify-between px-6 pt-6 pb-5 border-b border-red-500/10">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-700 to-purple-500 flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,.4)]">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-700 to-red-500 flex items-center justify-center shadow-[0_0_20px_rgba(255,43,74,.4)]">
               <Sparkles size={16} className="text-white" />
             </div>
             <div>
               <div className="font-black text-sm text-zinc-100 tracking-wide uppercase">Gerar Link</div>
-              <div className="text-[10px] font-mono text-zinc-600 mt-0.5">
+              <div className="text-xs font-mono text-zinc-500 mt-0.5">
                 {activeCred ? `Slot #${activeCred.slot} · ${activeCred.name}` : 'Sem conta ativa'}
               </div>
             </div>
           </div>
-          <button onClick={closeModal} className="w-8 h-8 rounded-xl text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06] flex items-center justify-center transition">
+          <button onClick={closeModal} className="w-8 h-8 rounded-xl text-zinc-400 hover:text-zinc-300 hover:bg-white/[0.06] flex items-center justify-center transition">
             <X size={16} />
           </button>
         </div>
@@ -214,7 +214,7 @@ export function GenerateModal() {
             {step === 'form' ? (
               <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 {!activeCred?.connected && (
-                  <div className="mb-5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[11px] font-mono">
+                  <div className="mb-5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[13px] font-mono">
                     ⚠ Nenhuma conta ativa conectada. Ative um slot em Credenciais.
                   </div>
                 )}
@@ -222,24 +222,24 @@ export function GenerateModal() {
                 <div className="space-y-4">
                   {/* Valor */}
                   <div>
-                    <div className="text-[10px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase mb-2 flex items-center gap-1.5">
+                    <div className="text-xs font-mono font-bold tracking-[0.25em] text-zinc-400 uppercase mb-2 flex items-center gap-1.5">
                       <DollarSign size={11} /> Valor (R$)
                     </div>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 font-mono text-sm">R$</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 font-mono text-sm">R$</span>
                       <input
                         type="text" inputMode="decimal" value={amount}
                         onChange={e => setAmount(e.target.value.replace(/[^0-9,.]/g, ''))}
                         placeholder="0,00"
                         onKeyDown={e => e.key === 'Enter' && !loading && generate()}
-                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-10 pr-4 py-3 text-sm font-mono text-zinc-100 outline-none focus:border-purple-500/50 focus:bg-purple-500/[0.04] transition-all"
+                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-10 pr-4 py-3 text-sm font-mono text-zinc-100 outline-none focus:border-red-500/50 focus:bg-red-500/[0.04] transition-all"
                       />
                     </div>
                   </div>
 
                   {/* Título */}
                   <div>
-                    <div className="text-[10px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase mb-2 flex items-center gap-1.5">
+                    <div className="text-xs font-mono font-bold tracking-[0.25em] text-zinc-400 uppercase mb-2 flex items-center gap-1.5">
                       <FileText size={11} /> Título
                     </div>
                     <input
@@ -248,13 +248,13 @@ export function GenerateModal() {
                       placeholder="Ex: Produto / Serviço"
                       maxLength={100}
                       onKeyDown={e => e.key === 'Enter' && !loading && generate()}
-                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm font-mono text-zinc-100 outline-none focus:border-purple-500/50 focus:bg-purple-500/[0.04] transition-all"
+                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm font-mono text-zinc-100 outline-none focus:border-red-500/50 focus:bg-red-500/[0.04] transition-all"
                     />
                   </div>
 
                   {/* Email */}
                   <div>
-                    <div className="text-[10px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase mb-2">
+                    <div className="text-xs font-mono font-bold tracking-[0.25em] text-zinc-400 uppercase mb-2">
                       Email do comprador (opcional)
                     </div>
                     <input
@@ -262,7 +262,7 @@ export function GenerateModal() {
                       onChange={e => setEmail(e.target.value)}
                       placeholder="comprador@email.com"
                       onKeyDown={e => e.key === 'Enter' && !loading && generate()}
-                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm font-mono text-zinc-100 outline-none focus:border-purple-500/50 focus:bg-purple-500/[0.04] transition-all"
+                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm font-mono text-zinc-100 outline-none focus:border-red-500/50 focus:bg-red-500/[0.04] transition-all"
                     />
                   </div>
 
@@ -274,12 +274,12 @@ export function GenerateModal() {
                       onClick={() => setMethodsOpen(v => !v)}
                       className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.03] transition-colors">
                       <div className="flex items-center gap-2">
-                        <CreditCard size={11} className="text-purple-400" />
-                        <span className="text-[10px] font-mono font-bold tracking-[0.25em] text-zinc-500 uppercase">
+                        <CreditCard size={11} className="text-red-400" />
+                        <span className="text-xs font-mono font-bold tracking-[0.25em] text-zinc-400 uppercase">
                           Métodos de Pagamento
                         </span>
                         {!allSelected && (
-                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-400 tracking-wider">
+                          <span className="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-400 tracking-wider">
                             {selectedMethods.length}/{ALL_METHOD_IDS.length}
                           </span>
                         )}
@@ -288,13 +288,13 @@ export function GenerateModal() {
                         <button
                           type="button"
                           onClick={e => { e.stopPropagation(); toggleAll() }}
-                          className="text-[9px] font-mono font-bold tracking-widest text-purple-400/70 hover:text-purple-300 transition uppercase px-2 py-1 rounded-lg hover:bg-purple-500/10">
+                          className="text-[11px] font-mono font-bold tracking-widest text-red-400/70 hover:text-red-300 transition uppercase px-2 py-1 rounded-lg hover:bg-red-500/10">
                           {allSelected ? 'DESMARCAR' : 'MARCAR'} TODOS
                         </button>
                         {methodsOpen ? (
-                          <ChevronUp size={13} className="text-zinc-600" />
+                          <ChevronUp size={13} className="text-zinc-500" />
                         ) : (
-                          <ChevronDown size={13} className="text-zinc-600" />
+                          <ChevronDown size={13} className="text-zinc-500" />
                         )}
                       </div>
                     </button>
@@ -320,8 +320,8 @@ export function GenerateModal() {
                                     <Icon size={12} className={opt.color} />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <div className="text-[11px] font-mono text-zinc-300 leading-none mb-0.5">{opt.label}</div>
-                                    <div className="text-[9px] font-mono text-zinc-600">{opt.desc}</div>
+                                    <div className="text-[13px] font-mono text-zinc-300 leading-none mb-0.5">{opt.label}</div>
+                                    <div className="text-[11px] font-mono text-zinc-500">{opt.desc}</div>
                                   </div>
                                   <Toggle enabled={enabled} onChange={() => toggleMethod(opt.id)} />
                                 </div>
@@ -333,7 +333,7 @@ export function GenerateModal() {
                     </AnimatePresence>
 
                     {noneSelected && (
-                      <div className="px-4 pb-3 text-[10px] font-mono text-red-400/80">
+                      <div className="px-4 pb-3 text-xs font-mono text-red-400/80">
                         ⚠ Selecione ao menos um método
                       </div>
                     )}
@@ -341,7 +341,7 @@ export function GenerateModal() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button onClick={() => generate(false)} disabled={!!loading || !activeCred?.connected || noneSelected}
-                      className="py-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.1] text-zinc-200 font-black tracking-wide text-xs uppercase hover:bg-white/[0.08] hover:border-purple-500/40 active:scale-95 disabled:opacity-40 transition-all flex items-center justify-center gap-2">
+                      className="py-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.1] text-zinc-200 font-black tracking-wide text-xs uppercase hover:bg-white/[0.08] hover:border-red-500/40 active:scale-95 disabled:opacity-40 transition-all flex items-center justify-center gap-2">
                       {loading === 'link'
                         ? <><RefreshCw size={14} className="animate-spin" /> Gerando…</>
                         : <><Sparkles size={14} /> Gerar Link</>}
@@ -354,7 +354,7 @@ export function GenerateModal() {
                     </button>
                   </div>
                   {loading === 'pix' && (
-                    <div className="text-[10px] font-mono text-zinc-500 text-center">
+                    <div className="text-xs font-mono text-zinc-400 text-center">
                       Gerando o Pix no checkout do Mercado Pago… leva uns 10 segundos.
                     </div>
                   )}
@@ -370,7 +370,7 @@ export function GenerateModal() {
                     </div>
                   </div>
                   <div className="font-black text-xl text-emerald-400 tracking-tight mb-1">{pix?.ok ? 'PIX GERADO' : 'LINK GERADO'}</div>
-                  <div className="text-xs font-mono text-zinc-500">{fmtBRL(result?.amount || 0)} · Ref {result?.ref}</div>
+                  <div className="text-xs font-mono text-zinc-400">{fmtBRL(result?.amount || 0)} · Ref {result?.ref}</div>
                 </div>
 
                 {pix?.ok && (
@@ -380,8 +380,8 @@ export function GenerateModal() {
                       <img src={pix.qrBase64} alt="QR Code Pix" className="w-44 h-44 rounded-xl bg-white p-1.5" />
                     </div>
                     <div className="bg-white/[0.04] border border-emerald-500/20 rounded-2xl p-4 mb-3">
-                      <div className="text-[10px] font-mono text-zinc-600 mb-2 tracking-widest">PIX COPIA E COLA</div>
-                      <div className="text-[11px] font-mono text-emerald-300 break-all leading-relaxed">{pix.code}</div>
+                      <div className="text-xs font-mono text-zinc-500 mb-2 tracking-widest">PIX COPIA E COLA</div>
+                      <div className="text-[13px] font-mono text-emerald-300 break-all leading-relaxed">{pix.code}</div>
                     </div>
                     <button onClick={copyPix}
                       className={`w-full py-3.5 rounded-xl font-black text-xs tracking-widest uppercase transition-all flex items-center justify-center gap-2 border ${
@@ -395,7 +395,7 @@ export function GenerateModal() {
                 )}
 
                 {pix && !pix.ok && (
-                  <div className={`mb-4 p-3.5 rounded-xl border flex gap-3 text-[11px] font-mono leading-relaxed ${
+                  <div className={`mb-4 p-3.5 rounded-xl border flex gap-3 text-[13px] font-mono leading-relaxed ${
                     pix.reason === 'rejected'
                       ? 'bg-red-500/10 border-red-500/25 text-red-300'
                       : 'bg-amber-500/10 border-amber-500/25 text-amber-300'
@@ -413,8 +413,8 @@ export function GenerateModal() {
                 )}
 
                 <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 mb-4">
-                  <div className="text-[10px] font-mono text-zinc-600 mb-2 tracking-widest">LINK DE PAGAMENTO</div>
-                  <div className="text-[11px] font-mono text-purple-300 break-all leading-relaxed">{result?.link}</div>
+                  <div className="text-xs font-mono text-zinc-500 mb-2 tracking-widest">LINK DE PAGAMENTO</div>
+                  <div className="text-[13px] font-mono text-red-300 break-all leading-relaxed">{result?.link}</div>
                 </div>
 
                 <div className="flex gap-3 mb-4">
@@ -422,18 +422,18 @@ export function GenerateModal() {
                     className={`flex-1 py-3 rounded-xl font-bold text-xs tracking-widest uppercase transition-all flex items-center justify-center gap-2 border ${
                       copied
                         ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
-                        : 'bg-white/[0.04] border-white/[0.08] text-zinc-300 hover:bg-purple-500/[0.08] hover:border-purple-500/30'
+                        : 'bg-white/[0.04] border-white/[0.08] text-zinc-300 hover:bg-red-500/[0.08] hover:border-red-500/30'
                     }`}>
                     <Copy size={13} /> {copied ? 'Copiado!' : 'Copiar Link'}
                   </button>
                   <a href={result?.link} target="_blank" rel="noopener"
-                    className="px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-500 hover:text-zinc-300 transition flex items-center justify-center">
+                    className="px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-zinc-300 transition flex items-center justify-center">
                     <ExternalLink size={14} />
                   </a>
                 </div>
 
                 <button onClick={reset}
-                  className="w-full py-2.5 rounded-xl text-zinc-600 hover:text-zinc-400 text-[10px] font-mono tracking-widest uppercase transition mt-4">
+                  className="w-full py-2.5 rounded-xl text-zinc-500 hover:text-zinc-400 text-xs font-mono tracking-widest uppercase transition mt-4">
                   ← Gerar outro
                 </button>
               </motion.div>

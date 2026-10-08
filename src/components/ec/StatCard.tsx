@@ -78,8 +78,8 @@ export function StatCard({ icon, label, value, sub, color, delay = 0, onClick }:
         style={{ textShadow: `0 0 24px ${c.glowRGBA}` }}>
         {value}
       </div>
-      <div className="relative text-[10px] font-mono text-zinc-500 uppercase tracking-[0.22em]">{label}</div>
-      {sub && <div className="relative text-[10px] font-mono text-zinc-600 mt-1 tabular-nums">{sub}</div>}
+      <div className="relative text-xs font-mono text-zinc-400 uppercase tracking-[0.22em]">{label}</div>
+      {sub && <div className="relative text-xs font-mono text-zinc-500 mt-1 tabular-nums">{sub}</div>}
     </motion.div>
   )
 }
