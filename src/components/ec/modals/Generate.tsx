@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { ModalBackdrop, Button } from '@/components/ec/ui/Base'
 import { useApp } from '@/lib/ec-store'
-import { fmtBRL } from '@/lib/ec-utils'
+import { fmtBRL, parseBRL } from '@/lib/ec-utils'
 
 type Step = 'form' | 'result'
 
@@ -116,7 +116,7 @@ export function GenerateModal() {
 
   // withPix: além do link, pede ao app desktop o Pix copia e cola já pronto
   async function generate(withPix = false) {
-    const amt = parseFloat(amount.replace(',', '.'))
+    const amt = parseBRL(amount)
     if (!amt || amt <= 0) { toast('error', 'Valor inválido'); return }
     if (!title.trim()) { toast('error', 'Título obrigatório'); return }
     if (selectedMethods.length === 0) { toast('error', 'Selecione ao menos um método de pagamento'); return }
@@ -260,6 +260,11 @@ export function GenerateModal() {
                         onKeyDown={e => e.key === 'Enter' && !loading && generate()}
                         className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-10 pr-4 py-3 text-sm font-mono text-zinc-100 outline-none focus:border-red-500/50 focus:bg-red-500/[0.04] transition-all"
                       />
+                    </div>
+                    <div className="text-xs font-mono mt-1.5 text-zinc-500">
+                      {parseBRL(amount) > 0
+                        ? <>Vai gerar: <span className="text-emerald-400 font-bold">{fmtBRL(parseBRL(amount))}</span> · ponto = milhar, vírgula = centavos</>
+                        : 'Ponto = milhar, vírgula = centavos. Ex.: 6.601 ou 6.601,50'}
                     </div>
                   </div>
 

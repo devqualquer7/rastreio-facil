@@ -6,7 +6,7 @@ import {
   Zap, AlertCircle, Minus, Plus, CheckCircle2
 } from 'lucide-react'
 import { useApp } from '@/lib/ec-store'
-import { fmtBRL } from '@/lib/ec-utils'
+import { fmtBRL, parseBRL } from '@/lib/ec-utils'
 
 // ── PIX estático builder ──────────────────────────────────────────────────────
 function buildPixPayload(key: string, name: string, city: string): string {
@@ -242,7 +242,7 @@ export function SaqueModal() {
   }
 
   async function generate() {
-    const amt = parseFloat(amount.replace(',', '.'))
+    const amt = parseBRL(amount)
     if (!amt || amt <= 0) { toast('error', 'Informe um valor válido'); return }
     setGenerating(true)
     setDone(false)
@@ -278,7 +278,7 @@ export function SaqueModal() {
     ? { key: selectedGwInfo?.redacted?.pix_key || '', name: selectedGwInfo?.redacted?.beneficiary || '', city: selectedGwInfo?.redacted?.city || '' }
     : null
   const staticPayload = pixEstaticoData?.key ? buildPixPayload(pixEstaticoData.key, pixEstaticoData.name, pixEstaticoData.city) : ''
-  const amountNum = parseFloat(amount.replace(',', '.')) || 0
+  const amountNum = parseBRL(amount) || 0
   const noneConfigured = !loadingGw && allGateways.length === 0
   const hasDynamicGateways = allGateways.some(g => g.id !== 'pix_estatico')
 

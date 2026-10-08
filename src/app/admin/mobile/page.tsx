@@ -44,11 +44,8 @@ const MONO = "'JetBrains Mono', ui-monospace, Consolas, monospace"
 // ─── Helpers ────────────────────────────────────────────
 
 const fmtBRL = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0)
-// Aceita "1.234,56", "1234,56" e "1234.56" (teclados de celular variam entre vírgula e ponto)
-const parseBRL = (s: string) => {
-  const n = s.includes(',') ? s.replace(/\./g, '').replace(',', '.') : s
-  return Math.round(parseFloat(n) * 100) / 100
-}
+// Padrão brasileiro: ponto é MILHAR e vírgula é o decimal. "6.601" → 6601 · "6.601,50" → 6601.5 · "6,60" → 6.6
+const parseBRL = (s: string) => Math.round(parseFloat(s.replace(/\./g, '').replace(',', '.')) * 100) / 100
 
 function fmtWhen(at: string | number) {
   const t = typeof at === 'number' ? at : new Date(at).getTime()
@@ -652,6 +649,11 @@ function GerarTab({ send, toast, online, creds, activeSlot }: Common) {
         <Label>Valor (R$)</Label>
         <input type="text" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value.replace(/[^\d.,]/g, ''))}
           placeholder="0,00" className={inputCls + ' h-16 text-2xl font-black tabular-nums'} />
+        <div className="text-xs text-ec-muted mt-1.5">
+          {parseBRL(amount) > 0
+            ? <>Vai gerar: <span className="text-ec-green font-bold">{fmtBRL(parseBRL(amount))}</span> · ponto = milhar, vírgula = centavos</>
+            : 'Ponto = milhar, vírgula = centavos. Ex.: 6.601 ou 6.601,50'}
+        </div>
       </div>
 
       <div>

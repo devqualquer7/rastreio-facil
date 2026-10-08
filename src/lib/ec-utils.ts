@@ -48,3 +48,10 @@ export function paymentMethodLabel(type: string): string {
   }
   return map[type] || type
 }
+
+/**
+ * Valor digitado → número, no padrão brasileiro: ponto é separador de MILHAR e
+ * vírgula é o decimal. "6.601" → 6601 · "6.601,50" → 6601.5 · "6,60" → 6.6
+ */
+export const parseBRL = (s: string): number =>
+  parseFloat(String(s ?? '').replace(/\./g, '').replace(',', '.'))

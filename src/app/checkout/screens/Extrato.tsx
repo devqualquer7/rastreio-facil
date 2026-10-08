@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { SectionTitle, Button, StatusPill } from '@/components/ec/ui/Base'
 import { useApp } from '@/lib/ec-store'
-import { fmtBRL, fmtDate, statusLabel } from '@/lib/ec-utils'
+import { fmtBRL, fmtDate, statusLabel, parseBRL } from '@/lib/ec-utils'
 import {
   getMethodInfo, methodLabel as mpMethodLabel, translateStatusDetail,
   isRejection, pendingActivity,
@@ -222,7 +222,7 @@ function RefundModal({ sale, slotName, onClose, onDone }: {
     return () => { alive = false }
   }, [sale.id])
 
-  const value = Math.round(parseFloat(amount.replace(',', '.')) * 100) / 100
+  const value = Math.round(parseBRL(amount) * 100) / 100
   const isTotal = !!info && value === info.refundable
   const amountOk = !!info && value > 0 && value <= info.refundable
   const amountError =
