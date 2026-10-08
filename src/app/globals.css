@@ -281,3 +281,13 @@
 @media (prefers-reduced-motion: reduce) {
   .ec-cta-live { animation: none; box-shadow: 0 0 22px rgba(0, 227, 150, .45); }
 }
+
+/* Conta bloqueada em Credenciais — brilho roxo suave pulsando */
+@keyframes ec-slot-locked {
+  0%, 100% { box-shadow: 0 0 18px rgba(162, 155, 254, .16), inset 0 0 0 1px rgba(162, 155, 254, .08); }
+  50%      { box-shadow: 0 0 38px rgba(162, 155, 254, .38), inset 0 0 0 1px rgba(162, 155, 254, .22); }
+}
+.ec-slot-locked { animation: ec-slot-locked 3s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .ec-slot-locked { animation: none; box-shadow: 0 0 26px rgba(162, 155, 254, .28); }
+}

@@ -301,15 +301,33 @@ export function Credentials() {
 
             // Mesma leitura do app desktop: amarelo = ativa, verde = conectada, vermelho = banida
             const tone = banned ? 'banned' : active ? 'active' : c.connected ? 'ok' : 'off'
+            // Visual do cartão: conta bloqueada (e não ativa/banida) ganha o tema roxo "vidro".
+            // `tone` continua decidindo os botões; `look` só a aparência.
+            const look = (tone === 'ok' || tone === 'off') && c.locked ? 'locked' : tone
 
             return (
               <motion.div key={c.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.2 }}
                 className={cn('relative rounded-xl border overflow-hidden transition-all flex flex-col',
-                  tone === 'banned' && 'bg-gradient-to-br from-ec-red/[0.12] to-ec-card border-ec-red/60 shadow-[0_0_30px_rgba(255,43,74,.25)]',
-                  tone === 'active' && 'ec-slot-live bg-gradient-to-br from-ec-yellow/[0.16] via-ec-card to-ec-card border-ec-yellow/70',
-                  tone === 'ok'     && 'bg-gradient-to-br from-ec-green/[0.06] to-ec-card border-ec-green/30 hover:border-ec-green/60 hover:shadow-[0_0_24px_rgba(0,227,150,.18)] hover:-translate-y-0.5',
-                  tone === 'off'    && 'bg-ec-card border-ec-line hover:border-ec-line-glow')}>
+                  look === 'banned' && 'bg-gradient-to-br from-ec-red/[0.12] to-ec-card border-ec-red/60 shadow-[0_0_30px_rgba(255,43,74,.25)]',
+                  look === 'active' && 'ec-slot-live bg-gradient-to-br from-ec-yellow/[0.16] via-ec-card to-ec-card border-ec-yellow/70',
+                  look === 'ok'     && 'bg-gradient-to-br from-ec-green/[0.06] to-ec-card border-ec-green/30 hover:border-ec-green/60 hover:shadow-[0_0_24px_rgba(0,227,150,.18)] hover:-translate-y-0.5',
+                  look === 'off'    && 'bg-ec-card border-ec-line hover:border-ec-line-glow',
+                  look === 'locked' && 'ec-slot-locked bg-gradient-to-br from-ec-purple/[0.16] via-ec-card to-ec-card border-ec-purple/55 backdrop-blur-md')}>
+
+                {look === 'locked' && (
+                  <>
+                    {/* brilho diagonal de "vidro" por cima do cartão */}
+                    <div className="pointer-events-none absolute inset-0"
+                      style={{ background: 'linear-gradient(135deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,0) 38%, rgba(162,155,254,.06) 100%)' }} />
+                    <div className="ec-shine relative flex items-center justify-center gap-2 px-4 py-2 border-b border-ec-purple/35 backdrop-blur-md"
+                      style={{ background: 'linear-gradient(90deg, rgba(162,155,254,.08), rgba(162,155,254,.26), rgba(162,155,254,.08))' }}>
+                      <Lock size={13} className="text-ec-purple" />
+                      <span className="text-xs font-black tracking-[0.3em] text-ec-purple uppercase">Bloqueado</span>
+                      <span className="text-[11px] font-mono text-ec-purple/70">· só você usa</span>
+                    </div>
+                  </>
+                )}
 
                 {tone === 'active' && (
                   <div className="ec-shine flex items-center justify-center gap-2 px-4 py-2 bg-ec-yellow/15 border-b border-ec-yellow/40">
@@ -324,10 +342,11 @@ export function Credentials() {
 
                 <div className="p-4 flex items-start gap-3">
                   <div className={cn('w-11 h-11 rounded-lg border flex items-center justify-center font-black text-base tabular flex-shrink-0',
-                    tone === 'banned' && 'bg-ec-red/15 border-ec-red/50 text-ec-red',
-                    tone === 'active' && 'bg-ec-yellow/20 border-ec-yellow text-ec-yellow shadow-[0_0_18px_rgba(255,200,61,.55)]',
-                    tone === 'ok'     && 'bg-ec-green/10 border-ec-green/40 text-ec-green',
-                    tone === 'off'    && 'bg-ec-card2 border-ec-line text-ec-dim')}>
+                    look === 'banned' && 'bg-ec-red/15 border-ec-red/50 text-ec-red',
+                    look === 'active' && 'bg-ec-yellow/20 border-ec-yellow text-ec-yellow shadow-[0_0_18px_rgba(255,200,61,.55)]',
+                    look === 'ok'     && 'bg-ec-green/10 border-ec-green/40 text-ec-green',
+                    look === 'off'    && 'bg-ec-card2 border-ec-line text-ec-dim',
+                    look === 'locked' && 'bg-ec-purple/15 border-ec-purple/60 text-ec-purple shadow-[0_0_16px_rgba(162,155,254,.45)]')}>
                     {c.slot}
                   </div>
 
@@ -368,7 +387,7 @@ export function Credentials() {
                           <Zap size={11} fill="currentColor" /> Ativa
                         </span>
                       )}
-                      {c.locked && (
+                      {c.locked && look !== 'locked' && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-ec-purple/50 bg-ec-purple/15 text-ec-purple text-[11px] font-bold tracking-wider uppercase"
                           title="Os outros usuários não veem nem usam esta conta">
                           <Lock size={11} /> Só você
