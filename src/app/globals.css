@@ -261,3 +261,13 @@
   linear-gradient(90deg, rgba(28,28,51,.4) 1px, transparent 1px);
   background-size: 40px 40px; }
 .ec-spotlight { background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,43,74,.08) 0%, transparent 60%); }
+
+/* Slot ativo em Credenciais — brilho amarelo pulsando ("em uso") */
+@keyframes ec-slot-live {
+  0%, 100% { box-shadow: 0 0 22px rgba(255, 200, 61, .22), inset 0 0 0 1px rgba(255, 200, 61, .10); }
+  50%      { box-shadow: 0 0 48px rgba(255, 200, 61, .50), inset 0 0 0 1px rgba(255, 200, 61, .30); }
+}
+.ec-slot-live { animation: ec-slot-live 2.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .ec-slot-live { animation: none; box-shadow: 0 0 30px rgba(255, 200, 61, .35); }
+}

@@ -253,7 +253,7 @@ export function Credentials() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
-          {creds.map((c, i) => {
+          {[...creds].sort((a, b) => Number(!!b.is_active) - Number(!!a.is_active)).map((c, i) => {
             const active = c.is_active
             const banned = c.health_status === 'banned'
             const tokenRevoked = banned && c.health_message?.toLowerCase().includes('token')
@@ -267,14 +267,25 @@ export function Credentials() {
                 transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.2 }}
                 className={cn('relative rounded-xl border overflow-hidden transition-all flex flex-col',
                   tone === 'banned' && 'bg-gradient-to-br from-ec-red/[0.12] to-ec-card border-ec-red/60 shadow-[0_0_30px_rgba(255,43,74,.25)]',
-                  tone === 'active' && 'bg-gradient-to-br from-ec-yellow/[0.10] to-ec-card border-ec-yellow/60 shadow-[0_0_30px_rgba(255,200,61,.22)]',
-                  tone === 'ok'     && 'bg-gradient-to-br from-ec-green/[0.06] to-ec-card border-ec-green/30 hover:border-ec-green/55',
+                  tone === 'active' && 'ec-slot-live bg-gradient-to-br from-ec-yellow/[0.16] via-ec-card to-ec-card border-ec-yellow/70',
+                  tone === 'ok'     && 'bg-gradient-to-br from-ec-green/[0.06] to-ec-card border-ec-green/30 hover:border-ec-green/60 hover:shadow-[0_0_24px_rgba(0,227,150,.18)] hover:-translate-y-0.5',
                   tone === 'off'    && 'bg-ec-card border-ec-line hover:border-ec-line-glow')}>
+
+                {tone === 'active' && (
+                  <div className="ec-shine flex items-center justify-center gap-2 px-4 py-2 bg-ec-yellow/15 border-b border-ec-yellow/40">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-ec-yellow opacity-75 animate-ping" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-ec-yellow" />
+                    </span>
+                    <span className="text-xs font-black tracking-[0.25em] text-ec-yellow uppercase">Em uso · cobrando agora</span>
+                    <Zap size={12} className="text-ec-yellow" fill="currentColor" />
+                  </div>
+                )}
 
                 <div className="p-4 flex items-start gap-3">
                   <div className={cn('w-11 h-11 rounded-lg border flex items-center justify-center font-black text-base tabular flex-shrink-0',
                     tone === 'banned' && 'bg-ec-red/15 border-ec-red/50 text-ec-red',
-                    tone === 'active' && 'bg-ec-yellow/15 border-ec-yellow/60 text-ec-yellow',
+                    tone === 'active' && 'bg-ec-yellow/20 border-ec-yellow text-ec-yellow shadow-[0_0_18px_rgba(255,200,61,.55)]',
                     tone === 'ok'     && 'bg-ec-green/10 border-ec-green/40 text-ec-green',
                     tone === 'off'    && 'bg-ec-card2 border-ec-line text-ec-dim')}>
                     {c.slot}
@@ -358,7 +369,7 @@ export function Credentials() {
                     </button>
                   )}
                   {tone === 'active' && (
-                    <div className="flex-1 text-xs font-mono text-ec-yellow/90 truncate">Cobrando por este slot</div>
+                    <div className="flex-1 text-xs font-mono text-ec-yellow/90 truncate">Os links gerados caem nesta conta</div>
                   )}
                   {tone === 'ok' && (
                     <button onClick={() => setActive(c.slot)} disabled={activating === c.slot}
