@@ -13,7 +13,7 @@ import { fmtBRL } from '@/lib/ec-utils'
 type Step = 'form' | 'result'
 
 type PixResult =
-  | { ok: true; code: string; qrBase64: string }
+  | { ok: true; code: string; qrBase64: string; via?: 'server' | 'desktop' }
   | { ok: false; reason: string; message: string }
 
 const ALL_METHOD_IDS = ['credit_card', 'debit_card', 'pix', 'boleto', 'loterica', 'prepaid_card']
@@ -371,6 +371,11 @@ export function GenerateModal() {
                   </div>
                   <div className="font-black text-xl text-emerald-400 tracking-tight mb-1">{pix?.ok ? 'PIX GERADO' : 'LINK GERADO'}</div>
                   <div className="text-xs font-mono text-zinc-400">{fmtBRL(result?.amount || 0)} · Ref {result?.ref}</div>
+                  {pix?.ok && pix.via && (
+                    <div className="text-xs font-mono text-zinc-500 mt-1">
+                      Gerado {pix.via === 'server' ? 'pela máquina 24h' : 'pelo seu PC'}
+                    </div>
+                  )}
                 </div>
 
                 {pix?.ok && (

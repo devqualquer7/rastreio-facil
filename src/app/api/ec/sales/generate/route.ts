@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
       pix = await requestAutoPix(preference.init_point)
       await addLog(
         pix.ok ? 'link' : 'error',
-        pix.ok ? `Pix automático gerado · ${valorBRL} · ${ref}` : `Pix automático falhou (${pix.reason}): ${pix.message} · ${ref}`,
+        pix.ok ? `Pix automático gerado ${pix.via === 'server' ? 'pela máquina 24h' : 'pelo PC'} · ${valorBRL} · ${ref}` : `Pix automático falhou (${pix.reason}): ${pix.message} · ${ref}`,
         `slot #${cred.slot} ${cred.name ?? ''}`, username
       ).catch(() => {})
     }

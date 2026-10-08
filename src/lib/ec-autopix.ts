@@ -32,7 +32,8 @@ async function isOnline(pusher: Pusher, bridgeId: string): Promise<boolean> {
 }
 
 export type AutoPixResult =
-  | { ok: true; code: string; qrBase64: string }
+  /** via: qual máquina gerou — 'server' = máquina 24h (modo servidor), 'desktop' = PC de uso */
+  | { ok: true; code: string; qrBase64: string; via?: 'server' | 'desktop' }
   | { ok: false; reason: 'offline' | 'captcha' | 'rejected' | 'stuck' | 'error'; message: string }
 
 // Cada máquina tem ~40s para percorrer o checkout. Duas tentativas (máquina 24h e
@@ -86,8 +87,9 @@ export async function requestAutoPix(link: string): Promise<AutoPixResult> {
 
     const pusher = new Pusher({ appId, key, secret, cluster: process.env.PUSHER_CLUSTER || 'sa1', useTLS: true })
 
+    const serverId = String(await db.getSetting(BRIDGE_SERVER_ID_SETTING) || '')
     const candidates = [...new Set([
-      await db.getSetting(BRIDGE_SERVER_ID_SETTING),
+      serverId,
       process.env.BRIDGE_ID || await db.getSetting(BRIDGE_ID_SETTING),
     ].map(v => String(v || '')).filter(v => VALID_ID.test(v)))]
     if (!candidates.length) {
@@ -98,7 +100,8 @@ export async function requestAutoPix(link: string): Promise<AutoPixResult> {
     for (const bridgeId of candidates) {
       if (!(await isOnline(pusher, bridgeId))) continue
       last = await askMachine(pusher, bridgeId, link)
-      if (last.ok || last.reason === 'rejected') return last
+      if (last.ok) return { ...last, via: bridgeId === serverId ? 'server' : 'desktop' }
+      if (last.reason === 'rejected') return last
     }
     return last
   } catch (e: any) {
