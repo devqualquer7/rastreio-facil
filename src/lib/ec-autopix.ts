@@ -35,9 +35,46 @@ export type AutoPixResult =
   | { ok: true; code: string; qrBase64: string }
   | { ok: false; reason: 'offline' | 'captcha' | 'rejected' | 'stuck' | 'error'; message: string }
 
-// O PC leva ~10s; damos folga para checkout lento antes de desistir
-const TIMEOUT_MS = 50_000
+// Cada máquina tem ~40s para percorrer o checkout. Duas tentativas (máquina 24h e
+// depois o PC) precisam caber nos 100s que a Cloudflare dá para a requisição.
+const TIMEOUT_MS = 42_000
 
+/** Pede o Pix a UMA máquina e espera a resposta dela. Nunca lança erro. */
+async function askMachine(pusher: Pusher, bridgeId: string, link: string): Promise<AutoPixResult> {
+  try {
+    const id = randomUUID()
+    const envelope = { id, command: 'mp:auto-pix', args: { link }, ts: Date.now() }
+    const sig = sign(JSON.stringify(envelope))
+
+    // Awaiter antes do trigger, para não perder uma resposta rápida
+    const response = awaitResponse(id, TIMEOUT_MS)
+    response.catch(() => {})
+    await pusher.trigger('presence-bridge-' + bridgeId, 'client-command', { ...envelope, sig })
+
+    const res = await response            // { ok: true, data: <resultado do autoPix na máquina> }
+    const data = res?.data
+    if (data?.ok && data.code) return { ok: true, code: data.code, qrBase64: data.qrBase64 }
+    return {
+      ok: false,
+      reason: data?.reason || 'error',
+      message: data?.message || 'A máquina não conseguiu gerar o Pix.',
+    }
+  } catch (e: any) {
+    const msg = String(e?.message || 'Erro desconhecido')
+    const offline = /offline|tempo esgotado|desconhecido/i.test(msg)
+    return {
+      ok: false,
+      reason: offline ? 'offline' : 'error',
+      message: offline ? 'A máquina com o app não respondeu (desligada ou app desatualizado).' : msg,
+    }
+  }
+}
+
+/**
+ * Ordem: máquina 24h (modo servidor) → PC de uso → desiste (quem chamou entrega o link).
+ * Só passa para a próxima se a anterior estiver offline ou falhar; uma recusa do
+ * próprio Mercado Pago encerra na hora, porque a outra máquina receberia a mesma recusa.
+ */
 export async function requestAutoPix(link: string): Promise<AutoPixResult> {
   try {
     const appId  = process.env.PUSHER_APP_ID
@@ -49,44 +86,22 @@ export async function requestAutoPix(link: string): Promise<AutoPixResult> {
 
     const pusher = new Pusher({ appId, key, secret, cluster: process.env.PUSHER_CLUSTER || 'sa1', useTLS: true })
 
-    // Ordem de preferência: máquina 24h (modo servidor) → PC de uso. Usa a primeira que estiver online.
-    const candidates = [
+    const candidates = [...new Set([
       await db.getSetting(BRIDGE_SERVER_ID_SETTING),
       process.env.BRIDGE_ID || await db.getSetting(BRIDGE_ID_SETTING),
-    ].map(v => String(v || '')).filter(v => VALID_ID.test(v))
+    ].map(v => String(v || '')).filter(v => VALID_ID.test(v)))]
     if (!candidates.length) {
       return { ok: false, reason: 'offline', message: 'Nenhum PC pareado ainda — abra o app desktop atualizado.' }
     }
-    let bridgeId = ''
-    for (const c of candidates) { if (await isOnline(pusher, c)) { bridgeId = c; break } }
-    if (!bridgeId) {
-      return { ok: false, reason: 'offline', message: 'Nenhuma máquina com o app está online agora.' }
+
+    let last: AutoPixResult = { ok: false, reason: 'offline', message: 'Nenhuma máquina com o app está online agora.' }
+    for (const bridgeId of candidates) {
+      if (!(await isOnline(pusher, bridgeId))) continue
+      last = await askMachine(pusher, bridgeId, link)
+      if (last.ok || last.reason === 'rejected') return last
     }
-
-    const id = randomUUID()
-    const envelope = { id, command: 'mp:auto-pix', args: { link }, ts: Date.now() }
-    const sig = sign(JSON.stringify(envelope))
-
-    // Awaiter antes do trigger, para não perder uma resposta rápida
-    const response = awaitResponse(id, TIMEOUT_MS)
-    response.catch(() => {})
-    await pusher.trigger('presence-bridge-' + bridgeId, 'client-command', { ...envelope, sig })
-
-    const res = await response            // { ok: true, data: <resultado do autoPix no PC> }
-    const data = res?.data
-    if (data?.ok && data.code) return { ok: true, code: data.code, qrBase64: data.qrBase64 }
-    return {
-      ok: false,
-      reason: data?.reason || 'error',
-      message: data?.message || 'O PC não conseguiu gerar o Pix.',
-    }
+    return last
   } catch (e: any) {
-    const msg = String(e?.message || 'Erro desconhecido')
-    const offline = /offline|tempo esgotado|desconhecido/i.test(msg)
-    return {
-      ok: false,
-      reason: offline ? 'offline' : 'error',
-      message: offline ? 'O PC com o app não respondeu (desligado ou app desatualizado).' : msg,
-    }
+    return { ok: false, reason: 'error', message: String(e?.message || 'Erro desconhecido') }
   }
 }
