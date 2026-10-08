@@ -139,7 +139,13 @@ export default function MobilePage() {
         signal: ctrl.signal, cache: 'no-store',
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`)
+      if (!res.ok || !data.ok) {
+        // O app do PC é mais antigo que esta tela e ainda não conhece o comando
+        if (/comando desconhecido/i.test(data.error || '')) {
+          throw new Error('O app do PC está desatualizado para esta função. Instale a versão mais recente no computador.')
+        }
+        throw new Error(data.error || `HTTP ${res.status}`)
+      }
       return data.data
     } catch (e: any) {
       if (e.name === 'AbortError') throw new Error('Tempo esgotado.')
