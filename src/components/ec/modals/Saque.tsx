@@ -307,7 +307,7 @@ export function SaqueModal() {
               <ArrowDownToLine size={16} className="text-emerald-400" />
             </div>
             <div>
-              <div className="font-black text-base text-zinc-100">Saque</div>
+              <div className="font-black text-base text-zinc-100">Gerador de PIX</div>
               <div className="text-xs font-mono text-zinc-500">
                 {loadingGw
                   ? 'Carregando…'
@@ -339,7 +339,7 @@ export function SaqueModal() {
               <AlertCircle size={28} className="text-amber-400" />
               <div className="text-sm font-mono text-amber-400 text-center">Nenhum gateway configurado</div>
               <div className="text-[13px] font-mono text-zinc-500 text-center">
-                Vá em Gateways PIX e configure pelo menos um gateway antes de gerar saques.
+                Vá em Gateways PIX e configure pelo menos um gateway antes de gerar um PIX.
               </div>
             </div>
           )}
@@ -391,7 +391,7 @@ export function SaqueModal() {
                 </div>
                 <button onClick={reset}
                   className="text-xs font-mono text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition">
-                  <RefreshCw size={10} /> Novo saque
+                  <RefreshCw size={10} /> Novo PIX
                 </button>
               </div>
 

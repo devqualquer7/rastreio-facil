@@ -271,3 +271,13 @@
 @media (prefers-reduced-motion: reduce) {
   .ec-slot-live { animation: none; box-shadow: 0 0 30px rgba(255, 200, 61, .35); }
 }
+
+/* Botão principal da sidebar (Gerar Link) — brilho verde pulsando */
+@keyframes ec-cta-live {
+  0%, 100% { box-shadow: 0 0 16px rgba(0, 227, 150, .30), 0 4px 14px rgba(0, 0, 0, .35); }
+  50%      { box-shadow: 0 0 34px rgba(0, 227, 150, .62), 0 4px 14px rgba(0, 0, 0, .35); }
+}
+.ec-cta-live { animation: ec-cta-live 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .ec-cta-live { animation: none; box-shadow: 0 0 22px rgba(0, 227, 150, .45); }
+}

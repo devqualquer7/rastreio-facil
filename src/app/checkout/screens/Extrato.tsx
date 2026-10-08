@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { SectionTitle, Button, StatusPill } from '@/components/ec/ui/Base'
 import { useApp } from '@/lib/ec-store'
-import { fmtBRL, fmtDate } from '@/lib/ec-utils'
+import { fmtBRL, fmtDate, statusLabel } from '@/lib/ec-utils'
 import {
   getMethodInfo, methodLabel as mpMethodLabel, translateStatusDetail,
   isRejection, pendingActivity,
@@ -43,9 +43,9 @@ function feeRate(bruto: number, fee: number | null) {
 // ── Stat box ─────────────────────────────────────────────────────────────────
 function StatBox({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className={`rounded-2xl border p-4 ${color}`}>
-      <div className="text-[11px] font-mono font-bold tracking-[0.3em] text-current/60 uppercase mb-1.5">{label}</div>
-      <div className="text-lg font-black tabular-nums leading-none">{value}</div>
+    <div className={`rounded-xl border p-4 ${color}`}>
+      <div className="text-[11px] font-mono font-bold tracking-[0.25em] opacity-70 uppercase mb-2">{label}</div>
+      <div className="text-xl font-black tabular-nums leading-none">{value}</div>
     </div>
   )
 }
@@ -395,7 +395,7 @@ export function Extrato() {
     w.document.write(html); w.document.close(); w.print()
   }
 
-  const GRID = '2fr 1fr 1fr 1fr 0.9fr auto auto'
+  const GRID = 'minmax(0,2.2fr) minmax(0,1.1fr) 140px 150px 120px 130px 76px'
 
   return (
     <>
@@ -440,7 +440,7 @@ export function Extrato() {
                     ? 'bg-red-600/20 border border-red-600/40 text-red-300'
                     : 'bg-white/[0.03] border border-white/[0.06] text-zinc-500 hover:border-white/[0.12] hover:text-zinc-400'
                 }`}>
-                {s === 'todos' ? 'TODOS' : s.toUpperCase()}
+                {s === 'todos' ? 'TODOS' : statusLabel(s)}
               </button>
             ))}
           </div>
@@ -456,9 +456,9 @@ export function Extrato() {
           ) : filtered.length === 0 ? (
             <div className="py-16 text-center text-zinc-500 text-xs font-mono">Nenhuma transação encontrada</div>
           ) : (
-            <div className="divide-y divide-white/[0.05]">
+            <div className="divide-y divide-white/[0.05] max-h-[calc(100vh-300px)] min-h-[240px] overflow-y-auto">
               {/* Header */}
-              <div className="hidden md:grid px-5 py-3 text-xs font-mono font-bold tracking-widest text-zinc-500 uppercase border-b border-red-900/15"
+              <div className="hidden md:grid sticky top-0 z-10 px-5 py-3 text-[11px] font-mono font-bold tracking-widest text-ec-dim uppercase bg-ec-card2 border-b border-ec-line"
                 style={{ gridTemplateColumns: GRID, gap: '0 12px' }}>
                 <div>Título / Referência</div>
                 <div>Conta</div>
@@ -478,21 +478,21 @@ export function Extrato() {
                   <div className="hidden md:grid items-center min-h-[44px]"
                     style={{ gridTemplateColumns: GRID, gap: '0 12px' }}>
                     {/* Title */}
-                    <div>
-                      <div className="text-sm font-mono text-zinc-300 truncate">{s.title}</div>
-                      <div className="text-xs font-mono text-zinc-500 tabular-nums">
+                    <div className="min-w-0">
+                      <div className="text-sm font-mono font-semibold text-ec-text truncate">{s.title}</div>
+                      <div className="text-xs font-mono text-ec-muted tabular-nums truncate">
                         {s.external_reference || s.ref || `id-${s.id}`}
                       </div>
                     </div>
                     {/* Conta */}
-                    <div className="text-[13px] font-mono text-zinc-400 truncate">{s.slot_name}</div>
+                    <div className="text-[13px] font-mono text-ec-dim truncate" title={s.slot_name}>{s.slot_name}</div>
                     {/* Data */}
-                    <div className="text-[13px] font-mono text-zinc-500 tabular-nums">{fmtDate(s.created_at)}</div>
+                    <div className="text-[13px] font-mono text-ec-dim tabular-nums whitespace-nowrap">{fmtDate(s.created_at)}</div>
                     {/* Valor — líq só quando aprovado E > 0. Sem isso o "0 &&" imprimia um 0 solto. */}
                     <div className="leading-tight">
-                      <div className="text-sm font-mono font-bold text-zinc-200 tabular-nums">{fmtBRL(Number(s.amount))}</div>
+                      <div className="text-[15px] font-mono font-bold text-ec-text tabular-nums">{fmtBRL(Number(s.amount))}</div>
                       {s.status === 'approved' && Number(s.net_amount) > 0
-                        ? <div className="text-xs font-mono text-zinc-500 tabular-nums">líq: {fmtBRL(Number(s.net_amount))}</div>
+                        ? <div className="text-xs font-mono text-ec-green/80 tabular-nums">líq {fmtBRL(Number(s.net_amount))}</div>
                         : <div className="text-xs text-transparent select-none">·</div>}
                     </div>
                     {/* Método */}

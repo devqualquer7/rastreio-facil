@@ -1,5 +1,5 @@
 'use client'
-import { LayoutDashboard, Key, ScrollText, Wallet, LogOut, CreditCard, Users, Link2, Layers, HandCoins, ChevronsUpDown, Bell } from 'lucide-react'
+import { LayoutDashboard, Key, ScrollText, Wallet, LogOut, CreditCard, Users, Layers, ChevronsUpDown, Bell, Zap, ArrowRight, ChevronRight, QrCode } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/ec-utils'
@@ -15,6 +15,16 @@ function LogoMark({ size = 56 }: { size?: number }) {
       animate={{ filter: ['drop-shadow(0 0 6px rgba(255,43,74,.55))', 'drop-shadow(0 0 14px rgba(255,43,74,.9))', 'drop-shadow(0 0 6px rgba(255,43,74,.55))'] }}
       transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
       onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+  )
+}
+
+/** Marca desenhada para o atalho da UTMify (não é o logotipo oficial deles) */
+function UtmifyMark({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6 4v8a6 6 0 0 0 12 0V9" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+      <path d="M14.5 7.5 18 4l3.5 3.5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }
 
@@ -54,34 +64,48 @@ export function Sidebar() {
       <div className="h-px mx-5" style={{ background: '#1c1c33' }} />
 
       {/* Ações rápidas */}
-      <div className="p-3 space-y-1.5">
-        <div className="ec-label px-2 pt-1 pb-1">Ações Rápidas</div>
+      <div className="p-3">
+        <div className="ec-label px-2 pt-1 pb-2">Ações Rápidas</div>
+
+        {/* Ação principal — a mais usada do painel, por isso é a única com cor cheia e brilho */}
         <button onClick={() => openModal('generate')}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold text-black transition-all duration-150"
-          style={{ background: 'linear-gradient(to right,#00e396,#00a06b)', boxShadow: '0 0 15px rgba(0,227,150,.3)', letterSpacing: '0.02em' }}>
-          <Link2 size={15} /> <span>GERAR LINK</span>
+          className="ec-shine ec-cta-live group w-full flex items-center gap-3 px-3 py-3.5 rounded-xl text-left text-black transition-transform duration-150 hover:-translate-y-0.5 active:scale-[0.98]"
+          style={{ background: 'linear-gradient(135deg,#00f5a3 0%,#00e396 45%,#00a06b 100%)' }}>
+          <span className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(0,0,0,.22)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.25)' }}>
+            <Zap size={19} fill="currentColor" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block font-black text-[15px] leading-tight" style={{ letterSpacing: '0.06em' }}>GERAR LINK</span>
+            <span className="block text-[11px] font-semibold leading-tight mt-0.5" style={{ color: 'rgba(0,0,0,.62)' }}>Link ou Pix na hora</span>
+          </span>
+          <ArrowRight size={16} className="flex-shrink-0 transition-transform duration-150 group-hover:translate-x-1" />
         </button>
-        <button onClick={() => openModal('saque')}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold transition-all duration-150"
-          style={{ background: 'rgba(255,43,74,.10)', border: '1px solid rgba(255,43,74,.3)', color: '#ff2b4a', letterSpacing: '0.02em' }}>
-          <HandCoins size={15} /> <span>SAQUE</span>
-        </button>
-        <button onClick={() => openModal('pushover')}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150"
-          style={{ background: 'rgba(17,17,31,.5)', border: '1px solid #1c1c33', color: '#9a9ab5', letterSpacing: '0.02em' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = '#3a1a30'; e.currentTarget.style.color = '#e4e4f4' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = '#1c1c33'; e.currentTarget.style.color = '#9a9ab5' }}>
-          <Bell size={15} /> <span>Notificações</span>
-        </button>
-        <button onClick={() => openModal('utmify')}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150"
-          style={{ background: 'rgba(124,58,237,.08)', border: '1px solid rgba(124,58,237,.3)', color: '#a78bfa', letterSpacing: '0.02em' }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,58,237,.16)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(124,58,237,.08)' }}>
-          <span className="w-[18px] h-[18px] rounded-md flex items-center justify-center text-white font-black text-[13px] flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)' }}>U</span>
-          <span>UTMIFY</span>
-        </button>
+
+        {/* Ações secundárias — mesmo cartão neutro, só o ícone muda de cor */}
+        <div className="mt-2.5 space-y-1.5">
+          {([
+            { id: 'saque',    label: 'Gerador de PIX', hint: 'Cobranças por gateway', color: '#ff2b4a',
+              icon: <QrCode size={15} /> },
+            { id: 'pushover', label: 'Notificações',   hint: 'Avisos no celular',     color: '#ffc83d',
+              icon: <Bell size={15} /> },
+            { id: 'utmify',   label: 'UTMify',         hint: 'Rastreio de vendas',    color: '#8b5cf6',
+              icon: <UtmifyMark size={16} /> },
+          ] as const).map(a => (
+            <button key={a.id} onClick={() => openModal(a.id)}
+              className="group w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-left border border-ec-line bg-ec-card2/50 hover:bg-ec-hover hover:border-ec-line-glow transition-all duration-150">
+              <span className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
+                style={{ background: `${a.color}1f`, border: `1px solid ${a.color}55`, color: a.color }}>
+                {a.icon}
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-[13px] font-bold leading-tight text-ec-text truncate">{a.label}</span>
+                <span className="block text-[11px] leading-tight mt-0.5 text-ec-muted truncate">{a.hint}</span>
+              </span>
+              <ChevronRight size={14} className="flex-shrink-0 text-ec-muted opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150" />
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="h-px mx-5" style={{ background: '#1c1c33' }} />
