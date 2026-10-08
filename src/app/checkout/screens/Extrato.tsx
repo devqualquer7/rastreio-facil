@@ -539,7 +539,7 @@ export function Extrato() {
               className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-9 pr-4 py-2.5 text-sm font-mono text-zinc-300 outline-none focus:border-red-600/40 transition-all"
             />
           </div>
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 overflow-x-auto sm:flex-wrap -mx-1 px-1 [&>*]:flex-shrink-0">
             <Filter size={13} className="text-zinc-500" />
             {STATUS_OPTIONS.map(s => (
               <button key={s} onClick={() => setFilter(s)}
@@ -564,7 +564,7 @@ export function Extrato() {
           ) : filtered.length === 0 ? (
             <div className="py-16 text-center text-zinc-500 text-xs font-mono">Nenhuma transação encontrada</div>
           ) : (
-            <div className="divide-y divide-white/[0.05] max-h-[calc(100vh-300px)] min-h-[240px] overflow-y-auto">
+            <div className="divide-y divide-white/[0.05] md:max-h-[calc(100vh-300px)] min-h-[240px] md:overflow-y-auto">
               {/* Header */}
               <div className="hidden md:grid sticky top-0 z-10 px-5 py-3 text-[11px] font-mono font-bold tracking-widest text-ec-dim uppercase bg-ec-card2 border-b border-ec-line"
                 style={{ gridTemplateColumns: GRID, gap: '0 12px' }}>

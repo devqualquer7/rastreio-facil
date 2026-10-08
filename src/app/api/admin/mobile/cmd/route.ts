@@ -52,7 +52,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Body inválido.' }, { status: 400 })
     }
 
-    const { bridgeId, command, args } = body || {}
+    const { bridgeId, command, args, timeoutMs } = body || {}
+    // Comandos lentos (Pix automático, extrato, estorno) pedem mais que os 20s padrão; teto de 60s
+    const waitMs = Math.min(Math.max(Number(timeoutMs) || 20_000, 5_000), 60_000)
     if (!bridgeId || !command || !/^[a-f0-9]+$/.test(String(bridgeId))) {
       return NextResponse.json({ ok: false, error: 'bridgeId/command inválidos.' }, { status: 400 })
     }
@@ -68,7 +70,7 @@ export async function POST(request: NextRequest) {
     const envelope = { ...envelopeNoSig, sig }
 
     // Set up the awaiter BEFORE triggering, to avoid race
-    const responsePromise = awaitResponse(reqId, 20_000)
+    const responsePromise = awaitResponse(reqId, waitMs)
 
     // Trigger event on the bridge channel — desktop receives via Pusher
     try {

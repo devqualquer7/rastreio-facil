@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Sidebar, MobileTopBar } from '@/components/ec/Sidebar'
+import { Sidebar, MobileTopBar, MobileBottomNav } from '@/components/ec/Sidebar'
 import { Dashboard } from '@/app/checkout/screens/Dashboard'
 import { Credentials } from '@/app/checkout/screens/Credentials'
 import { Gateways } from '@/app/checkout/screens/Gateways'
@@ -144,7 +144,7 @@ export default function CheckoutPage() {
             allow="clipboard-write; downloads"
           />
         ) : (
-          <main className="flex-1 overflow-y-auto p-4 md:p-8">
+          <main className="flex-1 overflow-y-auto p-4 pb-28 md:p-8">
             <AnimatePresence mode="wait">
               <motion.div
                 key={screen}
@@ -158,6 +158,9 @@ export default function CheckoutPage() {
           </main>
         )}
       </div>
+
+      {/* Navegação inferior (celular) */}
+      <MobileBottomNav />
 
       {/* Modals */}
       <AnimatePresence>

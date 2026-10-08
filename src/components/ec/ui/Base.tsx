@@ -6,8 +6,8 @@ export function SectionTitle({
   icon, title, subtitle, action
 }: { icon?: React.ReactNode; title: string; subtitle?: string; action?: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 mb-6">
-      <div className="flex items-center gap-3">
+    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 mb-5 sm:mb-6">
+      <div className="flex items-center gap-3 min-w-0">
         {icon && (
           <div className="w-9 h-9 rounded-xl bg-red-500/15 border border-red-500/25 text-red-400 flex items-center justify-center flex-shrink-0">
             {icon}
@@ -19,7 +19,7 @@ export function SectionTitle({
         </div>
       </div>
       {action && (
-        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap sm:justify-end">
           {action}
         </div>
       )}
@@ -82,7 +82,7 @@ export function StatusPill({ status }: { status: string }) {
 // ─── Modal Backdrop ───────────────────────────────────────────────────────────
 export function ModalBackdrop({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3 sm:p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full max-w-lg">
         {children}

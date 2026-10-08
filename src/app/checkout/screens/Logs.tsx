@@ -266,7 +266,7 @@ export function Logs() {
       />
 
       {/* Tabs */}
-      <div className="flex items-center gap-1.5 mb-5 flex-wrap">
+      <div className="flex items-center gap-1.5 mb-5 overflow-x-auto md:flex-wrap -mx-1 px-1 [&>*]:flex-shrink-0">
         {visibleTabs.map(t => {
           const Icon = t.icon
           const active = tab === t.id
@@ -302,7 +302,7 @@ export function Logs() {
             <div className="text-xs font-mono text-ec-muted mt-1">{activeTabMeta.label}</div>
           </div>
         ) : (
-          <div className="divide-y divide-white/[0.05] max-h-[calc(100vh-240px)] min-h-[200px] overflow-y-auto">
+          <div className="divide-y divide-white/[0.05] md:max-h-[calc(100vh-240px)] min-h-[200px] md:overflow-y-auto">
             {logs.map(log => {
               const s = levelStyle(log.level)
               const Icon = s.icon
@@ -316,7 +316,7 @@ export function Logs() {
                 <div
                   key={log.id}
                   className={cn(
-                    'px-5 py-3.5 flex items-start gap-3.5 transition',
+                    'px-4 sm:px-5 py-3.5 flex flex-wrap sm:flex-nowrap items-start gap-3 sm:gap-3.5 transition',
                     alreadyCanceled ? 'opacity-45' : 'hover:bg-ec-card2/60'
                   )}>
                   <div className={cn('w-9 h-9 rounded-lg border flex items-center justify-center shrink-0', s.bg, s.border)}>
@@ -341,7 +341,7 @@ export function Logs() {
                     )}
                   </div>
 
-                  <div className="shrink-0 flex items-center gap-1.5">
+                  <div className="shrink-0 flex items-center gap-1.5 w-full sm:w-auto pl-12 sm:pl-0 empty:hidden">
                     {/* Ações — só para links de pagamento não cancelados */}
                     {isPaymentLink && ref && !alreadyCanceled && (
                       <>

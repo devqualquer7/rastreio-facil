@@ -1,5 +1,6 @@
 'use client'
-import { LayoutDashboard, Key, ScrollText, Wallet, LogOut, CreditCard, Users, Layers, ChevronsUpDown, Bell, Zap, ArrowRight, ChevronRight, QrCode } from 'lucide-react'
+import { useState } from 'react'
+import { LayoutDashboard, Key, ScrollText, Wallet, LogOut, CreditCard, Users, Layers, ChevronsUpDown, Bell, Zap, ArrowRight, ChevronRight, QrCode, Menu } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/ec-utils'
@@ -178,49 +179,132 @@ export function Sidebar() {
   )
 }
 
-// Barra superior mobile
-export function MobileTopBar() {
-  const { screen, setScreen, openModal, isAdmin } = useApp()
-  const router = useRouter()
+// ── Celular: barra superior + navegação inferior ─────────────────────────────
+// No celular a sidebar some; estas duas barras dão acesso a TUDO o que ela tem.
 
-  const nav: { id: Screen; icon: any; adminOnly?: boolean }[] = [
-    { id: 'dashboard', icon: LayoutDashboard },
-    { id: 'credentials', icon: Key },
-    { id: 'gateways', icon: CreditCard },
-    { id: 'extrato', icon: Wallet },
-    { id: 'logs', icon: ScrollText },
-    { id: 'users', icon: Users, adminOnly: true },
-    { id: 'studio', icon: Layers },
-  ]
+export function MobileTopBar() {
+  const { openModal, activeCred } = useApp()
+  return (
+    <div className="md:hidden flex items-center gap-2.5 px-3.5 py-2.5 flex-shrink-0 relative z-20"
+      style={{ borderBottom: '1px solid #1c1c33', background: 'rgba(11,11,22,.92)', fontFamily: MONO }}>
+      <img src="/logo.png" alt="" className="w-8 h-8 object-contain flex-shrink-0" style={{ filter: 'drop-shadow(0 0 8px rgba(255,43,74,.65))' }}
+        onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+      <div className="font-bold text-[13px] leading-none flex-shrink-0" style={{ letterSpacing: '0.1em' }}>
+        <span style={{ color: '#e4e4f4' }}>ENCRYPTED</span><span style={{ color: '#ff2b4a' }}>SOFTWARE</span>
+      </div>
+      {/* Conta ativa — toque para trocar */}
+      <button onClick={() => openModal('switch-account')}
+        className="ml-auto min-w-0 flex items-center gap-2 pl-2.5 pr-2 h-9 rounded-lg border border-ec-line bg-ec-card2 active:scale-95"
+        title="Trocar de conta">
+        <span className="w-2 h-2 rounded-full flex-shrink-0" style={activeCred?.connected
+          ? { background: '#00e396', boxShadow: '0 0 8px rgba(0,227,150,.6)' } : { background: '#52526e' }} />
+        <span className="text-xs font-bold text-ec-text truncate max-w-[110px]">{activeCred?.name || 'Sem conta'}</span>
+        <ChevronsUpDown size={12} className="text-ec-muted flex-shrink-0" />
+      </button>
+    </div>
+  )
+}
+
+export function MobileBottomNav() {
+  const { screen, setScreen, openModal, isAdmin, username } = useApp()
+  const router = useRouter()
+  const [more, setMore] = useState(false)
 
   async function logout() {
     await fetch('/api/ec/auth/logout', { method: 'POST' })
     router.push('/checkout/login'); router.refresh()
   }
 
+  const tabs: { id: Screen; icon: any; label: string }[] = [
+    { id: 'dashboard',   icon: LayoutDashboard, label: 'Início' },
+    { id: 'extrato',     icon: Wallet,          label: 'Extrato' },
+  ]
+  const tabsRight: { id: Screen; icon: any; label: string }[] = [
+    { id: 'credentials', icon: Key,             label: 'Contas' },
+  ]
+  const moreScreens: { id: Screen; icon: any; label: string; adminOnly?: boolean }[] = [
+    { id: 'gateways', icon: CreditCard, label: 'Gateways PIX' },
+    { id: 'logs',     icon: ScrollText, label: 'Logs' },
+    { id: 'users',    icon: Users,      label: 'Usuários', adminOnly: true },
+  ]
+  const inMore = moreScreens.some(s => s.id === screen)
+
+  const Tab = ({ id, icon: Icon, label }: { id: Screen; icon: any; label: string }) => (
+    <button onClick={() => { setScreen(id); setMore(false) }}
+      className="flex flex-col items-center gap-1 py-1.5 transition"
+      style={{ color: screen === id ? '#ff2b4a' : '#52526e' }}>
+      <Icon size={20} />
+      <span className="text-[11px] font-bold">{label}</span>
+    </button>
+  )
+
   return (
     <div className="md:hidden" style={{ fontFamily: MONO }}>
-      <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: '1px solid #1c1c33', background: 'rgba(11,11,22,.9)' }}>
-        <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="" className="w-6 h-6 object-contain" style={{ filter: 'drop-shadow(0 0 8px rgba(255,43,74,.65))' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-          <span className="font-bold text-[13px]"><span style={{ color: '#e4e4f4' }}>ENCRYPTED</span><span style={{ color: '#ff2b4a' }}>SOFTWARE</span></span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => openModal('generate')} className="px-3 py-1.5 rounded-lg text-black text-xs font-bold" style={{ background: 'linear-gradient(to right,#00e396,#00a06b)' }}>GERAR</button>
-          <button onClick={logout} className="p-1.5 transition" style={{ color: '#52526e' }}><LogOut size={14} /></button>
-        </div>
-      </div>
-      <div className="flex" style={{ borderBottom: '1px solid #1c1c33', background: '#0b0b16' }}>
-        {nav.filter(it => !it.adminOnly || isAdmin).map(it => {
-          const Icon = it.icon; const isActive = screen === it.id
-          return (
-            <button key={it.id} onClick={() => setScreen(it.id)} className="flex-1 py-3 flex items-center justify-center transition"
-              style={{ color: isActive ? '#ff2b4a' : '#52526e', borderBottom: isActive ? '2px solid #ff2b4a' : '2px solid transparent' }}>
-              <Icon size={18} />
+      {/* Folha "Mais" */}
+      {more && (
+        <div className="fixed inset-0 z-30 flex items-end">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setMore(false)} />
+          <div className="relative w-full bg-ec-card border-t border-ec-line rounded-t-2xl p-4"
+            style={{ paddingBottom: 'calc(88px + env(safe-area-inset-bottom))' }}>
+            <div className="ec-label px-1 pb-2">Telas</div>
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              {moreScreens.filter(s => !s.adminOnly || isAdmin).map(s => {
+                const Icon = s.icon; const on = screen === s.id
+                return (
+                  <button key={s.id} onClick={() => { setScreen(s.id); setMore(false) }}
+                    className={cn('h-20 rounded-xl border flex flex-col items-center justify-center gap-2 text-xs font-bold active:scale-95',
+                      on ? 'border-ec-red/50 bg-ec-red/10 text-ec-red' : 'border-ec-line bg-ec-card2 text-ec-dim')}>
+                    <Icon size={20} /> {s.label}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="ec-label px-1 pb-2">Ações</div>
+            <div className="space-y-1.5">
+              {([
+                { id: 'saque',    label: 'Gerador de PIX', hint: 'Pix por gateway',    color: '#ff2b4a', icon: <QrCode size={16} /> },
+                { id: 'pushover', label: 'Notificações',   hint: 'Avisos no celular',  color: '#ffc83d', icon: <Bell size={16} /> },
+                { id: 'utmify',   label: 'UTMify',         hint: 'Rastreio de vendas', color: '#8b5cf6', icon: <UtmifyMark size={17} /> },
+              ] as const).map(a => (
+                <button key={a.id} onClick={() => { setMore(false); openModal(a.id) }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left border border-ec-line bg-ec-card2 active:scale-[0.99]">
+                  <span className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: `${a.color}1f`, border: `1px solid ${a.color}55`, color: a.color }}>{a.icon}</span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-sm font-bold text-ec-text">{a.label}</span>
+                    <span className="block text-xs text-ec-muted">{a.hint}</span>
+                  </span>
+                  <ChevronRight size={16} className="text-ec-muted" />
+                </button>
+              ))}
+            </div>
+            <button onClick={logout}
+              className="mt-4 w-full h-11 rounded-xl border border-ec-line bg-ec-card2 text-ec-dim text-xs font-bold tracking-widest uppercase flex items-center justify-center gap-2 active:scale-[0.99]">
+              <LogOut size={14} /> Sair{username ? ` · ${username}` : ''}
             </button>
-          )
-        })}
-      </div>
+          </div>
+        </div>
+      )}
+
+      {/* Barra inferior */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-5 items-end px-2 pt-2 border-t border-ec-line"
+        style={{ background: 'rgba(11,11,22,.96)', backdropFilter: 'blur(16px)', paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
+        {tabs.map(t => <Tab key={t.id} {...t} />)}
+        {/* Ação principal no centro */}
+        <button onClick={() => { setMore(false); openModal('generate') }} className="flex flex-col items-center gap-1 -mt-6">
+          <span className="ec-cta-live w-14 h-14 rounded-2xl flex items-center justify-center text-black active:scale-95 transition"
+            style={{ background: 'linear-gradient(135deg,#00f5a3,#00e396 45%,#00a06b)' }}>
+            <Zap size={24} fill="currentColor" />
+          </span>
+          <span className="text-[11px] font-bold" style={{ color: '#00e396' }}>Gerar</span>
+        </button>
+        {tabsRight.map(t => <Tab key={t.id} {...t} />)}
+        <button onClick={() => setMore(v => !v)} className="flex flex-col items-center gap-1 py-1.5 transition"
+          style={{ color: more || inMore ? '#ff2b4a' : '#52526e' }}>
+          <Menu size={20} />
+          <span className="text-[11px] font-bold">Mais</span>
+        </button>
+      </nav>
     </div>
   )
 }
