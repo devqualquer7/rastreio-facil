@@ -13,6 +13,8 @@ export interface Credential {
   health_status: string
   health_message?: string
   last_test_at?: string
+  /** Bloqueada pelo admin: os demais usuários não veem nem usam (só o admin recebe este campo como true) */
+  locked?: boolean
   created_at: string
   updated_at: string
 }

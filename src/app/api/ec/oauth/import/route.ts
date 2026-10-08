@@ -58,6 +58,14 @@ export async function POST(req: NextRequest) {
       health_status: 'ok',
     })
 
+    // Conta NOVA: chega trancada se o admin ligou "bloquear novas"; senão garante que o
+    // número do slot (que pode ter sido reaproveitado) não herde um cadeado antigo.
+    let lockedOnArrival = false
+    if (!existing) {
+      lockedOnArrival = await db.getLockNew()
+      await db.setSlotLocked(slot, lockedOnArrival).catch(() => {})
+    }
+
     // Ativa automaticamente se não houver conta ativa
     const active = await db.getActiveCred()
     if (!active) {
@@ -67,7 +75,7 @@ export async function POST(req: NextRequest) {
 
     await addLog(
       'link',
-      `OAuth import (exe): slot #${slot} "${credName}" · MP user ${mpUserId}`,
+      `OAuth import (exe): slot #${slot} "${credName}" · MP user ${mpUserId}${lockedOnArrival ? ' · chegou bloqueada' : ''}`,
       `slot #${slot}`
     ).catch(() => {})
 

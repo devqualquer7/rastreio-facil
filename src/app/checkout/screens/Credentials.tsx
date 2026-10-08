@@ -1,13 +1,15 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Key, CheckCircle2, XCircle, TestTube2, Zap, Trash2, Copy, Sparkles, Pencil, Check, X, Plus, User, Shield, ChevronDown, AlertTriangle, RefreshCw, Link2, ExternalLink } from 'lucide-react'
+import { Key, CheckCircle2, XCircle, TestTube2, Zap, Trash2, Copy, Sparkles, Pencil, Check, X, Plus, User, Shield, ChevronDown, AlertTriangle, RefreshCw, Link2, ExternalLink, Lock, LockOpen } from 'lucide-react'
 import { SectionTitle, Button } from '@/components/ec/ui/Base'
 import { useApp } from '@/lib/ec-store'
 import { cn, fmtDate } from '@/lib/ec-utils'
 
 export function Credentials() {
-  const { creds, refreshCreds, toast } = useApp()
+  const { creds, refreshCreds, toast, isAdmin } = useApp()
+  const [locking, setLocking] = useState<number | null>(null)
+  const [lockNew, setLockNew] = useState(false)
   const [testing, setTesting] = useState<number | null>(null)
   const [activating, setActivating] = useState<number | null>(null)
   const [editing, setEditing] = useState<number | null>(null)
@@ -21,6 +23,39 @@ export function Credentials() {
   const [addLoading, setAddLoading] = useState(false)
 
   useEffect(() => { refreshCreds(); setOrigin(window.location.origin) }, [])
+
+  // Admin: lê se as contas novas estão configuradas para chegar bloqueadas
+  useEffect(() => {
+    if (!isAdmin) return
+    fetch('/api/ec/creds/list').then(r => r.json()).then(d => { if (d.ok) setLockNew(!!d.lockNew) }).catch(() => {})
+  }, [isAdmin])
+
+  async function toggleLock(slot: number, locked: boolean) {
+    setLocking(slot)
+    try {
+      const r = await fetch('/api/ec/creds/lock', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ slot, locked })
+      })
+      const d = await r.json()
+      if (d.ok) { toast('success', locked ? `Slot #${slot} bloqueado — só você usa` : `Slot #${slot} liberado para os usuários`); refreshCreds() }
+      else toast('error', d.error || 'Falha')
+    } catch { toast('error', 'Erro de rede') }
+    finally { setLocking(null) }
+  }
+
+  async function toggleLockNew() {
+    const next = !lockNew
+    try {
+      const r = await fetch('/api/ec/creds/lock', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ lockNew: next })
+      })
+      const d = await r.json()
+      if (d.ok) { setLockNew(next); toast('success', next ? 'Contas novas vão chegar bloqueadas' : 'Contas novas vão chegar liberadas') }
+      else toast('error', d.error || 'Falha')
+    } catch { toast('error', 'Erro de rede') }
+  }
 
   async function test(slot: number) {
     setTesting(slot)
@@ -113,8 +148,13 @@ export function Credentials() {
       <SectionTitle
         icon={<Key size={18} />}
         title="Credenciais MP"
-        subtitle={`${creds.length} contas · slots ilimitados${bannedCount > 0 ? ` · ${bannedCount} banidas` : ''}`}
+        subtitle={`${creds.length} contas · slots ilimitados${bannedCount > 0 ? ` · ${bannedCount} banidas` : ''}${isAdmin && creds.some(c => c.locked) ? ` · ${creds.filter(c => c.locked).length} bloqueadas` : ''}`}
         action={<>
+          {isAdmin && (
+            <Button variant={lockNew ? 'danger' : 'outline'} size="md" icon={lockNew ? <Lock size={13} /> : <LockOpen size={13} />} onClick={toggleLockNew}>
+              {lockNew ? 'NOVAS: BLOQUEADAS' : 'NOVAS: LIBERADAS'}
+            </Button>
+          )}
           <Button variant="outline" size="md" icon={<RefreshCw size={13} />} onClick={checkAllHealth} loading={checkingAll}>
             VERIFICAR TUDO
           </Button>
@@ -328,6 +368,12 @@ export function Credentials() {
                           <Zap size={11} fill="currentColor" /> Ativa
                         </span>
                       )}
+                      {c.locked && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-ec-purple/50 bg-ec-purple/15 text-ec-purple text-[11px] font-bold tracking-wider uppercase"
+                          title="Os outros usuários não veem nem usam esta conta">
+                          <Lock size={11} /> Só você
+                        </span>
+                      )}
                       {!banned && (c.connected ? (
                         <span className="inline-flex items-center gap-1 text-xs font-mono text-ec-green">
                           <CheckCircle2 size={12} /> Conectada
@@ -390,6 +436,16 @@ export function Credentials() {
                       title="Testar conexão">
                       <TestTube2 size={13} className={testing === c.slot ? 'animate-pulse' : ''} />
                       {testing === c.slot ? 'Testando…' : 'Testar'}
+                    </button>
+                  )}
+                  {isAdmin && (
+                    <button onClick={() => toggleLock(c.slot, !c.locked)} disabled={locking === c.slot}
+                      className={cn('w-9 h-9 rounded-lg border flex items-center justify-center transition flex-shrink-0 disabled:opacity-50',
+                        c.locked
+                          ? 'border-ec-purple/50 bg-ec-purple/15 text-ec-purple hover:bg-ec-purple/25'
+                          : 'border-ec-line bg-ec-card2 text-ec-muted hover:text-ec-purple hover:border-ec-purple/40')}
+                      title={c.locked ? 'Bloqueada — clique para liberar aos usuários' : 'Liberada — clique para bloquear (só você usa)'}>
+                      {c.locked ? <Lock size={13} /> : <LockOpen size={13} />}
                     </button>
                   )}
                   {tone !== 'banned' && (

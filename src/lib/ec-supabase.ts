@@ -1,3 +1,4 @@
+import { isEcAdmin } from '@/lib/ec-admin'
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.SUPABASE_URL!
@@ -84,12 +85,35 @@ export const db = {
    * Cai pra conta global ativa só quando o usuário ainda não escolheu nenhuma.
    */
   async getActiveCredForUser(username: string) {
+    // Contas bloqueadas pelo admin não podem ser usadas por mais ninguém. Como TODA
+    // operação (gerar link, estorno, extrato…) passa por aqui, o bloqueio vale para todas.
+    const locked = isEcAdmin(username) ? [] : await this.getLockedSlots()
     const slot = await this.getUserActiveSlot(username)
     if (slot != null) {
       const cred = await this.getCredBySlot(slot)
-      if (cred && cred.health_status !== 'banned') return cred
+      if (cred && cred.health_status !== 'banned' && !locked.includes(Number(cred.slot))) return cred
     }
-    return this.getActiveCred()
+    const global = await this.getActiveCred()
+    return global && !locked.includes(Number(global.slot)) ? global : null
+  },
+
+  // ── Bloqueio de contas (só o admin usa) ─────────────────────────────────────
+  // web_settings: `creds:locked` = JSON com os slots bloqueados;
+  //               `creds:lock_new` = '1' → contas novas vindas do app já chegam bloqueadas.
+  async getLockedSlots(): Promise<number[]> {
+    try {
+      const raw = await this.getSetting('creds:locked')
+      const arr = raw ? JSON.parse(raw) : []
+      return Array.isArray(arr) ? arr.map(Number).filter(Number.isFinite) : []
+    } catch { return [] }
+  },
+  async setSlotLocked(slot: number, locked: boolean) {
+    const cur = new Set(await this.getLockedSlots())
+    if (locked) cur.add(Number(slot)); else cur.delete(Number(slot))
+    await this.setSetting('creds:locked', JSON.stringify([...cur].sort((a, b) => a - b)))
+  },
+  async getLockNew(): Promise<boolean> {
+    return (await this.getSetting('creds:lock_new')) === '1'
   },
   async getCredByMpUserId(mpUserId: string) {
     const sb = getSupabase()

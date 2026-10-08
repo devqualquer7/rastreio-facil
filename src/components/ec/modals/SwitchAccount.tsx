@@ -1,6 +1,6 @@
 'use client'
 import { motion } from 'framer-motion'
-import { X, CheckCircle2, Circle, Zap, Sparkles } from 'lucide-react'
+import { X, CheckCircle2, Circle, Zap, Sparkles, Lock } from 'lucide-react'
 import { ModalBackdrop } from '@/components/ec/ui/Base'
 import { useApp } from '@/lib/ec-store'
 import { cn } from '@/lib/ec-utils'
@@ -91,6 +91,7 @@ export function SwitchAccountModal() {
                   <div className="flex-1 min-w-0">
                     <div className={cn('font-bold text-sm truncate', isActive ? 'text-red-200' : banned ? 'text-red-400' : 'text-zinc-300')}>
                       {c.name}
+                      {c.locked && <Lock size={11} className="inline ml-1.5 -mt-0.5 text-ec-purple" aria-label="Bloqueada para os usuários" />}
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       {isActive ? (
