@@ -6,7 +6,7 @@ import { useApp } from '@/lib/ec-store'
 import { cn } from '@/lib/ec-utils'
 
 export function SwitchAccountModal() {
-  const { closeModal, creds, activeCred, toast, refreshCreds } = useApp()
+  const { closeModal, creds, activeCred, toast, refreshCreds, isAdmin } = useApp()
 
   async function activate(slot: number) {
     try {
@@ -60,20 +60,23 @@ export function SwitchAccountModal() {
           ) : creds.map((c, i) => {
             const isActive = c.is_active
             const banned = c.health_status === 'banned'
+            const blocked = !!c.locked && !isAdmin   // bloqueada pelo admin: aparece, mas não dá para escolher
             return (
               <motion.button
                 key={c.id}
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.04 }}
-                onClick={() => !isActive && !banned && activate(c.slot)}
-                disabled={isActive || banned}
+                onClick={() => !isActive && !banned && !blocked && activate(c.slot)}
+                disabled={isActive || banned || blocked}
                 className={cn(
                   'relative w-full rounded-2xl p-4 text-left transition-all group overflow-hidden',
                   isActive
                     ? 'bg-gradient-to-br from-red-500/20 via-red-500/8 to-transparent border border-red-500/40 shadow-[0_0_20px_rgba(255,43,74,.15)]'
                     : banned
                       ? 'bg-red-500/5 border border-red-500/20 opacity-60 cursor-not-allowed'
+                    : blocked
+                      ? 'bg-ec-purple/[0.08] border border-ec-purple/35 opacity-80 cursor-not-allowed'
                       : 'bg-white/[0.03] border border-white/[0.07] hover:bg-white/[0.06] hover:border-red-500/25 cursor-pointer'
                 )}>
                 {isActive && (
@@ -98,6 +101,8 @@ export function SwitchAccountModal() {
                         <><Sparkles size={9} className="text-red-400" /><span className="text-[11px] font-mono text-red-400 tracking-wider">ATIVO</span></>
                       ) : banned ? (
                         <span className="text-[11px] font-mono text-red-400 tracking-wider">BANIDA</span>
+                      ) : blocked ? (
+                        <span className="text-[11px] font-mono text-ec-purple tracking-wider">BLOQUEADA PELO ADMINISTRADOR</span>
                       ) : c.connected ? (
                         <><CheckCircle2 size={9} className="text-emerald-400" /><span className="text-[11px] font-mono text-emerald-500 tracking-wider">Conectado</span></>
                       ) : (

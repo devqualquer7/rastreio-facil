@@ -148,7 +148,7 @@ export function Credentials() {
       <SectionTitle
         icon={<Key size={18} />}
         title="Credenciais MP"
-        subtitle={`${creds.length} contas · slots ilimitados${bannedCount > 0 ? ` · ${bannedCount} banidas` : ''}${isAdmin && creds.some(c => c.locked) ? ` · ${creds.filter(c => c.locked).length} bloqueadas` : ''}`}
+        subtitle={`${creds.length} contas · slots ilimitados${bannedCount > 0 ? ` · ${bannedCount} banidas` : ''}${creds.some(c => c.locked) ? ` · ${creds.filter(c => c.locked).length} bloqueadas` : ''}`}
         action={<>
           {isAdmin && (
             <Button variant={lockNew ? 'danger' : 'outline'} size="md" icon={lockNew ? <Lock size={13} /> : <LockOpen size={13} />} onClick={toggleLockNew}>
@@ -304,6 +304,8 @@ export function Credentials() {
             // Visual do cartão: conta bloqueada (e não ativa/banida) ganha o tema roxo "vidro".
             // `tone` continua decidindo os botões; `look` só a aparência.
             const look = (tone === 'ok' || tone === 'off') && c.locked ? 'locked' : tone
+            // Usuário comum diante de conta bloqueada: vê o cartão, mas sem nenhuma ação
+            const lockedForMe = !!c.locked && !isAdmin
 
             return (
               <motion.div key={c.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -324,7 +326,7 @@ export function Credentials() {
                       style={{ background: 'linear-gradient(90deg, rgba(162,155,254,.08), rgba(162,155,254,.26), rgba(162,155,254,.08))' }}>
                       <Lock size={13} className="text-ec-purple" />
                       <span className="text-xs font-black tracking-[0.3em] text-ec-purple uppercase">Bloqueado</span>
-                      <span className="text-[11px] font-mono text-ec-purple/70">· só você usa</span>
+                      <span className="text-[11px] font-mono text-ec-purple/70">{isAdmin ? '· só você usa' : '· pelo administrador'}</span>
                     </div>
                   </>
                 )}
@@ -370,9 +372,11 @@ export function Credentials() {
                           title={c.name}>
                           {c.name}
                         </div>
-                        <button onClick={() => startEdit(c.slot, c.name)}
-                          className="w-6 h-6 rounded-md text-ec-muted hover:text-ec-text hover:bg-ec-card2 flex items-center justify-center transition flex-shrink-0"
-                          title="Editar nome"><Pencil size={12} /></button>
+                        {!lockedForMe && (
+                          <button onClick={() => startEdit(c.slot, c.name)}
+                            className="w-6 h-6 rounded-md text-ec-muted hover:text-ec-text hover:bg-ec-card2 flex items-center justify-center transition flex-shrink-0"
+                            title="Editar nome"><Pencil size={12} /></button>
+                        )}
                       </div>
                     )}
 
@@ -427,6 +431,11 @@ export function Credentials() {
                 </div>
 
                 <div className="px-4 py-3 border-t border-white/[0.06] bg-black/20 flex items-center gap-2">
+                  {lockedForMe ? (
+                    <div className="flex-1 flex items-center gap-2 text-xs font-mono text-ec-purple/80 h-9">
+                      <Lock size={13} /> Indisponível — bloqueada pelo administrador
+                    </div>
+                  ) : (<>
                   {tone === 'banned' && (
                     <button onClick={() => remove(c.slot)}
                       className="flex-1 h-9 rounded-lg bg-ec-red-deep hover:bg-ec-red text-white text-xs font-bold tracking-widest uppercase transition active:scale-95 flex items-center justify-center gap-1.5">
@@ -472,6 +481,7 @@ export function Credentials() {
                       className="w-9 h-9 rounded-lg border border-ec-line bg-ec-card2 hover:bg-ec-red/10 hover:border-ec-red/40 text-ec-muted hover:text-ec-red flex items-center justify-center transition flex-shrink-0"
                       title="Remover slot"><Trash2 size={13} /></button>
                   )}
+                  </>)}
                 </div>
               </motion.div>
             )

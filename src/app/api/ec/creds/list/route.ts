@@ -9,14 +9,15 @@ export async function GET() {
     const admin = isEcAdmin(username)
     const [all, locked, lockNew] = await Promise.all([db.listCreds(), db.getLockedSlots(), db.getLockNew()])
 
-    // Conta bloqueada: o admin vê (com o cadeado); os demais usuários nem recebem.
-    const visible = admin ? all : all.filter((c: any) => !locked.includes(Number(c.slot)))
+    // Conta bloqueada aparece para todos (como "Bloqueado"), mas só o admin consegue usar.
+    const visible = all
+    const canUse = (c: any) => admin || !locked.includes(Number(c.slot))
 
     // is_active vira PER-USUÁRIO: cada um vê a própria conta ativa destacada.
     // Mesma regra do db.getActiveCredForUser — escolha do usuário, senão a global.
     const userSlot = await db.getUserActiveSlot(username)
     const globalActive = all.find((c: any) => c.is_active)?.slot ?? null
-    const usable = (slot: number | null) => slot != null && visible.some((c: any) => c.slot === slot && c.health_status !== 'banned')
+    const usable = (slot: number | null) => slot != null && visible.some((c: any) => c.slot === slot && c.health_status !== 'banned' && canUse(c))
     const effective = usable(userSlot) ? userSlot : usable(globalActive) ? globalActive : null
 
     // Os tokens (mesmo criptografados) não têm por que ir para o navegador
