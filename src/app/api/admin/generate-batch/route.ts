@@ -32,8 +32,10 @@ const MIN_VALUE = 1.00          // R$ 1,00 minimum
 
 // Per-gateway max value (BRL)
 const MAX_VALUE_BY_GATEWAY: Record<Gateway, number> = {
-  pushin_pf:       500,
-  pushin_pj:       500,
+  // Pushin aceita links altos (a conta do usuário gera de R$ 2.000 direto no painel deles);
+  // o teto real é o da própria Pushin, que devolve erro se passar.
+  pushin_pf:       15_000,
+  pushin_pj:       15_000,
   paradise:        500,
   pixgate:         1_000,
   pixgate_premium: 15_000,
