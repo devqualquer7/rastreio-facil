@@ -1,8 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Key, CheckCircle2, XCircle, TestTube2, Zap, Trash2, Copy, Sparkles, Pencil, Check, X, Plus, User, Shield, ChevronDown, AlertTriangle, RefreshCw, Link2, ExternalLink, Lock, LockOpen } from 'lucide-react'
-import { SectionTitle, Button } from '@/components/ec/ui/Base'
+import { Key, CheckCircle2, XCircle, TestTube2, Zap, Trash2, Copy, Sparkles, Pencil, Check, X, Plus, User, Shield, ChevronDown, AlertTriangle, RefreshCw, Link2, ExternalLink, Lock, LockOpen, UserCheck, Globe } from 'lucide-react'
+import { SectionTitle, Button, ModalBackdrop } from '@/components/ec/ui/Base'
 import { useApp } from '@/lib/ec-store'
 import { cn, fmtDate } from '@/lib/ec-utils'
 
@@ -42,6 +42,43 @@ export function Credentials() {
       else toast('error', d.error || 'Falha')
     } catch { toast('error', 'Erro de rede') }
     finally { setLocking(null) }
+  }
+
+  // ── Atribuição (admin): conta visível só para usuários escolhidos ──
+  const [assignSlot, setAssignSlot] = useState<number | null>(null)
+  const [assignSel, setAssignSel] = useState<string[]>([])
+  const [assignSaving, setAssignSaving] = useState(false)
+  const [userList, setUserList] = useState<string[]>([])
+  const [me, setMe] = useState('')
+
+  useEffect(() => {
+    if (!isAdmin) return
+    fetch('/api/ec/users').then(r => r.json()).then(d => {
+      if (d.ok) { setUserList((d.users || []).map((u: any) => u.username)); setMe(d.me?.username ?? d.me ?? '') }
+    }).catch(() => {})
+  }, [isAdmin])
+
+  function openAssign(slot: number, current: string[] = []) {
+    setAssignSlot(slot); setAssignSel(current)
+  }
+
+  async function saveAssign(usernames: string[]) {
+    if (assignSlot == null) return
+    setAssignSaving(true)
+    try {
+      const r = await fetch('/api/ec/creds/assign', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ slot: assignSlot, usernames })
+      })
+      const d = await r.json()
+      if (d.ok) {
+        toast('success', d.assigned_to.length
+          ? `Slot #${assignSlot} atribuído a ${d.assigned_to.join(', ')}`
+          : `Slot #${assignSlot} voltou a ser global`)
+        setAssignSlot(null); refreshCreds()
+      } else toast('error', d.error || 'Falha')
+    } catch { toast('error', 'Erro de rede') }
+    finally { setAssignSaving(false) }
   }
 
   async function toggleLockNew() {
@@ -390,6 +427,13 @@ export function Credentials() {
                             <Lock size={11} /> Só você
                           </span>
                         )}
+                        {c.assigned && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-ec-blue/50 bg-ec-blue/15 text-ec-blue text-[11px] font-bold tracking-wider uppercase max-w-full"
+                            title={isAdmin ? `Só ${c.assigned_to?.join(', ')} e você veem esta conta` : 'Conta exclusiva sua'}>
+                            <UserCheck size={11} className="flex-shrink-0" />
+                            <span className="truncate">{isAdmin ? c.assigned_to?.join(', ') : 'Exclusiva'}</span>
+                          </span>
+                        )}
                         {!banned && (c.connected ? (
                           <span className="inline-flex items-center gap-1 text-xs font-mono text-ec-green">
                             <CheckCircle2 size={12} /> Conectada
@@ -474,6 +518,16 @@ export function Credentials() {
                     </button>
                   )}
                   {isAdmin && (
+                    <button onClick={() => openAssign(c.slot, c.assigned_to)}
+                      className={cn('w-9 h-9 rounded-lg border flex items-center justify-center transition flex-shrink-0',
+                        c.assigned
+                          ? 'border-ec-blue/50 bg-ec-blue/15 text-ec-blue hover:bg-ec-blue/25'
+                          : 'border-ec-line bg-ec-card2 text-ec-muted hover:text-ec-blue hover:border-ec-blue/40')}
+                      title={c.assigned ? `Atribuída a ${c.assigned_to?.join(', ')} — clique para mudar` : 'Global — clique para atribuir a usuários específicos'}>
+                      {c.assigned ? <UserCheck size={13} /> : <Globe size={13} />}
+                    </button>
+                  )}
+                  {isAdmin && (
                     <button onClick={() => toggleLock(c.slot, !c.locked)} disabled={locking === c.slot}
                       className={cn('w-9 h-9 rounded-lg border flex items-center justify-center transition flex-shrink-0 disabled:opacity-50',
                         c.locked
@@ -495,6 +549,69 @@ export function Credentials() {
           })}
         </div>
       )}
+
+      <AnimatePresence>
+        {isAdmin && assignSlot != null && (() => {
+          const cred = creds.find(c => c.slot === assignSlot)
+          const options = userList.filter(u => u !== me)
+          return (
+            <ModalBackdrop onClose={() => !assignSaving && setAssignSlot(null)}>
+              <motion.div initial={{ opacity: 0, y: 16, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.97 }} transition={{ type: 'spring', stiffness: 280, damping: 26 }}
+                className="bg-ec-card border border-ec-line rounded-2xl overflow-hidden">
+                <div className="p-5 border-b border-ec-line flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-ec-blue/10 border border-ec-blue/30 text-ec-blue flex items-center justify-center flex-shrink-0">
+                    <UserCheck size={16} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm text-ec-text tracking-wide truncate">
+                      Atribuir slot #{assignSlot}{cred ? ` · ${cred.name}` : ''}
+                    </div>
+                    <div className="text-xs font-mono text-zinc-400 leading-relaxed mt-0.5">
+                      Marque quem pode ver e usar esta conta. Só eles e você vão enxergá-la. Sem ninguém marcado, a conta é global.
+                    </div>
+                  </div>
+                  <button onClick={() => setAssignSlot(null)} className="text-ec-muted hover:text-ec-text transition" title="Fechar">
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="p-3 max-h-[50vh] overflow-y-auto space-y-1">
+                  {options.length === 0 ? (
+                    <div className="text-center text-xs font-mono text-zinc-500 py-6">Nenhum outro usuário cadastrado.</div>
+                  ) : options.map(u => {
+                    const on = assignSel.includes(u)
+                    return (
+                      <button key={u} onClick={() => setAssignSel(s => on ? s.filter(x => x !== u) : [...s, u])}
+                        className={cn('w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition',
+                          on ? 'border-ec-blue/50 bg-ec-blue/10 text-ec-text' : 'border-transparent hover:bg-ec-card2 text-ec-dim')}>
+                        <div className={cn('w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition',
+                          on ? 'bg-ec-blue border-ec-blue text-white' : 'border-ec-line')}>
+                          {on && <Check size={12} />}
+                        </div>
+                        <User size={13} className="flex-shrink-0" />
+                        <span className="text-sm font-mono truncate">{u}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div className="p-4 border-t border-ec-line flex items-center gap-2">
+                  <button onClick={() => saveAssign([])} disabled={assignSaving}
+                    className="px-3 h-9 rounded-lg border border-ec-line bg-ec-card2 text-ec-dim hover:text-ec-text text-xs font-bold tracking-wider uppercase transition disabled:opacity-50 flex items-center gap-1.5">
+                    <Globe size={13} /> Tornar global
+                  </button>
+                  <div className="flex-1" />
+                  <button onClick={() => saveAssign(assignSel)} disabled={assignSaving || assignSel.length === 0}
+                    className="px-4 h-9 rounded-lg bg-ec-red-deep hover:bg-ec-red text-white text-xs font-bold tracking-widest uppercase transition active:scale-95 disabled:opacity-40 flex items-center gap-1.5">
+                    <Check size={13} /> {assignSaving ? 'Salvando…' : `Atribuir${assignSel.length ? ` (${assignSel.length})` : ''}`}
+                  </button>
+                </div>
+              </motion.div>
+            </ModalBackdrop>
+          )
+        })()}
+      </AnimatePresence>
     </div>
   )
 }

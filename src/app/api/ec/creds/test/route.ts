@@ -6,9 +6,12 @@ import { MPAPI } from '@/lib/ec-mp-api'
 
 export async function POST(req: NextRequest) {
   try {
-    await requireSession()
+    const { username } = await requireSession()
     const { slot } = await req.json()
     if (!slot) return NextResponse.json({ ok: false, error: 'slot obrigatório' })
+    if (!(await db.userCanUseSlot(username, Number(slot)))) {
+      return NextResponse.json({ ok: false, error: 'Conta bloqueada pelo administrador' }, { status: 403 })
+    }
 
     const cred = await db.getCredBySlot(slot)
     if (!cred) return NextResponse.json({ ok: false, error: 'Slot não encontrado' })

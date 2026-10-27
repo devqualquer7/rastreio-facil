@@ -4,9 +4,12 @@ import { db } from '@/lib/ec-supabase'
 
 export async function POST(req: NextRequest) {
   try {
-    await requireSession()
+    const { username } = await requireSession()
     const { slot, name } = await req.json()
     if (!slot || !name?.trim()) return NextResponse.json({ ok: false, error: 'slot e name obrigatórios' })
+    if (!(await db.userCanUseSlot(username, Number(slot)))) {
+      return NextResponse.json({ ok: false, error: 'Conta bloqueada pelo administrador' }, { status: 403 })
+    }
 
     await db.updateCred(slot, { name: name.trim() })
     return NextResponse.json({ ok: true })

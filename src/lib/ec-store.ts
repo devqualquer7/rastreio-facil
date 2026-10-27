@@ -15,6 +15,10 @@ export interface Credential {
   last_test_at?: string
   /** Bloqueada pelo admin: os demais usuários não veem nem usam (só o admin recebe este campo como true) */
   locked?: boolean
+  /** Atribuída a usuários específicos: só eles e o admin veem a conta */
+  assigned?: boolean
+  /** Lista de usuários da atribuição (só vem para o admin) */
+  assigned_to?: string[]
   created_at: string
   updated_at: string
 }

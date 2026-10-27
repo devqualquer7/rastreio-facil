@@ -64,6 +64,8 @@ export async function POST(req: NextRequest) {
     if (!existing) {
       lockedOnArrival = await db.getLockNew()
       await db.setSlotLocked(slot, lockedOnArrival).catch(() => {})
+      // Conta nova sempre chega global — a atribuição é feita depois, em Credenciais
+      await db.setSlotAssigned(slot, []).catch(() => {})
     }
 
     // Ativa automaticamente se não houver conta ativa

@@ -16,6 +16,21 @@ export function getSupabase(): any {
   return _client
 }
 
+/**
+ * Quem pode usar um slot:
+ *  - admin: todos
+ *  - conta atribuída: só os usuários da lista (mesmo que esteja bloqueada)
+ *  - conta global: todos, exceto se bloqueada
+ */
+export function canUseSlot(
+  username: string, slot: number, locked: number[], assigned: Record<number, string[]>,
+): boolean {
+  if (isEcAdmin(username)) return true
+  const owners = assigned[Number(slot)]
+  if (owners?.length) return owners.includes(username)
+  return !locked.includes(Number(slot))
+}
+
 export const db = {
   // ── Users ──────────────────────────────────────────────────────────────────
   async getUserByUsername(username: string) {
@@ -87,14 +102,45 @@ export const db = {
   async getActiveCredForUser(username: string) {
     // Contas bloqueadas pelo admin não podem ser usadas por mais ninguém. Como TODA
     // operação (gerar link, estorno, extrato…) passa por aqui, o bloqueio vale para todas.
-    const locked = isEcAdmin(username) ? [] : await this.getLockedSlots()
+    // Mesma coisa para contas atribuídas a outros usuários.
+    const [locked, assigned] = await Promise.all([this.getLockedSlots(), this.getAssignedSlots()])
+    const allowed = (s: number) => canUseSlot(username, s, locked, assigned)
     const slot = await this.getUserActiveSlot(username)
     if (slot != null) {
       const cred = await this.getCredBySlot(slot)
-      if (cred && cred.health_status !== 'banned' && !locked.includes(Number(cred.slot))) return cred
+      if (cred && cred.health_status !== 'banned' && allowed(Number(cred.slot))) return cred
     }
     const global = await this.getActiveCred()
-    return global && !locked.includes(Number(global.slot)) ? global : null
+    return global && allowed(Number(global.slot)) ? global : null
+  },
+
+  /** Regra única de acesso a um slot (bloqueio + atribuição). Já busca os dados. */
+  async userCanUseSlot(username: string, slot: number): Promise<boolean> {
+    const [locked, assigned] = await Promise.all([this.getLockedSlots(), this.getAssignedSlots()])
+    return canUseSlot(username, slot, locked, assigned)
+  },
+
+  // ── Atribuição de contas a usuários específicos ─────────────────────────────
+  // web_settings: `creds:assigned` = JSON { "<slot>": ["usuario1", ...] }.
+  // Conta atribuída só aparece para o admin e para os usuários da lista.
+  // Sem entrada (ou lista vazia) = conta global, como sempre foi.
+  async getAssignedSlots(): Promise<Record<number, string[]>> {
+    try {
+      const raw = await this.getSetting('creds:assigned')
+      const obj = raw ? JSON.parse(raw) : {}
+      const out: Record<number, string[]> = {}
+      for (const [k, v] of Object.entries(obj ?? {})) {
+        const users = Array.isArray(v) ? v.filter(u => typeof u === 'string' && u) : []
+        if (users.length && Number.isFinite(Number(k))) out[Number(k)] = users
+      }
+      return out
+    } catch { return {} }
+  },
+  async setSlotAssigned(slot: number, usernames: string[]) {
+    const cur = await this.getAssignedSlots()
+    const clean = [...new Set(usernames.map(u => String(u).trim()).filter(Boolean))]
+    if (clean.length) cur[Number(slot)] = clean; else delete cur[Number(slot)]
+    await this.setSetting('creds:assigned', JSON.stringify(cur))
   },
 
   // ── Bloqueio de contas (só o admin usa) ─────────────────────────────────────

@@ -10,13 +10,16 @@ export async function POST(req: NextRequest) {
     if (!slot) return NextResponse.json({ ok: false, error: 'slot obrigatório' })
 
     const isLocked = (await db.getLockedSlots()).includes(Number(slot))
-    if (isLocked && !isEcAdmin(username)) {
+    const isAssigned = !!(await db.getAssignedSlots())[Number(slot)]
+    // Conta atribuída: só o admin remove (o usuário que recebeu pode usar, mas não apagar)
+    if ((isLocked || isAssigned) && !isEcAdmin(username)) {
       return NextResponse.json({ ok: false, error: 'Conta bloqueada pelo administrador' }, { status: 403 })
     }
 
     await db.deleteCred(slot)
-    // O número do slot pode ser reaproveitado: não deixa o cadeado para a próxima conta
+    // O número do slot pode ser reaproveitado: não deixa o cadeado nem a atribuição para a próxima conta
     if (isLocked) await db.setSlotLocked(Number(slot), false).catch(() => {})
+    if (isAssigned) await db.setSlotAssigned(Number(slot), []).catch(() => {})
     return NextResponse.json({ ok: true })
   } catch (e: any) {
     if (e.message === 'UNAUTHORIZED') return NextResponse.json({ ok: false, error: 'Não autenticado' }, { status: 401 })
