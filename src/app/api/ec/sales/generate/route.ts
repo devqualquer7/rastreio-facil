@@ -96,9 +96,10 @@ export async function POST(req: NextRequest) {
       const timing = pix.ok && pix.machineMs != null
         ? ` · checkout ${secs(pix.machineMs)}, total ${secs(Date.now() - pixStartedAt)}`
         : ` · total ${secs(Date.now() - pixStartedAt)}`
+      const stages = pix.timeline ? ` · etapas: ${pix.timeline}` : ''
       await addLog(
         pix.ok ? 'link' : 'error',
-        pix.ok ? `Pix automático gerado ${pix.via === 'server' ? 'pela máquina 24h' : 'pelo PC'} · ${valorBRL} · ${ref}${timing}` : `Pix automático falhou (${pix.reason}): ${pix.message} · ${ref}${timing}`,
+        pix.ok ? `Pix automático gerado ${pix.via === 'server' ? 'pela máquina 24h' : 'pelo PC'} · ${valorBRL} · ${ref}${timing}${stages}` : `Pix automático falhou (${pix.reason}): ${pix.message} · ${ref}${timing}${stages}`,
         `slot #${cred.slot} ${cred.name ?? ''}`, username
       ).catch(() => {})
     }

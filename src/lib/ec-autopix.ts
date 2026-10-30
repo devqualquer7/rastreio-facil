@@ -33,8 +33,8 @@ async function isOnline(pusher: Pusher, bridgeId: string): Promise<boolean> {
 
 export type AutoPixResult =
   /** via: qual máquina gerou — 'server' = máquina 24h (modo servidor), 'desktop' = PC de uso */
-  | { ok: true; code: string; qrBase64: string; via?: 'server' | 'desktop'; machineMs?: number }
-  | { ok: false; reason: 'offline' | 'captcha' | 'rejected' | 'stuck' | 'error'; message: string }
+  | { ok: true; code: string; qrBase64: string; via?: 'server' | 'desktop'; machineMs?: number; timeline?: string }
+  | { ok: false; reason: 'offline' | 'captcha' | 'rejected' | 'stuck' | 'error'; message: string; timeline?: string }
 
 // Cada máquina tem ~40s para percorrer o checkout. Duas tentativas (máquina 24h e
 // depois o PC) precisam caber nos 100s que a Cloudflare dá para a requisição.
@@ -54,11 +54,12 @@ async function askMachine(pusher: Pusher, bridgeId: string, link: string): Promi
 
     const res = await response            // { ok: true, data: <resultado do autoPix na máquina> }
     const data = res?.data
-    if (data?.ok && data.code) return { ok: true, code: data.code, qrBase64: data.qrBase64, machineMs: data.ms }
+    if (data?.ok && data.code) return { ok: true, code: data.code, qrBase64: data.qrBase64, machineMs: data.ms, timeline: data.timeline }
     return {
       ok: false,
       reason: data?.reason || 'error',
       message: data?.message || 'A máquina não conseguiu gerar o Pix.',
+      timeline: data?.timeline,
     }
   } catch (e: any) {
     const msg = String(e?.message || 'Erro desconhecido')
