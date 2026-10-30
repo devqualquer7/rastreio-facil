@@ -33,7 +33,7 @@ async function isOnline(pusher: Pusher, bridgeId: string): Promise<boolean> {
 
 export type AutoPixResult =
   /** via: qual máquina gerou — 'server' = máquina 24h (modo servidor), 'desktop' = PC de uso */
-  | { ok: true; code: string; qrBase64: string; via?: 'server' | 'desktop'; machineMs?: number; timeline?: string }
+  | { ok: true; code: string; qrBase64: string; via?: 'server' | 'desktop'; machineMs?: number; timeline?: string; prepMs?: number; triggerMs?: number }
   | { ok: false; reason: 'offline' | 'captcha' | 'rejected' | 'stuck' | 'error'; message: string; timeline?: string }
 
 // Cada máquina tem ~40s para percorrer o checkout. Duas tentativas (máquina 24h e
@@ -50,11 +50,13 @@ async function askMachine(pusher: Pusher, bridgeId: string, link: string): Promi
     // Awaiter antes do trigger, para não perder uma resposta rápida
     const response = awaitResponse(id, TIMEOUT_MS)
     response.catch(() => {})
+    const triggerStartedAt = Date.now()
     await pusher.trigger('presence-bridge-' + bridgeId, 'client-command', { ...envelope, sig })
+    const triggerMs = Date.now() - triggerStartedAt
 
     const res = await response            // { ok: true, data: <resultado do autoPix na máquina> }
     const data = res?.data
-    if (data?.ok && data.code) return { ok: true, code: data.code, qrBase64: data.qrBase64, machineMs: data.ms, timeline: data.timeline }
+    if (data?.ok && data.code) return { ok: true, code: data.code, qrBase64: data.qrBase64, machineMs: data.ms, timeline: data.timeline, triggerMs }
     return {
       ok: false,
       reason: data?.reason || 'error',
@@ -86,6 +88,7 @@ export async function requestAutoPix(link: string): Promise<AutoPixResult> {
       return { ok: false, reason: 'offline', message: 'Ponte com o PC não configurada no servidor.' }
     }
 
+    const startedAt = Date.now()
     const pusher = new Pusher({ appId, key, secret, cluster: process.env.PUSHER_CLUSTER || 'sa1', useTLS: true })
 
     const [rawServerId, desktopId] = await Promise.all([
@@ -104,8 +107,9 @@ export async function requestAutoPix(link: string): Promise<AutoPixResult> {
     let last: AutoPixResult = { ok: false, reason: 'offline', message: 'Nenhuma máquina com o app está online agora.' }
     for (const bridgeId of candidates) {
       if (!(await isOnline(pusher, bridgeId))) continue
+      const prepMs = Date.now() - startedAt
       last = await askMachine(pusher, bridgeId, link)
-      if (last.ok) return { ...last, via: bridgeId === serverId ? 'server' : 'desktop' }
+      if (last.ok) return { ...last, prepMs, via: bridgeId === serverId ? 'server' : 'desktop' }
       if (last.reason === 'rejected') return last
     }
     return last

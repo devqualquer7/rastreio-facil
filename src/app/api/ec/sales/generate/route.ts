@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
       pix = await requestAutoPix(preference.init_point)
       const secs = (ms: number) => `${(ms / 1000).toFixed(1)}s`
       const timing = pix.ok && pix.machineMs != null
-        ? ` · checkout ${secs(pix.machineMs)}, total ${secs(Date.now() - pixStartedAt)}`
+        ? ` · checkout ${secs(pix.machineMs)}, total ${secs(Date.now() - pixStartedAt)}, preparo ${secs(pix.prepMs ?? 0)}, envio ${secs(pix.triggerMs ?? 0)}`
         : ` · total ${secs(Date.now() - pixStartedAt)}`
       const stages = pix.timeline ? ` · etapas: ${pix.timeline}` : ''
       await addLog(
