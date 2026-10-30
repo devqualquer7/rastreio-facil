@@ -33,7 +33,7 @@ async function isOnline(pusher: Pusher, bridgeId: string): Promise<boolean> {
 
 export type AutoPixResult =
   /** via: qual máquina gerou — 'server' = máquina 24h (modo servidor), 'desktop' = PC de uso */
-  | { ok: true; code: string; qrBase64: string; via?: 'server' | 'desktop' }
+  | { ok: true; code: string; qrBase64: string; via?: 'server' | 'desktop'; machineMs?: number }
   | { ok: false; reason: 'offline' | 'captcha' | 'rejected' | 'stuck' | 'error'; message: string }
 
 // Cada máquina tem ~40s para percorrer o checkout. Duas tentativas (máquina 24h e
@@ -54,7 +54,7 @@ async function askMachine(pusher: Pusher, bridgeId: string, link: string): Promi
 
     const res = await response            // { ok: true, data: <resultado do autoPix na máquina> }
     const data = res?.data
-    if (data?.ok && data.code) return { ok: true, code: data.code, qrBase64: data.qrBase64 }
+    if (data?.ok && data.code) return { ok: true, code: data.code, qrBase64: data.qrBase64, machineMs: data.ms }
     return {
       ok: false,
       reason: data?.reason || 'error',
@@ -87,10 +87,14 @@ export async function requestAutoPix(link: string): Promise<AutoPixResult> {
 
     const pusher = new Pusher({ appId, key, secret, cluster: process.env.PUSHER_CLUSTER || 'sa1', useTLS: true })
 
-    const serverId = String(await db.getSetting(BRIDGE_SERVER_ID_SETTING) || '')
+    const [rawServerId, desktopId] = await Promise.all([
+      db.getSetting(BRIDGE_SERVER_ID_SETTING),
+      process.env.BRIDGE_ID || db.getSetting(BRIDGE_ID_SETTING),
+    ])
+    const serverId = String(rawServerId || '')
     const candidates = [...new Set([
       serverId,
-      process.env.BRIDGE_ID || await db.getSetting(BRIDGE_ID_SETTING),
+      desktopId,
     ].map(v => String(v || '')).filter(v => VALID_ID.test(v)))]
     if (!candidates.length) {
       return { ok: false, reason: 'offline', message: 'Nenhum PC pareado ainda — abra o app desktop atualizado.' }

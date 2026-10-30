@@ -78,19 +78,27 @@ export async function POST(req: NextRequest) {
     })
 
     // Guarda QUEM criou o link (KV) — o poll usa isso pra atribuir aprovado/recusado.
-    await db.setSetting(`sale:by:${ref}`, username).catch(() => {})
+    const saveAuthor = db.setSetting(`sale:by:${ref}`, username).catch(() => {})
 
     const valorBRL = Number(amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-    await addLog('link', `Link gerado · ${valorBRL} · ${title.trim()} · ${ref}`, `slot #${cred.slot} ${cred.name ?? ''}`, username)
+    await Promise.all([
+      saveAuthor,
+      addLog('link', `Link gerado · ${valorBRL} · ${title.trim()} · ${ref}`, `slot #${cred.slot} ${cred.name ?? ''}`, username),
+    ])
 
     // Pix automático: o app desktop percorre o checkout e devolve o copia e cola.
     // Falhou? O link acima continua valendo — devolvemos os dois.
     let pix = null
     if (autoPix) {
+      const pixStartedAt = Date.now()
       pix = await requestAutoPix(preference.init_point)
+      const secs = (ms: number) => `${(ms / 1000).toFixed(1)}s`
+      const timing = pix.ok && pix.machineMs != null
+        ? ` · checkout ${secs(pix.machineMs)}, total ${secs(Date.now() - pixStartedAt)}`
+        : ` · total ${secs(Date.now() - pixStartedAt)}`
       await addLog(
         pix.ok ? 'link' : 'error',
-        pix.ok ? `Pix automático gerado ${pix.via === 'server' ? 'pela máquina 24h' : 'pelo PC'} · ${valorBRL} · ${ref}` : `Pix automático falhou (${pix.reason}): ${pix.message} · ${ref}`,
+        pix.ok ? `Pix automático gerado ${pix.via === 'server' ? 'pela máquina 24h' : 'pelo PC'} · ${valorBRL} · ${ref}${timing}` : `Pix automático falhou (${pix.reason}): ${pix.message} · ${ref}${timing}`,
         `slot #${cred.slot} ${cred.name ?? ''}`, username
       ).catch(() => {})
     }
