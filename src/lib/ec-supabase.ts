@@ -303,6 +303,16 @@ export const db = {
       .from('web_settings')
       .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' })
   },
+  /**
+   * Grava a chave só se ela ainda não existir; true = esta chamada ficou com ela.
+   * A trava é a coluna única do banco, então ticks simultâneos não passam juntos.
+   * Em outro erro devolve true: melhor um aviso repetido do que uma venda sem aviso.
+   */
+  async claimSetting(key: string, value = '1'): Promise<boolean> {
+    const sb = getSupabase()
+    const { error } = await sb.from('web_settings').insert({ key, value })
+    return error?.code !== '23505'
+  },
 
   // ── Saque payments (KV-backed via web_settings) ───────────────────────────
   // Key pattern: saque:pay:{externalId}

@@ -58,6 +58,11 @@ export async function POST() {
           })
           changed++
 
+          // Cada aba aberta roda o tick e a varredura abaixo vê o mesmo pagamento:
+          // só quem ganhar esta chave registra e notifica. Aprovado usa a chave da varredura.
+          const notifyKey = newStatus === 'approved' ? `notify:pay:${payment.id}` : `notify:pay:${payment.id}:${newStatus}`
+          if (!(await db.claimSetting(notifyKey))) return
+
           const logType = newStatus === 'approved' ? 'approved' : newStatus === 'rejected' ? 'rejected' : 'status'
           // Quem gerou o link (KV gravado na geração) — atribui a aprovação/recusa a ele.
           const by = await db.getSetting(`sale:by:${sale.external_reference}`).catch(() => null)
@@ -71,7 +76,6 @@ export async function POST() {
           ).catch(() => {})
 
           // Push no celular (Pushover) — SÓ pro dono do link, no instante da transição.
-          // Como o status já foi gravado acima, nenhum outro tick/usuário reenvia.
           const pushEvent: PushEvent | null =
             newStatus === 'approved' ? 'approved'
             : newStatus === 'rejected' ? 'rejected'
@@ -146,9 +150,7 @@ async function scanApprovedAndNotify() {
         if (!apprMs || apprMs < cutoff) continue // fora da janela → ignora
 
         const payId = String(p.id)
-        const seen = await db.getSetting(`notify:pay:${payId}`).catch(() => null)
-        if (seen) continue                         // já notificado → nunca repete
-        await db.setSetting(`notify:pay:${payId}`, '1')
+        if (!(await db.claimSetting(`notify:pay:${payId}`))) continue   // já notificado → nunca repete
 
         const ref = p.external_reference || ''
         const by = ref ? await db.getSetting(`sale:by:${ref}`).catch(() => null) : null
