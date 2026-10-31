@@ -88,6 +88,7 @@ export function GenerateModal() {
   const [amount, setAmount] = useState('')
   const [title, setTitle] = useState('')
   const [email, setEmail] = useState('')
+  const [emailFixed, setEmailFixed] = useState(false)
   const [result, setResult] = useState<{ link?: string; ref?: string; amount?: number } | null>(null)
   const [copied, setCopied] = useState(false)
   const [paid, setPaid] = useState<{ amount: number; method: string | null } | null>(null)
@@ -100,7 +101,30 @@ export function GenerateModal() {
       .then(r => r.json())
       .then(d => { if (d.ok && d.settings?.default_title) setTitle(d.settings.default_title) })
       .catch(() => {})
+    fetch('/api/ec/settings/email')
+      .then(r => r.json())
+      .then(d => { if (d.ok && d.email) { setEmail(d.email); setEmailFixed(true) } })
+      .catch(() => {})
   }, [])
+
+  async function saveFixedEmail(value: string) {
+    const r = await fetch('/api/ec/settings/email', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: value }),
+    })
+    const d = await r.json()
+    if (!d.ok) throw new Error(d.error || 'Falha ao salvar o e-mail')
+  }
+
+  async function toggleEmailFixed() {
+    const next = !emailFixed
+    if (next && !email.trim()) { toast('error', 'Digite o e-mail antes de fixar'); return }
+    try {
+      await saveFixedEmail(next ? email.trim() : '')
+      setEmailFixed(next)
+    } catch (e: any) { toast('error', e.message || 'Erro de rede') }
+  }
 
   function toggleMethod(id: string) {
     setSelectedMethods(prev =>
@@ -187,7 +211,7 @@ export function GenerateModal() {
     setPixCopied(false)
     setStep('form')
     setAmount('')
-    setEmail('')
+    if (!emailFixed) setEmail('')
     setResult(null)
     setCopied(false)
     // Keep title + selectedMethods for convenience
@@ -279,12 +303,19 @@ export function GenerateModal() {
 
                   {/* Email */}
                   <div>
-                    <div className="text-xs font-mono font-bold tracking-[0.25em] text-zinc-400 uppercase mb-2">
-                      Email do comprador (obrigatório no Pix)
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div className="text-xs font-mono font-bold tracking-[0.25em] text-zinc-400 uppercase">
+                        Email do comprador (obrigatório no Pix)
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[11px] font-mono text-zinc-500">Fixar</span>
+                        <Toggle enabled={emailFixed} onChange={toggleEmailFixed} />
+                      </div>
                     </div>
                     <input
                       type="email" value={email}
                       onChange={e => setEmail(e.target.value)}
+                      onBlur={() => { if (emailFixed && email.trim()) saveFixedEmail(email.trim()).catch(e => toast('error', e.message || 'Erro de rede')) }}
                       placeholder="comprador@email.com"
                       onKeyDown={e => e.key === 'Enter' && !loading && generate()}
                       className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 text-sm font-mono text-zinc-100 outline-none focus:border-red-500/50 focus:bg-red-500/[0.04] transition-all"
