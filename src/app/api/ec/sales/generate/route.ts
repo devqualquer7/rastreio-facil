@@ -3,7 +3,6 @@ import { requireSession } from '@/lib/ec-auth'
 import { db, addLog } from '@/lib/ec-supabase'
 import { decrypt } from '@/lib/ec-crypto'
 import { MPAPI } from '@/lib/ec-mp-api'
-import { requestAutoPix } from '@/lib/ec-autopix'
 
 function genRef(): string {
   return `EC-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`
@@ -13,7 +12,7 @@ export async function POST(req: NextRequest) {
   let cred: any = null
   try {
     const { username } = await requireSession()
-    const { amount, title, email, selectedMethods, autoPix } = await req.json()
+    const { amount, title, email, selectedMethods } = await req.json()
 
     if (!amount || amount <= 0) return NextResponse.json({ ok: false, error: 'Valor inválido' })
     if (!title?.trim()) return NextResponse.json({ ok: false, error: 'Título obrigatório' })
@@ -38,11 +37,9 @@ export async function POST(req: NextRequest) {
       boleto:   ['bolbradesco', 'pec'],
       loterica: ['lotex'],
     }
-    const chosen = Array.isArray(selectedMethods) && selectedMethods.length > 0
+    const selected = Array.isArray(selectedMethods) && selectedMethods.length > 0
       ? selectedMethods
       : ALL_METHODS
-    // Pix automático precisa do Pix habilitado no link, mesmo que tenha sido desmarcado
-    const selected = autoPix && !chosen.includes('pix') ? [...chosen, 'pix'] : chosen
     const deselected = ALL_METHODS.filter(m => !selected.includes(m))
     const excludedTypes: string[]   = deselected.flatMap(m => METHOD_TO_TYPES[m]   ?? [])
     const excludedMethods: string[] = deselected.flatMap(m => METHOD_TO_METHODS[m] ?? [])
@@ -53,8 +50,7 @@ export async function POST(req: NextRequest) {
       title: title.trim(),
       amount: Number(amount),
       externalReference: ref,
-      // No Pix automático o e-mail é preenchido (aleatório) direto no checkout
-      ...(email && !autoPix && { payerEmail: email }),
+      ...(email && { payerEmail: email }),
       ...(excludedTypes.length   && { excludedPaymentTypes:   excludedTypes }),
       ...(excludedMethods.length && { excludedPaymentMethods: excludedMethods }),
     })
@@ -86,25 +82,7 @@ export async function POST(req: NextRequest) {
       addLog('link', `Link gerado · ${valorBRL} · ${title.trim()} · ${ref}`, `slot #${cred.slot} ${cred.name ?? ''}`, username),
     ])
 
-    // Pix automático: o app desktop percorre o checkout e devolve o copia e cola.
-    // Falhou? O link acima continua valendo — devolvemos os dois.
-    let pix = null
-    if (autoPix) {
-      const pixStartedAt = Date.now()
-      pix = await requestAutoPix(preference.init_point)
-      const secs = (ms: number) => `${(ms / 1000).toFixed(1)}s`
-      const timing = pix.ok && pix.machineMs != null
-        ? ` · checkout ${secs(pix.machineMs)}, total ${secs(Date.now() - pixStartedAt)}, preparo ${secs(pix.prepMs ?? 0)}, envio ${secs(pix.triggerMs ?? 0)}`
-        : ` · total ${secs(Date.now() - pixStartedAt)}`
-      const stages = pix.timeline ? ` · etapas: ${pix.timeline}` : ''
-      await addLog(
-        pix.ok ? 'link' : 'error',
-        pix.ok ? `Pix automático gerado ${pix.via === 'server' ? 'pela máquina 24h' : 'pelo PC'} · ${valorBRL} · ${ref}${timing}${stages}` : `Pix automático falhou (${pix.reason}): ${pix.message} · ${ref}${timing}${stages}`,
-        `slot #${cred.slot} ${cred.name ?? ''}`, username
-      ).catch(() => {})
-    }
-
-    return NextResponse.json({ ok: true, link: preference.init_point, ref, preferenceId: preference.id, pix })
+    return NextResponse.json({ ok: true, link: preference.init_point, ref, preferenceId: preference.id })
   } catch (e: any) {
     if (e.message === 'UNAUTHORIZED') {
       return NextResponse.json({ ok: false, error: 'Não autenticado' }, { status: 401 })

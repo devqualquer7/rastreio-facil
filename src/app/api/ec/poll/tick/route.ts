@@ -17,7 +17,7 @@ export async function POST() {
     const slotMap = new Map<number, string>()
     // getPendingSales já vem ordenado por created_at desc → pega os mais recentes.
     // Cobre "pelo menos os 10 últimos" com folga, sem varrer centenas de links velhos.
-    const toCheck = pending.filter(s => s.mp_preference_id).slice(0, 50)
+    const toCheck = pending.slice(0, 50)
     const uniqueSlots = [...new Set(toCheck.map(s => s.slot))]
 
     await Promise.allSettled(uniqueSlots.map(async (slot) => {

@@ -100,6 +100,36 @@ export class MPAPI {
     return await parseJson(r)
   }
 
+  /** Pix pelo Checkout Transparente (API de Orders): o QR já volta na resposta, sem página de checkout. */
+  async createPixOrder(input: { amount: number; externalReference: string; payerEmail: string }) {
+    const total = Number(input.amount).toFixed(2)
+    const r = await fetch(`${BASE}/v1/orders`, {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer ' + this.token,
+        'content-type': 'application/json',
+        'x-idempotency-key': randomUUID(),
+      },
+      body: JSON.stringify({
+        type: 'online',
+        processing_mode: 'automatic',
+        total_amount: total,
+        external_reference: input.externalReference,
+        payer: { email: input.payerEmail },
+        transactions: { payments: [{ amount: total, payment_method: { id: 'pix', type: 'bank_transfer' } }] },
+      }),
+    })
+    return await parseJson(r)
+  }
+
+  async cancelOrder(orderId: string) {
+    const r = await fetch(`${BASE}/v1/orders/${encodeURIComponent(orderId)}/cancel`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer ' + this.token, 'x-idempotency-key': randomUUID() },
+    })
+    return await parseJson(r)
+  }
+
   async getPayment(idOrRef: string) {
     const r = await fetch(
       `${BASE}/v1/payments/${encodeURIComponent(idOrRef)}`,

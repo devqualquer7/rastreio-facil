@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles, Zap, X, Copy, ExternalLink, CheckCircle2, RefreshCw,
   DollarSign, FileText, CreditCard, Landmark, Building2, Wallet,
-  ChevronDown, ChevronUp, QrCode, AlertTriangle
+  ChevronDown, ChevronUp, QrCode
 } from 'lucide-react'
 import { ModalBackdrop, Button } from '@/components/ec/ui/Base'
 import { useApp } from '@/lib/ec-store'
@@ -12,9 +12,7 @@ import { fmtBRL, parseBRL } from '@/lib/ec-utils'
 
 type Step = 'form' | 'result'
 
-type PixResult =
-  | { ok: true; code: string; qrBase64: string; via?: 'server' | 'desktop' }
-  | { ok: false; reason: string; message: string }
+type PixResult = { ok: true; code: string; qrBase64: string }
 
 const ALL_METHOD_IDS = ['credit_card', 'debit_card', 'pix', 'boleto', 'loterica', 'prepaid_card']
 
@@ -114,23 +112,23 @@ export function GenerateModal() {
     setSelectedMethods(prev => prev.length === ALL_METHOD_IDS.length ? [] : [...ALL_METHOD_IDS])
   }
 
-  // withPix: além do link, pede ao app desktop o Pix copia e cola já pronto
+  // withPix: gera o Pix direto pela API de Orders; sem ele, cria o link do Checkout Pro
   async function generate(withPix = false) {
     const amt = parseBRL(amount)
     if (!amt || amt <= 0) { toast('error', 'Valor inválido'); return }
     if (!title.trim()) { toast('error', 'Título obrigatório'); return }
-    if (selectedMethods.length === 0) { toast('error', 'Selecione ao menos um método de pagamento'); return }
+    if (withPix && !email.trim()) { toast('error', 'Informe o e-mail do comprador para gerar o Pix'); return }
+    if (!withPix && selectedMethods.length === 0) { toast('error', 'Selecione ao menos um método de pagamento'); return }
     setLoading(withPix ? 'pix' : 'link')
     try {
-      const r = await fetch('/api/ec/sales/generate', {
+      const r = await fetch(withPix ? '/api/ec/sales/pix' : '/api/ec/sales/generate', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           amount: amt,
           title: title.trim(),
           email: email.trim() || undefined,
-          selectedMethods,
-          autoPix: withPix,
+          ...(!withPix && { selectedMethods }),
         })
       })
       const d = await r.json()
@@ -138,12 +136,8 @@ export function GenerateModal() {
         setResult({ link: d.link, ref: d.ref, amount: amt })
         setPix(d.pix ?? null)
         setStep('result')
-        if (d.pix && !d.pix.ok) {
-          toast(d.pix.reason === 'rejected' ? 'error' : 'info',
-            d.pix.reason === 'rejected' ? `Mercado Pago recusou o Pix: ${d.pix.message}` : 'Não deu para gerar o Pix. O link está pronto.')
-        }
       } else {
-        toast('error', d.error || 'Falha ao gerar link')
+        toast('error', d.error || (withPix ? 'Falha ao gerar Pix' : 'Falha ao gerar link'))
       }
     } catch { toast('error', 'Erro de rede') }
     finally { setLoading(false) }
@@ -157,7 +151,7 @@ export function GenerateModal() {
   }
 
   function copyPix() {
-    if (!pix?.ok) return
+    if (!pix) return
     navigator.clipboard.writeText(pix.code)
     setPixCopied(true)
     setTimeout(() => setPixCopied(false), 2000)
@@ -286,7 +280,7 @@ export function GenerateModal() {
                   {/* Email */}
                   <div>
                     <div className="text-xs font-mono font-bold tracking-[0.25em] text-zinc-400 uppercase mb-2">
-                      Email do comprador (opcional)
+                      Email do comprador (obrigatório no Pix)
                     </div>
                     <input
                       type="email" value={email}
@@ -384,11 +378,6 @@ export function GenerateModal() {
                         : <><QrCode size={14} /> Gerar Pix</>}
                     </button>
                   </div>
-                  {loading === 'pix' && (
-                    <div className="text-xs font-mono text-zinc-400 text-center">
-                      Gerando o Pix no checkout do Mercado Pago… leva uns 10 segundos.
-                    </div>
-                  )}
                 </div>
               </motion.div>
             ) : paid ? (
@@ -428,7 +417,7 @@ export function GenerateModal() {
                       <CheckCircle2 size={28} className="text-emerald-400" strokeWidth={2.5} />
                     </div>
                   </div>
-                  <div className="font-black text-xl text-emerald-400 tracking-tight mb-1">{pix?.ok ? 'PIX GERADO' : 'LINK GERADO'}</div>
+                  <div className="font-black text-xl text-emerald-400 tracking-tight mb-1">{pix ? 'PIX GERADO' : 'LINK GERADO'}</div>
                   <div className="text-xs font-mono text-zinc-400">{fmtBRL(result?.amount || 0)} · Ref {result?.ref}</div>
                   <div className="inline-flex items-center gap-2 mt-2.5 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-mono">
                     <span className="relative flex h-2 w-2">
@@ -437,14 +426,9 @@ export function GenerateModal() {
                     </span>
                     Aguardando pagamento…
                   </div>
-                  {pix?.ok && pix.via && (
-                    <div className="text-xs font-mono text-zinc-500 mt-1">
-                      Gerado {pix.via === 'server' ? 'pela máquina 24h' : 'pelo seu PC'}
-                    </div>
-                  )}
                 </div>
 
-                {pix?.ok && (
+                {pix && (
                   <div className="mb-5">
                     <div className="flex justify-center mb-4">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -465,43 +449,29 @@ export function GenerateModal() {
                   </div>
                 )}
 
-                {pix && !pix.ok && (
-                  <div className={`mb-4 p-3.5 rounded-xl border flex gap-3 text-[13px] font-mono leading-relaxed ${
-                    pix.reason === 'rejected'
-                      ? 'bg-red-500/10 border-red-500/25 text-red-300'
-                      : 'bg-amber-500/10 border-amber-500/25 text-amber-300'
-                  }`}>
-                    <AlertTriangle size={15} className="shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-bold">
-                        {pix.reason === 'rejected' ? 'Mercado Pago recusou o Pix. '
-                          : pix.reason === 'offline' ? 'PC indisponível. '
-                          : 'Não deu para gerar o Pix sozinho. '}
-                      </span>
-                      {pix.message} Use o link abaixo normalmente.
+                {result?.link && (
+                  <>
+                    <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 mb-4">
+                      <div className="text-xs font-mono text-zinc-500 mb-2 tracking-widest">LINK DE PAGAMENTO</div>
+                      <div className="text-[13px] font-mono text-red-300 break-all leading-relaxed">{result.link}</div>
                     </div>
-                  </div>
+
+                    <div className="flex gap-3 mb-4">
+                      <button onClick={copy}
+                        className={`flex-1 py-3 rounded-xl font-bold text-xs tracking-widest uppercase transition-all flex items-center justify-center gap-2 border ${
+                          copied
+                            ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
+                            : 'bg-white/[0.04] border-white/[0.08] text-zinc-300 hover:bg-red-500/[0.08] hover:border-red-500/30'
+                        }`}>
+                        <Copy size={13} /> {copied ? 'Copiado!' : 'Copiar Link'}
+                      </button>
+                      <a href={result.link} target="_blank" rel="noopener"
+                        className="px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-zinc-300 transition flex items-center justify-center">
+                        <ExternalLink size={14} />
+                      </a>
+                    </div>
+                  </>
                 )}
-
-                <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 mb-4">
-                  <div className="text-xs font-mono text-zinc-500 mb-2 tracking-widest">LINK DE PAGAMENTO</div>
-                  <div className="text-[13px] font-mono text-red-300 break-all leading-relaxed">{result?.link}</div>
-                </div>
-
-                <div className="flex gap-3 mb-4">
-                  <button onClick={copy}
-                    className={`flex-1 py-3 rounded-xl font-bold text-xs tracking-widest uppercase transition-all flex items-center justify-center gap-2 border ${
-                      copied
-                        ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
-                        : 'bg-white/[0.04] border-white/[0.08] text-zinc-300 hover:bg-red-500/[0.08] hover:border-red-500/30'
-                    }`}>
-                    <Copy size={13} /> {copied ? 'Copiado!' : 'Copiar Link'}
-                  </button>
-                  <a href={result?.link} target="_blank" rel="noopener"
-                    className="px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-zinc-300 transition flex items-center justify-center">
-                    <ExternalLink size={14} />
-                  </a>
-                </div>
 
                 <button onClick={reset}
                   className="w-full py-2.5 rounded-xl text-zinc-500 hover:text-zinc-400 text-xs font-mono tracking-widest uppercase transition mt-4">

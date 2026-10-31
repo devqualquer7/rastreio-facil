@@ -13,7 +13,6 @@ export async function POST(req: NextRequest) {
 
     const sale = await db.getSaleByRef(ref)
     if (!sale) return NextResponse.json({ ok: false, error: 'Venda não encontrada' })
-    if (!sale.mp_preference_id) return NextResponse.json({ ok: false, error: 'ID da preferência MP não encontrado' })
 
     // Don't cancel an already-paid or already-cancelled sale
     if (sale.status === 'approved') {
@@ -29,8 +28,15 @@ export async function POST(req: NextRequest) {
     const token = await decrypt(cred.access_token)
     const api = new MPAPI(token)
 
-    // Expire the preference in MP (sets expiration_date_to to the past)
-    await api.expirePreference(sale.mp_preference_id)
+    if (sale.mp_preference_id) {
+      // Expire the preference in MP (sets expiration_date_to to the past)
+      await api.expirePreference(sale.mp_preference_id)
+    } else {
+      // Pix gerado pela API de Orders não tem preferência
+      const orderId = await db.getSetting(`sale:order:${ref}`)
+      if (!orderId) return NextResponse.json({ ok: false, error: 'Pedido do Pix não encontrado' })
+      await api.cancelOrder(String(orderId))
+    }
 
     // Update sale status in DB
     await db.updateSale(sale.id, { status: 'cancelado' })

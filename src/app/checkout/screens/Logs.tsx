@@ -306,7 +306,7 @@ export function Logs() {
             {logs.map(log => {
               const s = levelStyle(log.level)
               const Icon = s.icon
-              const isPaymentLink = log.level === 'link' && log.message?.startsWith('Link gerado')
+              const isPaymentLink = log.level === 'link' && (log.message?.startsWith('Link gerado') || log.message?.startsWith('Pix gerado'))
               const ref = isPaymentLink ? extractRef(log.message) : null
               const alreadyCanceled = ref ? canceledRefs.has(ref) : false
               const isCopied = ref ? copiedRef === ref : false
