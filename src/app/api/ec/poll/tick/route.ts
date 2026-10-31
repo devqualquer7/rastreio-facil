@@ -86,15 +86,18 @@ export async function POST() {
               : pushEvent === 'rejected' ? '❌ Pagamento recusado'
               : '⚠ Link cancelado'
             const contaLinha = `Conta: ${sale.slot_name ?? ('slot #' + sale.slot)}`
+            const paymentId = pushEvent === 'approved' ? String(payment.id) : undefined
             await sendPushoverToUser(by, pushEvent, {
               title: titulo,
               message: `${valorBRL} · ${sale.title ?? sale.external_reference}\n${contaLinha}`,
+              paymentId,
             }).catch(() => {})
 
             // Cópia silenciosa pro monitor — toda venda de todos, com quem vendeu.
             await sendPushoverMirror(by, pushEvent, {
               title: titulo,
               message: `${valorBRL} · ${sale.title ?? sale.external_reference}\n${contaLinha}${by ? ` · @${by}` : ''}`,
+              paymentId,
             }).catch(() => {})
 
             // UTMIFY — só venda APROVADA, individual do dono do link.
@@ -161,8 +164,8 @@ async function scanApprovedAndNotify() {
         const msg = `${valorBRL} · ${desc}\nConta: ${cred.name}`
 
         // dono do link (se conhecido) + cópia silenciosa pro admin (sempre)
-        await sendPushoverToUser(by, 'approved', { title: titulo, message: msg }).catch(() => {})
-        await sendPushoverMirror(by, 'approved', { title: titulo, message: msg + (by ? ` · @${by}` : '') }).catch(() => {})
+        await sendPushoverToUser(by, 'approved', { title: titulo, message: msg, paymentId: payId }).catch(() => {})
+        await sendPushoverMirror(by, 'approved', { title: titulo, message: msg + (by ? ` · @${by}` : ''), paymentId: payId }).catch(() => {})
 
         // UTMIFY — só aprovada, do dono
         await sendUtmifyForUser(by, {

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { db } from '@/lib/ec-supabase'
 
 /* ============================================================================
@@ -104,6 +105,18 @@ export async function sendPushover(
   }
 }
 
+/** Chave por pagamento + destinatário: o exe grava a mesma pela rota notify/claim. */
+export function pushClaimKey(paymentId: string, recipient: string) {
+  return `notify:push:${paymentId}:${recipient}`
+}
+
+// O exe calcula igual: sha256 do User Key, 16 primeiros caracteres.
+async function claimPush(paymentId: string | undefined, userKey: string): Promise<boolean> {
+  if (!paymentId) return true
+  const recipient = createHash('sha256').update(userKey.trim()).digest('hex').slice(0, 16)
+  return db.claimSetting(pushClaimKey(paymentId, recipient))
+}
+
 /**
  * Push pra um USUÁRIO respeitando a config dele (enabled + evento ligado).
  * Silencioso se o usuário não pôs o User Key ou desligou o evento.
@@ -111,13 +124,14 @@ export async function sendPushover(
 export async function sendPushoverToUser(
   username: string | null | undefined,
   event: PushEvent,
-  opts: { title: string; message: string }
+  opts: { title: string; message: string; paymentId?: string }
 ): Promise<void> {
   if (!username) return
   try {
     const cfg = await getPushoverConfig(username)
     if (!cfg.enabled || !cfg.userKey) return
     if (!cfg.events[event]) return
+    if (!(await claimPush(opts.paymentId, cfg.userKey))) return
     await sendPushover(cfg.userKey, {
       title: opts.title,
       message: opts.message,
@@ -135,7 +149,7 @@ export async function sendPushoverToUser(
 export async function sendPushoverMirror(
   creatorUsername: string | null | undefined,
   event: PushEvent,
-  opts: { title: string; message: string }
+  opts: { title: string; message: string; paymentId?: string }
 ): Promise<void> {
   if (!ADMIN_MIRROR_KEY) return
   try {
@@ -143,6 +157,7 @@ export async function sendPushoverMirror(
       const c = await getPushoverConfig(creatorUsername)
       if (c.userKey && c.userKey === ADMIN_MIRROR_KEY) return // já recebeu como dono
     }
+    if (!(await claimPush(opts.paymentId, ADMIN_MIRROR_KEY))) return
     await sendPushover(ADMIN_MIRROR_KEY, {
       title: opts.title,
       message: opts.message,
