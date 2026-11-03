@@ -42,7 +42,8 @@ function SetupNotice() {
   )
 }
 
-function CopyButton({ label, value, disabled }: { label: string; value: string; disabled?: boolean }) {
+/** Linha com o dado à vista e o botão de copiar ao lado: o que se copia é o que se vê. */
+function CopyRow({ step, label, value, shown, empty }: { step: number; label: string; value: string; shown?: string; empty?: string }) {
   const { toast } = useApp()
   const [done, setDone] = useState(false)
   async function copy() {
@@ -54,11 +55,30 @@ function CopyButton({ label, value, disabled }: { label: string; value: string; 
     } catch { toast('error', 'Não consegui copiar. Selecione o texto.') }
   }
   return (
-    <button onClick={copy} disabled={disabled}
-      className="h-11 rounded-xl border border-ec-line bg-ec-card2 text-ec-text text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition disabled:opacity-40">
-      {done ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-      {label}
-    </button>
+    <div className="flex items-center gap-3 rounded-xl bg-ec-card2 pl-3 pr-1.5 py-1.5 min-h-[48px]">
+      <span className="w-5 h-5 rounded-full bg-ec-line text-[10px] font-bold text-ec-dim flex items-center justify-center flex-shrink-0">{step}</span>
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] uppercase tracking-wider text-ec-muted">{label}</div>
+        {value
+          ? <div className="text-sm text-ec-text break-all leading-snug">{shown ?? value}</div>
+          : <div className="text-xs text-amber-300 leading-snug">{empty}</div>}
+      </div>
+      {value && (
+        <button onClick={copy}
+          className={cn('h-9 px-3 rounded-lg text-xs font-bold flex items-center gap-1.5 flex-shrink-0 active:scale-95 transition border',
+            done ? 'border-emerald-500/40 text-emerald-300 bg-emerald-500/10' : 'border-ec-line text-ec-text bg-ec-card hover:border-ec-dim')}>
+          {done ? <Check size={13} /> : <Copy size={13} />} {done ? 'Copiado' : 'Copiar'}
+        </button>
+      )}
+    </div>
+  )
+}
+
+function Avatar({ name }: { name: string }) {
+  return (
+    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-ec-red/40 to-ec-red/10 border border-ec-red/30 text-ec-text font-black text-sm flex items-center justify-center flex-shrink-0 uppercase">
+      {name.slice(0, 1)}
+    </div>
   )
 }
 
@@ -121,69 +141,93 @@ function UserCard({ user, payouts, onChanged }: { user: any; payouts: any[]; onC
     else toast('error', d?.error || 'Falha ao desfazer')
   }
 
+  const hasBalance = user.balance !== 0 || user.missingPercent > 0
+  const pixChanged = !!user.pix?.changed
+
   return (
-    <div className={cn(CARD, 'p-4')}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+    <div className={cn(CARD, 'overflow-hidden', !hasBalance && 'bg-ec-card/60')}>
+      <div className="p-4 flex items-center gap-3">
+        <Avatar name={user.username} />
+        <div className="min-w-0 flex-1">
           <div className="font-bold text-ec-text truncate">{user.username}</div>
-          <div className="text-xs text-ec-dim mt-0.5">
-            {user.sales} {user.sales === 1 ? 'venda' : 'vendas'} · {fmtBRL(user.gross)} · parte: {needsPercent ? 'sem %' : `${user.percent}%`}
-            {user.refunds > 0 && <span className="text-red-400"> · {user.refunds} estorno{user.refunds > 1 ? 's' : ''}</span>}
+          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+            <span className={cn('px-2 py-0.5 rounded-md text-[11px] font-bold',
+              needsPercent ? 'bg-amber-500/15 text-amber-300' : 'bg-ec-card2 text-ec-dim')}>
+              {needsPercent ? 'sem %' : `${user.percent}%`}
+            </span>
+            {hasBalance && (
+              <span className="text-xs text-ec-dim">{user.sales} {user.sales === 1 ? 'venda' : 'vendas'}</span>
+            )}
+            {user.refunds > 0 && <span className="text-xs text-red-400">{user.refunds} estorno{user.refunds > 1 ? 's' : ''}</span>}
           </div>
         </div>
-        <div className={cn('text-lg font-black tabular-nums flex-shrink-0', user.balance < 0 ? 'text-red-400' : 'text-emerald-400')}>
-          {fmtBRL(user.balance)}
-        </div>
-      </div>
-
-      {user.balance < 0 && (
-        <div className="mt-2 text-xs text-red-300">Estorno maior que o saldo: desconta das próximas vendas.</div>
-      )}
-      {user.missingPercent > 0 && (
-        <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-          {user.missingPercent} {user.missingPercent === 1 ? 'venda está' : 'vendas estão'} sem %. Defina abaixo para calcular o saldo.
-        </div>
-      )}
-
-      {user.pix?.changed ? (
-        <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2">
-          <div className="text-xs font-bold text-amber-200 flex items-center gap-1.5">
-            <AlertTriangle size={13} /> Chave alterada em {fmtDate(user.pix.updatedAt)}
+        <div className="text-right flex-shrink-0">
+          <div className="text-[10px] uppercase tracking-wider text-ec-muted">A receber</div>
+          <div className={cn('text-xl font-black tabular-nums leading-tight',
+            user.balance < 0 ? 'text-red-400' : user.balance > 0 ? 'text-emerald-400' : 'text-ec-muted')}>
+            {fmtBRL(user.balance)}
           </div>
-          <div className="text-sm text-amber-100 break-all mt-1">{user.pix.key}</div>
-          <button onClick={confirmPix} className="mt-2 text-xs font-bold text-amber-200 underline">Confirmei com {user.username}</button>
         </div>
-      ) : (
-        <div className="mt-3 rounded-lg bg-ec-card2 px-3 py-2 text-sm break-all">
-          {user.pix?.key
-            ? <span className="text-ec-text">{user.pix.key}</span>
-            : <span className="text-ec-muted">Sem chave Pix cadastrada</span>}
-        </div>
-      )}
-
-      <div className="grid grid-cols-3 gap-2 mt-3">
-        <CopyButton label="Chave" value={user.pix?.key || ''} disabled={!user.pix?.key} />
-        <CopyButton label="Valor" value={Math.max(user.balance, 0).toFixed(2).replace('.', ',')} disabled={user.balance <= 0} />
-        {confirming ? (
-          <button onClick={pay} disabled={paying}
-            className="h-11 rounded-xl bg-emerald-500 text-black text-xs font-black flex items-center justify-center gap-1 active:scale-95 transition disabled:opacity-60">
-            {paying ? <RefreshCw size={14} className="animate-spin" /> : 'Confirmar?'}
-          </button>
-        ) : (
-          <button onClick={askPay} disabled={!canPay}
-            className="h-11 rounded-xl border border-emerald-500/50 bg-emerald-500/15 text-emerald-300 text-xs font-black flex items-center justify-center gap-1.5 active:scale-95 transition disabled:opacity-40">
-            <Check size={14} /> PAGO
-          </button>
-        )}
+        <button onClick={() => setOpen(v => !v)} title="Porcentagem e histórico"
+          className={cn('w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 border transition',
+            open ? 'border-ec-red/40 text-ec-red bg-ec-red/10' : 'border-ec-line text-ec-dim hover:text-ec-text')}>
+          <Settings2 size={15} />
+        </button>
       </div>
 
-      <button onClick={() => setOpen(v => !v)} className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs text-ec-dim py-1">
-        <Settings2 size={12} /> % e histórico
-        <ChevronDown size={13} className={cn('transition-transform', open && 'rotate-180')} />
-      </button>
+      {hasBalance && (
+        <div className="px-4 pb-4 space-y-2.5">
+          {!needsPercent && user.gross !== 0 && (
+            <div className="text-xs text-ec-dim">
+              {fmtBRL(user.gross)} em vendas pendentes · parte de {user.percent}%
+            </div>
+          )}
+          {user.balance < 0 && (
+            <div className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300">Estorno maior que o saldo: desconta das próximas vendas.</div>
+          )}
+          {user.missingPercent > 0 && (
+            <button onClick={() => setOpen(true)}
+              className="w-full text-left rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+              {user.missingPercent} {user.missingPercent === 1 ? 'venda está' : 'vendas estão'} sem %. <span className="underline font-bold">Definir agora</span>
+            </button>
+          )}
+          {pixChanged && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 flex items-center justify-between gap-2">
+              <span className="flex items-center gap-1.5"><AlertTriangle size={13} /> Chave trocada em {fmtDate(user.pix.updatedAt)}</span>
+              <button onClick={confirmPix} className="font-bold underline flex-shrink-0">Confirmei</button>
+            </div>
+          )}
+
+          {user.balance > 0 && (
+            <>
+              <CopyRow step={1} label="Chave Pix" value={user.pix?.key || ''}
+                empty={`Ainda não cadastrada. ${user.username} cadastra em Meus ganhos.`} />
+              <CopyRow step={2} label="Valor" value={user.balance.toFixed(2).replace('.', ',')} shown={fmtBRL(user.balance)} />
+              {confirming ? (
+                <div className="grid grid-cols-[1fr_auto] gap-2">
+                  <button onClick={pay} disabled={paying}
+                    className="h-12 rounded-xl bg-emerald-500 text-black text-sm font-black flex items-center justify-center gap-2 active:scale-[.98] transition disabled:opacity-60">
+                    {paying ? <RefreshCw size={15} className="animate-spin" /> : <Check size={16} />}
+                    Confirmar {fmtBRL(user.balance)}
+                  </button>
+                  <button onClick={() => setConfirming(false)} className="h-12 px-4 rounded-xl border border-ec-line text-xs font-bold text-ec-dim">
+                    Voltar
+                  </button>
+                </div>
+              ) : (
+                <button onClick={askPay} disabled={!canPay}
+                  className="w-full h-12 rounded-xl border border-emerald-500/50 bg-emerald-500/15 text-emerald-300 text-sm font-black flex items-center justify-center gap-2 active:scale-[.98] transition disabled:opacity-40 hover:bg-emerald-500/25">
+                  <span className="w-5 h-5 rounded-full bg-emerald-500/25 text-[10px] flex items-center justify-center">3</span>
+                  Já fiz o Pix · marcar como pago
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {open && (
-        <div className="mt-2 pt-3 border-t border-ec-line space-y-3">
+        <div className="px-4 pb-4 pt-3 border-t border-ec-line space-y-3 bg-ec-card2/30">
           <div>
             <div className="ec-label pb-1.5">Parte do usuário (%)</div>
             <div className="flex gap-2">
@@ -222,12 +266,12 @@ function UserCard({ user, payouts, onChanged }: { user: any; payouts: any[]; onC
   )
 }
 
-const CHECK_GROUPS: { id: string; label: string; color: string }[] = [
-  { id: 'counted', label: 'No saldo dos usuários', color: 'text-emerald-400' },
-  { id: 'repaired', label: 'Estavam faltando, gravadas agora', color: 'text-emerald-400' },
-  { id: 'beforePanel', label: 'Antes do painel ser ativado (não contam)', color: 'text-amber-400' },
-  { id: 'admin', label: 'Geradas por você (admin)', color: 'text-ec-text' },
-  { id: 'noOwner', label: 'Sem dono no site (exe ou fora do site)', color: 'text-ec-text' },
+const CHECK_GROUPS: { id: string; label: string; dot: string }[] = [
+  { id: 'counted', label: 'Já no saldo dos usuários', dot: 'bg-emerald-400' },
+  { id: 'repaired', label: 'Faltavam e foram adicionadas agora', dot: 'bg-emerald-400' },
+  { id: 'beforePanel', label: 'Antes do painel existir (não contam)', dot: 'bg-amber-400' },
+  { id: 'admin', label: 'Suas vendas (sem repasse)', dot: 'bg-sky-400' },
+  { id: 'noOwner', label: 'Do exe ou fora do site (sem repasse)', dot: 'bg-ec-dim' },
 ]
 
 function DayCheck({ reload }: { reload: () => void }) {
@@ -246,35 +290,40 @@ function DayCheck({ reload }: { reload: () => void }) {
     finally { setBusy(false) }
   }
 
+  const shown = res ? CHECK_GROUPS.filter(g => res.groups[g.id].count > 0) : []
+  const failing = res ? res.accounts.filter((a: any) => a.failed || a.error) : []
+
   return (
-    <div className={cn(CARD, 'p-4')}>
+    <div className="border-t border-ec-line pt-3 mt-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-sm font-bold text-ec-text">Conferir vendas de hoje</div>
-          <div className="text-xs text-ec-dim mt-0.5">Compara o Mercado Pago com o saldo e mostra o motivo de cada venda ficar de fora.</div>
+        <div className="text-xs text-ec-dim min-w-0">
+          {res
+            ? failing.length ? <span className="text-red-300">{failing.length} conta(s) com erro no Mercado Pago</span>
+              : <span className="flex items-center gap-1.5"><Check size={13} className="text-emerald-400" /> Conferido com o Mercado Pago</span>
+            : 'O saldo é conferido com o Mercado Pago a cada 5 minutos.'}
         </div>
-        <Button variant="outline" size="md" icon={<RefreshCw size={13} />} onClick={run} loading={busy}>CONFERIR</Button>
+        <button onClick={run} disabled={busy}
+          className="h-8 px-3 rounded-lg border border-ec-line text-[11px] font-bold text-ec-dim hover:text-ec-text flex items-center gap-1.5 flex-shrink-0 disabled:opacity-50">
+          <RefreshCw size={12} className={cn(busy && 'animate-spin')} /> Conferir hoje
+        </button>
       </div>
       {res && (
-        <div className="mt-3 space-y-1.5 text-xs">
-          {CHECK_GROUPS.filter(g => res.groups[g.id].count > 0).map(g => (
-            <div key={g.id} className="flex justify-between gap-3">
-              <span className="text-ec-dim">{g.label}</span>
-              <span className={cn('font-bold tabular-nums flex-shrink-0', g.color)}>
-                {res.groups[g.id].count} · {fmtBRL(res.groups[g.id].gross)}
+        <div className="mt-3 rounded-xl bg-ec-card2/60 p-3 space-y-2 text-xs">
+          {shown.length === 0 && <div className="text-ec-dim">Nenhuma venda aprovada hoje no Mercado Pago.</div>}
+          {shown.map(g => (
+            <div key={g.id} className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2 text-ec-dim min-w-0">
+                <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', g.dot)} />{g.label}
+              </span>
+              <span className="tabular-nums text-ec-text flex-shrink-0">
+                <span className="text-ec-muted">{res.groups[g.id].count}×</span> <b>{fmtBRL(res.groups[g.id].gross)}</b>
               </span>
             </div>
           ))}
-          {CHECK_GROUPS.every(g => res.groups[g.id].count === 0) && <div className="text-ec-dim">Nenhuma venda aprovada hoje no Mercado Pago.</div>}
-          {res.byUser.length > 0 && (
-            <div className="pt-1.5 text-ec-dim">Por usuário: {res.byUser.map((u: any) => `${u.username} ${fmtBRL(u.gross)}`).join(' · ')}</div>
-          )}
-          <div className="pt-1.5 text-ec-dim">Painel ativo desde {res.start ? fmtDate(res.start) : '—'}</div>
-          {res.accounts.map((a: any) => (
-            <div key={a.slot} className={cn('break-all', a.failed || a.error ? 'text-red-300' : 'text-ec-dim')}>
-              {a.name || `slot #${a.slot}`}: {a.failed || a.error || `sincronizado ${a.lastSync ? fmtDate(a.lastSync) : 'nunca'}`}
-            </div>
+          {failing.map((a: any) => (
+            <div key={a.slot} className="text-red-300 break-all">{a.name || `slot #${a.slot}`}: {a.failed || a.error}</div>
           ))}
+          <div className="text-ec-muted pt-1">Saldo conta vendas desde {res.start ? fmtDate(res.start) : '—'}</div>
         </div>
       )}
     </div>
@@ -285,33 +334,49 @@ function ToPay({ data, reload }: { data: any; reload: () => void }) {
   const users: any[] = data.users
   const withBalance = users.filter(u => u.balance !== 0 || u.missingPercent > 0)
   const settled = users.filter(u => !withBalance.includes(u))
+  const toPay = withBalance.filter(u => u.balance > 0)
   const total = users.reduce((s, u) => s + Math.max(u.balance, 0), 0)
+  const pendingSales = withBalance.reduce((s, u) => s + u.sales, 0)
+  const noPix = toPay.filter(u => !u.pix?.key).length
   const [showAll, setShowAll] = useState(false)
 
   return (
-    <div className="space-y-3">
-      <div className={cn(CARD, 'p-4')}>
-        <div className="ec-label">Total a pagar agora</div>
-        <div className="text-3xl font-black text-emerald-400 tabular-nums mt-1">{fmtBRL(total)}</div>
-        <div className="text-xs text-ec-dim mt-1">
-          {withBalance.filter(u => u.balance > 0).length} {withBalance.filter(u => u.balance > 0).length === 1 ? 'usuário' : 'usuários'} com saldo
+    <div className="space-y-4">
+      <div className={cn(CARD, 'p-5')}
+        style={{ backgroundImage: 'radial-gradient(circle at 100% 0%, rgba(16,185,129,.12), transparent 45%)' }}>
+        <div className="text-xs text-ec-dim">Total a pagar agora</div>
+        <div className="text-4xl font-black text-emerald-400 tabular-nums mt-1 tracking-tight">{fmtBRL(total)}</div>
+        <div className="flex flex-wrap gap-2 mt-3">
+          <span className="px-2.5 py-1 rounded-lg bg-ec-card2 text-xs text-ec-text">
+            <b>{toPay.length}</b> {toPay.length === 1 ? 'pessoa aguardando' : 'pessoas aguardando'}
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-ec-card2 text-xs text-ec-text">
+            <b>{pendingSales}</b> {pendingSales === 1 ? 'venda pendente' : 'vendas pendentes'}
+          </span>
+          {noPix > 0 && (
+            <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-xs text-amber-300">
+              {noPix} sem chave Pix
+            </span>
+          )}
         </div>
+        <DayCheck reload={reload} />
       </div>
 
-      <DayCheck reload={reload} />
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {withBalance.map(u => <UserCard key={u.username} user={u} payouts={data.payouts} onChanged={reload} />)}
-      </div>
+      {withBalance.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+          {withBalance.map(u => <UserCard key={u.username} user={u} payouts={data.payouts} onChanged={reload} />)}
+        </div>
+      )}
 
       {settled.length > 0 && (
         <div>
           <button onClick={() => setShowAll(v => !v)}
-            className="w-full h-11 rounded-xl border border-ec-line bg-ec-card2/50 text-xs font-bold text-ec-dim flex items-center justify-center gap-1.5">
-            {settled.length} sem saldo <ChevronDown size={13} className={cn('transition-transform', showAll && 'rotate-180')} />
+            className="w-full h-11 rounded-xl border border-dashed border-ec-line text-xs text-ec-dim flex items-center justify-center gap-1.5 hover:text-ec-text">
+            {showAll ? 'Esconder' : 'Ver'} {settled.length} {settled.length === 1 ? 'pessoa' : 'pessoas'} sem nada a receber
+            <ChevronDown size={13} className={cn('transition-transform', showAll && 'rotate-180')} />
           </button>
           {showAll && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-3 items-start">
               {settled.map(u => <UserCard key={u.username} user={u} payouts={data.payouts} onChanged={reload} />)}
             </div>
           )}
