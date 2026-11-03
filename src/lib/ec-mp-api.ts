@@ -32,7 +32,12 @@ async function parseJson(resp: Response) {
   let data: any
   try { data = text ? JSON.parse(text) : {} } catch { data = { raw: text } }
   if (!resp.ok) {
-    const msg = data?.message || data?.error || `HTTP ${resp.status}`
+    // A API de Orders manda o motivo em errors[]; sem isto a tela só mostra "HTTP 402".
+    const first = data?.errors?.[0]
+    const reason = first
+      ? [first.message || first.code, ...(Array.isArray(first.details) ? first.details : [])].filter(Boolean).join(' · ')
+      : ''
+    const msg = data?.message || reason || data?.error || `HTTP ${resp.status}`
     const err: any = new Error(msg); err.status = resp.status; err.data = data
     throw err
   }
