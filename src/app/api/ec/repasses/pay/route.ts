@@ -46,6 +46,9 @@ export async function POST(req: NextRequest) {
 
     const value = fmtMoney(Number(data.amount))
     const notified = await notifyUser(username, '💸 Repasse pago', `${value} enviados para a sua chave Pix.`)
+    // Comprovante no Pushover do admin, para controlar quem já recebeu.
+    await notifyUser(admin, `✅ Você pagou @${username}`,
+      `${value} para @${username}${pix?.key ? `\nChave Pix: ${pix.key}` : ''}`)
     await addLog('info', `Repasse pago · ${value} · para @${username}`, undefined, admin).catch(() => {})
 
     return NextResponse.json({ ok: true, payout: data, notified })

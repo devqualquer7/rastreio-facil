@@ -25,6 +25,14 @@ export async function POST(req: NextRequest) {
       }).catch(() => {})
     }
 
+    const own = await getPushoverConfig(admin).catch(() => null)
+    if (own?.enabled && own.userKey) {
+      await sendPushover(own.userKey, {
+        title: `↩️ Pagamento de @${data.username} desfeito`,
+        message: `${value} voltou para o saldo de @${data.username}.`,
+      }).catch(() => {})
+    }
+
     return NextResponse.json({ ok: true })
   } catch (e: any) {
     if (e.message === 'UNAUTHORIZED') return NextResponse.json({ ok: false, error: 'Não autenticado' }, { status: 401 })
