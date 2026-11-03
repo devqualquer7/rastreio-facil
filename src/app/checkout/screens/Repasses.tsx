@@ -274,40 +274,34 @@ const CHECK_GROUPS: { id: string; label: string; dot: string }[] = [
   { id: 'noOwner', label: 'Do exe ou fora do site (sem repasse)', dot: 'bg-ec-dim' },
 ]
 
-function DayCheck({ reload }: { reload: () => void }) {
-  const { toast } = useApp()
-  const [res, setRes] = useState<any>(null)
-  const [busy, setBusy] = useState(false)
-
-  async function run() {
-    setBusy(true)
-    try {
-      const r = await fetch('/api/ec/repasses/check')
-      const d = await r.json()
-      if (d.ok) { setRes(d); if (d.groups.repaired.count) reload() }
-      else toast('error', d.error || 'Falha ao conferir')
-    } catch { toast('error', 'Erro de rede') }
-    finally { setBusy(false) }
-  }
-
+/** Situação das vendas de hoje, vinda do sync automático: não tem botão, atualiza com a tela. */
+function DayCheck({ res }: { res: any }) {
+  const [open, setOpen] = useState(false)
   const shown = res ? CHECK_GROUPS.filter(g => res.groups[g.id].count > 0) : []
   const failing = res ? res.accounts.filter((a: any) => a.failed || a.error) : []
+  const time = res ? new Date(res.checkedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''
 
   return (
     <div className="border-t border-ec-line pt-3 mt-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-xs text-ec-dim min-w-0">
-          {res
-            ? failing.length ? <span className="text-red-300">{failing.length} conta(s) com erro no Mercado Pago</span>
-              : <span className="flex items-center gap-1.5"><Check size={13} className="text-emerald-400" /> Conferido com o Mercado Pago</span>
-            : 'O saldo é conferido com o Mercado Pago a cada 5 minutos.'}
-        </div>
-        <button onClick={run} disabled={busy}
-          className="h-8 px-3 rounded-lg border border-ec-line text-[11px] font-bold text-ec-dim hover:text-ec-text flex items-center gap-1.5 flex-shrink-0 disabled:opacity-50">
-          <RefreshCw size={12} className={cn(busy && 'animate-spin')} /> Conferir hoje
-        </button>
-      </div>
-      {res && (
+      <button onClick={() => res && setOpen(v => !v)} className="w-full flex items-center justify-between gap-3 text-left">
+        <span className="text-xs text-ec-dim min-w-0 flex items-center gap-2">
+          {failing.length
+            ? <span className="text-red-300">{failing.length} conta(s) com erro no Mercado Pago</span>
+            : <>
+                <span className="relative flex w-2 h-2 flex-shrink-0">
+                  <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-60" />
+                  <span className="relative w-2 h-2 rounded-full bg-emerald-400" />
+                </span>
+                {res ? `Atualiza sozinho com o Mercado Pago · ${time}` : 'Atualiza sozinho com o Mercado Pago'}
+              </>}
+        </span>
+        {res && (
+          <span className="text-[11px] text-ec-muted flex items-center gap-1 flex-shrink-0">
+            vendas de hoje <ChevronDown size={12} className={cn('transition-transform', open && 'rotate-180')} />
+          </span>
+        )}
+      </button>
+      {res && (open || failing.length > 0) && (
         <div className="mt-3 rounded-xl bg-ec-card2/60 p-3 space-y-2 text-xs">
           {shown.length === 0 && <div className="text-ec-dim">Nenhuma venda aprovada hoje no Mercado Pago.</div>}
           {shown.map(g => (
@@ -359,7 +353,7 @@ function ToPay({ data, reload }: { data: any; reload: () => void }) {
             </span>
           )}
         </div>
-        <DayCheck reload={reload} />
+        <DayCheck res={data.check} />
       </div>
 
       {withBalance.length > 0 && (
@@ -527,7 +521,7 @@ export function Repasses() {
 
   useEffect(() => {
     load()
-    const t = setInterval(load, 30_000)
+    const t = setInterval(load, 15_000)
     return () => clearInterval(t)
   }, [load])
 

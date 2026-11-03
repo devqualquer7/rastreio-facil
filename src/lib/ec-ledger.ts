@@ -191,17 +191,23 @@ async function runSync() {
     }
   }))
 
-  // Segunda rede: busca pela data de aprovação das últimas 48h e grava o que a busca acima
-  // deixou passar. Foi assim que as vendas de 03/11 entraram, então roda sozinha a cada 5 min.
-  if (Date.now() - lastRepair > 5 * 60_000) {
-    lastRepair = Date.now()
-    const since = new Date(Math.max(Date.parse(startISO), Date.now() - 48 * 3600_000)).toISOString()
-    const res = await checkApproved(since)
-    if (res.groups.repaired.count) console.warn(`[ledger] ${res.groups.repaired.count} vendas gravadas pela conferência`)
+  // Busca pela data de aprovação: foi ela que achou as vendas de 03/11 que a busca acima
+  // deixou passar. Roda em todo sync (venda aprovada entra no saldo em segundos) e, a cada
+  // 10 min, olha também as últimas 48h para pegar o que aprovou perto da meia-noite.
+  if (Date.now() - lastWide > 10 * 60_000) {
+    lastWide = Date.now()
+    await checkApproved(new Date(Math.max(Date.parse(startISO), Date.now() - 48 * 3600_000)).toISOString())
   }
+  const res = await checkToday()
+  if (res.groups.repaired.count) console.warn(`[ledger] ${res.groups.repaired.count} vendas gravadas pela conferência`)
+  lastCheck = { ...res, checkedAt: new Date().toISOString() }
 }
 
-let lastRepair = 0
+let lastWide = 0
+let lastCheck: (DayCheck & { checkedAt: string }) | null = null
+
+/** Resultado da última conferência do dia (some se o servidor reiniciar, até o próximo sync). */
+export function lastDayCheck() { return lastCheck }
 
 export interface DayCheck {
   start: string | null

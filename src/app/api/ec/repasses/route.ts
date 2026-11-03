@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireEcAdmin } from '@/lib/ec-auth'
 import { isEcAdmin } from '@/lib/ec-admin'
 import { db, getSupabase } from '@/lib/ec-supabase'
-import { ledgerReady, loadEntries, percentsFor, pixFor, syncLedgerBriefly } from '@/lib/ec-ledger'
+import { lastDayCheck, ledgerReady, loadEntries, percentsFor, pixFor, syncLedgerBriefly } from '@/lib/ec-ledger'
 import { periodRange, r2, summarize } from '@/lib/ec-ledger-calc'
 
 // GET /api/ec/repasses?period=today|week|month|year|custom&from=&to= — saldos e resumo (só admin)
@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
       summary: summarize(entries, range),
       groupBy: range.groupBy,
       payouts: payoutsRes.data ?? [],
+      check: lastDayCheck(),
     })
   } catch (e: any) {
     if (e.message === 'UNAUTHORIZED') return NextResponse.json({ ok: false, error: 'Não autenticado' }, { status: 401 })
