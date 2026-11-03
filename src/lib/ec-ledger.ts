@@ -127,6 +127,9 @@ async function backfillHistory(startISO: string) {
       .select('external_reference,mp_payment_id,slot,slot_name,title,amount,approved_at,updated_at,created_at')
       .eq('status', 'approved').not('mp_payment_id', 'is', null)
       .order('id').range(from, from + 999)
+    // Banco sem a coluna do id do pagamento: não há histórico para importar, e tentar de novo
+    // a cada sync só gerava erro.
+    if (error && /does not exist/.test(error.message)) break
     if (error) throw new Error(error.message)
     const sales: any[] = data ?? []
     if (!sales.length) break
