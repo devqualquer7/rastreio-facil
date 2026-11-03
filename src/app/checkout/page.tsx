@@ -8,6 +8,8 @@ import { Gateways } from '@/app/checkout/screens/Gateways'
 import { Extrato } from '@/app/checkout/screens/Extrato'
 import { Logs } from '@/app/checkout/screens/Logs'
 import { Users } from '@/app/checkout/screens/Users'
+import { Repasses } from '@/app/checkout/screens/Repasses'
+import { Ganhos } from '@/app/checkout/screens/Ganhos'
 import { GenerateModal } from '@/components/ec/modals/Generate'
 import { SwitchAccountModal } from '@/components/ec/modals/SwitchAccount'
 import { SettingsModal } from '@/components/ec/modals/Settings'
@@ -27,6 +29,8 @@ const SCREENS: Record<string, React.ComponentType> = {
   extrato:     Extrato,
   logs:        Logs,
   users:       Users,
+  repasses:    Repasses,
+  ganhos:      Ganhos,
 }
 
 // Health check fires on mount + every 5 minutes

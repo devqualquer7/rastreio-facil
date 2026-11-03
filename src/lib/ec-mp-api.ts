@@ -130,6 +130,24 @@ export class MPAPI {
     return await parseJson(r)
   }
 
+  /** Pagamentos alterados no intervalo: pega venda nova e estorno de venda antiga. */
+  async searchPaymentsUpdated(sinceISO: string, untilISO: string, offset = 0, limit = 100) {
+    const params = new URLSearchParams({
+      range: 'date_last_updated',
+      begin_date: sinceISO,
+      end_date: untilISO,
+      sort: 'date_last_updated',
+      criteria: 'asc',
+      limit: String(limit),
+      offset: String(offset),
+    })
+    const r = await fetch(`${BASE}/v1/payments/search?${params}`, {
+      headers: stealthHeaders(this.token),
+      signal: AbortSignal.timeout(20_000),
+    })
+    return await parseJson(r)
+  }
+
   async getPayment(idOrRef: string) {
     const r = await fetch(
       `${BASE}/v1/payments/${encodeURIComponent(idOrRef)}`,

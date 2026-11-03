@@ -1,5 +1,6 @@
 import * as crypto from 'node:crypto'
 import { cookies } from 'next/headers'
+import { isEcAdmin } from '@/lib/ec-admin'
 
 const SECRET = process.env.SESSION_SECRET || 'change-me-in-prod-please-super-secret-key-32chars'
 export const COOKIE = 'ec_session'
@@ -35,6 +36,12 @@ export async function getSession(): Promise<{ username: string } | null> {
 export async function requireSession(): Promise<{ username: string }> {
   const session = await getSession()
   if (!session) throw new Error('UNAUTHORIZED')
+  return session
+}
+
+export async function requireEcAdmin(): Promise<{ username: string }> {
+  const session = await requireSession()
+  if (!isEcAdmin(session.username)) throw new Error('FORBIDDEN')
   return session
 }
 

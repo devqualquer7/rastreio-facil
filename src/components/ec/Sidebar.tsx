@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { LayoutDashboard, Key, ScrollText, Wallet, LogOut, CreditCard, Users, Layers, ChevronsUpDown, Bell, Zap, ArrowRight, ChevronRight, QrCode, Menu } from 'lucide-react'
+import { LayoutDashboard, Key, ScrollText, Wallet, LogOut, CreditCard, Users, Layers, ChevronsUpDown, Bell, Zap, ArrowRight, ChevronRight, QrCode, Menu, HandCoins, Coins } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/ec-utils'
@@ -33,8 +33,10 @@ export function Sidebar() {
   const router = useRouter()
   const { screen, setScreen, openModal, activeCred, isAdmin, username } = useApp()
 
-  const nav: { id: Screen; icon: any; label: string; adminOnly?: boolean }[] = [
+  const nav: { id: Screen; icon: any; label: string; adminOnly?: boolean; userOnly?: boolean }[] = [
     { id: 'dashboard',   icon: LayoutDashboard, label: 'Dashboard' },
+    { id: 'repasses',    icon: HandCoins,       label: 'Repasses', adminOnly: true },
+    { id: 'ganhos',      icon: Coins,           label: 'Meus ganhos', userOnly: true },
     { id: 'credentials', icon: Key,             label: 'Credenciais' },
     { id: 'gateways',    icon: CreditCard,      label: 'Gateways PIX' },
     { id: 'extrato',     icon: Wallet,          label: 'Extrato MP' },
@@ -114,7 +116,7 @@ export function Sidebar() {
       {/* Navegação */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         <div className="ec-label px-2 pt-1 pb-1">Navegação</div>
-        {nav.filter(it => !it.adminOnly || isAdmin).map(it => {
+        {nav.filter(it => (it.adminOnly ? isAdmin : it.userOnly ? !isAdmin : true)).map(it => {
           const Icon = it.icon; const isActive = screen === it.id
           return (
             <button key={it.id} onClick={() => setScreen(it.id)}
@@ -220,9 +222,12 @@ export function MobileBottomNav() {
     { id: 'extrato',     icon: Wallet,          label: 'Extrato' },
   ]
   const tabsRight: { id: Screen; icon: any; label: string }[] = [
-    { id: 'credentials', icon: Key,             label: 'Contas' },
+    isAdmin
+      ? { id: 'repasses', icon: HandCoins, label: 'Repasses' }
+      : { id: 'ganhos',   icon: Coins,     label: 'Ganhos' },
   ]
   const moreScreens: { id: Screen; icon: any; label: string; adminOnly?: boolean }[] = [
+    { id: 'credentials', icon: Key,     label: 'Contas' },
     { id: 'gateways', icon: CreditCard, label: 'Gateways PIX' },
     { id: 'logs',     icon: ScrollText, label: 'Logs' },
     { id: 'users',    icon: Users,      label: 'Usuários', adminOnly: true },

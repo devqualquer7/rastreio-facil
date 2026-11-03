@@ -5,6 +5,7 @@ import { decrypt } from '@/lib/ec-crypto'
 import { MPAPI } from '@/lib/ec-mp-api'
 import { sendPushoverToUser, sendPushoverMirror, type PushEvent } from '@/lib/ec-pushover'
 import { sendUtmifyForUser } from '@/lib/ec-utmify'
+import { syncLedger } from '@/lib/ec-ledger'
 
 export async function POST() {
   try {
@@ -122,6 +123,8 @@ export async function POST() {
         await scanApprovedAndNotify()
       }
     } catch (e) { console.error('[notify scan]', e) }
+
+    void syncLedger()
 
     return NextResponse.json({ ok: true, checked, changed })
   } catch (e: any) {
