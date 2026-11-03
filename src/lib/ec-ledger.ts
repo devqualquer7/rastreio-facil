@@ -173,13 +173,51 @@ async function syncAccount(cred: any, startISO: string) {
 let running: Promise<void> | null = null
 let lastRun = 0
 
+/** Etapa com prazo: se travar ou der erro, fica anotada e o sync segue para a próxima. */
+async function stage<T>(name: string, fn: () => Promise<T>, errors: string[], maxMs = 90_000): Promise<T | undefined> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      fn(),
+      new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error(`passou de ${maxMs / 1000}s`)), maxMs) }),
+    ])
+  } catch (e: any) {
+    console.error(`[ledger ${name}]`, e)
+    errors.push(`${name}: ${String(e?.message || e).slice(0, 200)}`)
+    return undefined
+  } finally { clearTimeout(timer) }
+}
+
+let lastStageErrors: string[] = []
+export function lastSyncStatus() { return { checkedAt: lastCheck?.checkedAt ?? null, errors: lastStageErrors } }
+
 async function runSync() {
   await db.claimSetting('ledger:start', new Date().toISOString())
   const startISO = (await db.getSetting('ledger:start'))!
+  const errors: string[] = []
 
-  await backfillHistory(startISO)
+  await stage('histórico', () => backfillHistory(startISO), errors)
 
   const creds = await db.listCreds()
+  await stage('contas', () => syncAll(creds, startISO), errors)
+
+  // Busca pela data de aprovação: foi ela que achou as vendas de 03/11 que a busca acima
+  // deixou passar. Roda em todo sync (venda aprovada entra no saldo em segundos) e, a cada
+  // 10 min, olha também as últimas 48h para pegar o que aprovou perto da meia-noite.
+  if (Date.now() - lastWide > 10 * 60_000) {
+    lastWide = Date.now()
+    await stage('48h', () => checkApproved(new Date(Math.max(Date.parse(startISO), Date.now() - 48 * 3600_000)).toISOString()), errors)
+  }
+  const res = await stage('hoje', () => checkToday(), errors)
+  lastStageErrors = errors
+  if (!res) return
+  if (res.groups.repaired.count) console.warn(`[ledger] ${res.groups.repaired.count} vendas gravadas pela conferência`)
+  lastCheck = { ...res, checkedAt: new Date().toISOString(), stageErrors: errors }
+  // Guardada no banco para o painel continuar mostrando a hora certa depois de um reinício.
+  await db.setSetting('ledger:lastcheck', JSON.stringify(lastCheck)).catch(() => {})
+}
+
+async function syncAll(creds: any[], startISO: string) {
   await Promise.allSettled(creds.filter((c: any) => c.access_token).map(async (cred: any) => {
     const errKey = `ledger:error:slot:${cred.slot}`
     try {
@@ -190,23 +228,10 @@ async function runSync() {
       await db.setSetting(errKey, `${new Date().toISOString()} ${e?.message || e}`).catch(() => {})
     }
   }))
-
-  // Busca pela data de aprovação: foi ela que achou as vendas de 03/11 que a busca acima
-  // deixou passar. Roda em todo sync (venda aprovada entra no saldo em segundos) e, a cada
-  // 10 min, olha também as últimas 48h para pegar o que aprovou perto da meia-noite.
-  if (Date.now() - lastWide > 10 * 60_000) {
-    lastWide = Date.now()
-    await checkApproved(new Date(Math.max(Date.parse(startISO), Date.now() - 48 * 3600_000)).toISOString())
-  }
-  const res = await checkToday()
-  if (res.groups.repaired.count) console.warn(`[ledger] ${res.groups.repaired.count} vendas gravadas pela conferência`)
-  lastCheck = { ...res, checkedAt: new Date().toISOString() }
-  // Guardada no banco para o painel continuar mostrando a hora certa depois de um reinício.
-  await db.setSetting('ledger:lastcheck', JSON.stringify(lastCheck)).catch(() => {})
 }
 
 let lastWide = 0
-let lastCheck: (DayCheck & { checkedAt: string }) | null = null
+let lastCheck: (DayCheck & { checkedAt: string; stageErrors: string[] }) | null = null
 
 /** Resultado da última conferência do dia. */
 export async function lastDayCheck() {

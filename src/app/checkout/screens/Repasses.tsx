@@ -285,7 +285,9 @@ function DayCheck({ res }: { res: any }) {
     <div className="border-t border-ec-line pt-3 mt-4">
       <button onClick={() => res && setOpen(v => !v)} className="w-full flex items-center justify-between gap-3 text-left">
         <span className="text-xs text-ec-dim min-w-0 flex items-center gap-2">
-          {failing.length
+          {res?.stageErrors?.length
+            ? <span className="text-amber-300">Sync com problema: {res.stageErrors.join(' · ')}</span>
+            : failing.length
             ? <span className="text-red-300">{failing.length} conta(s) com erro no Mercado Pago</span>
             : <>
                 <span className="relative flex w-2 h-2 flex-shrink-0">
