@@ -181,9 +181,98 @@ async function runSync() {
 
   const creds = await db.listCreds()
   await Promise.allSettled(creds.filter((c: any) => c.access_token).map(async (cred: any) => {
-    try { await syncAccount(cred, startISO) }
-    catch (e) { console.error(`[ledger slot ${cred.slot}]`, e) }
+    const errKey = `ledger:error:slot:${cred.slot}`
+    try {
+      await syncAccount(cred, startISO)
+      if (await db.getSetting(errKey)) await db.setSetting(errKey, '')
+    } catch (e: any) {
+      console.error(`[ledger slot ${cred.slot}]`, e)
+      await db.setSetting(errKey, `${new Date().toISOString()} ${e?.message || e}`).catch(() => {})
+    }
   }))
+}
+
+export interface DayCheck {
+  start: string | null
+  accounts: { slot: number; name: string | null; lastSync: string | null; error: string | null; failed?: string }[]
+  /** Vendas aprovadas hoje no MP, separadas pelo motivo de estarem (ou não) no saldo */
+  groups: Record<'counted' | 'beforePanel' | 'admin' | 'noOwner' | 'repaired', { count: number; gross: number }>
+  byUser: { username: string; count: number; gross: number }[]
+}
+
+/**
+ * Confere o dia direto no Mercado Pago: cada venda aprovada hoje entrou no saldo? Se uma venda
+ * com dono ficou de fora, grava agora. Mostra também por que as outras não contam.
+ */
+export async function checkToday(): Promise<DayCheck> {
+  await db.claimSetting('ledger:start', new Date().toISOString())
+  const startISO = (await db.getSetting('ledger:start'))!
+  const today = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)
+  const since = `${today}T00:00:00.000-03:00`
+  const until = new Date().toISOString()
+
+  const empty = () => ({ count: 0, gross: 0 })
+  const groups: DayCheck['groups'] = { counted: empty(), beforePanel: empty(), admin: empty(), noOwner: empty(), repaired: empty() }
+  const users = new Map<string, { count: number; gross: number }>()
+  const add = (g: keyof DayCheck['groups'], amount: number) => { groups[g].count++; groups[g].gross = Math.round((groups[g].gross + amount) * 100) / 100 }
+
+  const creds = (await db.listCreds()).filter((c: any) => c.access_token)
+  const meta = await settingsMap(creds.flatMap((c: any) => [`ledger:sync:slot:${c.slot}`, `ledger:error:slot:${c.slot}`]))
+  const accounts: DayCheck['accounts'] = []
+
+  for (const cred of creds) {
+    const acc: DayCheck['accounts'][number] = {
+      slot: cred.slot, name: cred.name ?? null,
+      lastSync: meta.get(`ledger:sync:slot:${cred.slot}`) || null,
+      error: meta.get(`ledger:error:slot:${cred.slot}`) || null,
+    }
+    accounts.push(acc)
+    try {
+      const api = new MPAPI(await decrypt(cred.access_token))
+      const payments: any[] = []
+      for (let page = 0; page < MAX_PAGES; page++) {
+        const data = await api.searchPaymentsUpdated(since, until, page * 100, 100, 'date_approved')
+        const results: any[] = data?.results ?? []
+        payments.push(...results.filter(p => p.date_approved))
+        if (results.length < 100) break
+      }
+      if (!payments.length) continue
+
+      const refs = [...new Set(payments.map(p => String(p.external_reference || '')).filter(Boolean))]
+      const owners = refs.length ? await settingsMap(refs.map(r => `sale:by:${r}`)) : new Map<string, string>()
+      const ids = payments.map(p => String(p.id))
+      const inLedger = new Map<string, boolean>()
+      for (let i = 0; i < ids.length; i += 100) {
+        const { data, error } = await getSupabase().from('web_ledger')
+          .select('mp_payment_id,settled').eq('kind', 'sale').in('mp_payment_id', ids.slice(i, i + 100))
+        if (error) throw new Error(error.message)
+        for (const row of data ?? []) inLedger.set(row.mp_payment_id, !!row.settled)
+      }
+
+      const missing: any[] = []
+      for (const p of payments) {
+        const amount = Number(p.transaction_amount || 0)
+        const owner = p.external_reference ? owners.get(`sale:by:${p.external_reference}`) : undefined
+        if (!owner) { add('noOwner', amount); continue }
+        if (isEcAdmin(owner)) { add('admin', amount); continue }
+        const u = users.get(owner) ?? { count: 0, gross: 0 }
+        u.count++; u.gross = Math.round((u.gross + amount) * 100) / 100
+        users.set(owner, u)
+        if (!inLedger.has(String(p.id))) { missing.push(p); add('repaired', amount) }
+        else add(inLedger.get(String(p.id)) ? 'beforePanel' : 'counted', amount)
+      }
+      if (missing.length) await processPayments(missing, cred, startISO)
+    } catch (e: any) {
+      acc.failed = e?.message || String(e)
+    }
+  }
+
+  return {
+    start: startISO,
+    accounts,
+    groups,
+    byUser: [...users].map(([username, v]) => ({ username, ...v })).sort((a, b) => b.gross - a.gross),
+  }
 }
 
 /** Busca no Mercado Pago o que mudou desde a última vez: vendas novas e estornos. */

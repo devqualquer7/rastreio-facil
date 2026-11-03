@@ -136,12 +136,12 @@ export class MPAPI {
   }
 
   /** Pagamentos alterados no intervalo: pega venda nova e estorno de venda antiga. */
-  async searchPaymentsUpdated(sinceISO: string, untilISO: string, offset = 0, limit = 100) {
+  async searchPaymentsUpdated(sinceISO: string, untilISO: string, offset = 0, limit = 100, range = 'date_last_updated') {
     const params = new URLSearchParams({
-      range: 'date_last_updated',
+      range,
       begin_date: sinceISO,
       end_date: untilISO,
-      sort: 'date_last_updated',
+      sort: range,
       criteria: 'asc',
       limit: String(limit),
       offset: String(offset),

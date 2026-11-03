@@ -11,6 +11,9 @@ export async function POST() {
   try {
     await requireSession()
 
+    // O saldo dos repasses atualiza mesmo sem link pendente (estornos, vendas de Pix direto).
+    void syncLedger()
+
     const pending = await db.getPendingSales()
     if (pending.length === 0) return NextResponse.json({ ok: true, checked: 0, changed: 0 })
 
@@ -123,8 +126,6 @@ export async function POST() {
         await scanApprovedAndNotify()
       }
     } catch (e) { console.error('[notify scan]', e) }
-
-    void syncLedger()
 
     return NextResponse.json({ ok: true, checked, changed })
   } catch (e: any) {

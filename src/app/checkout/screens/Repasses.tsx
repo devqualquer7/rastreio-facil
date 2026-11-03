@@ -222,6 +222,65 @@ function UserCard({ user, payouts, onChanged }: { user: any; payouts: any[]; onC
   )
 }
 
+const CHECK_GROUPS: { id: string; label: string; color: string }[] = [
+  { id: 'counted', label: 'No saldo dos usuários', color: 'text-emerald-400' },
+  { id: 'repaired', label: 'Estavam faltando, gravadas agora', color: 'text-emerald-400' },
+  { id: 'beforePanel', label: 'Antes do painel ser ativado (não contam)', color: 'text-amber-400' },
+  { id: 'admin', label: 'Geradas por você (admin)', color: 'text-ec-text' },
+  { id: 'noOwner', label: 'Sem dono no site (exe ou fora do site)', color: 'text-ec-text' },
+]
+
+function DayCheck({ reload }: { reload: () => void }) {
+  const { toast } = useApp()
+  const [res, setRes] = useState<any>(null)
+  const [busy, setBusy] = useState(false)
+
+  async function run() {
+    setBusy(true)
+    try {
+      const r = await fetch('/api/ec/repasses/check')
+      const d = await r.json()
+      if (d.ok) { setRes(d); if (d.groups.repaired.count) reload() }
+      else toast('error', d.error || 'Falha ao conferir')
+    } catch { toast('error', 'Erro de rede') }
+    finally { setBusy(false) }
+  }
+
+  return (
+    <div className={cn(CARD, 'p-4')}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-sm font-bold text-ec-text">Conferir vendas de hoje</div>
+          <div className="text-xs text-ec-dim mt-0.5">Compara o Mercado Pago com o saldo e mostra o motivo de cada venda ficar de fora.</div>
+        </div>
+        <Button variant="outline" size="md" icon={<RefreshCw size={13} />} onClick={run} loading={busy}>CONFERIR</Button>
+      </div>
+      {res && (
+        <div className="mt-3 space-y-1.5 text-xs">
+          {CHECK_GROUPS.filter(g => res.groups[g.id].count > 0).map(g => (
+            <div key={g.id} className="flex justify-between gap-3">
+              <span className="text-ec-dim">{g.label}</span>
+              <span className={cn('font-bold tabular-nums flex-shrink-0', g.color)}>
+                {res.groups[g.id].count} · {fmtBRL(res.groups[g.id].gross)}
+              </span>
+            </div>
+          ))}
+          {CHECK_GROUPS.every(g => res.groups[g.id].count === 0) && <div className="text-ec-dim">Nenhuma venda aprovada hoje no Mercado Pago.</div>}
+          {res.byUser.length > 0 && (
+            <div className="pt-1.5 text-ec-dim">Por usuário: {res.byUser.map((u: any) => `${u.username} ${fmtBRL(u.gross)}`).join(' · ')}</div>
+          )}
+          <div className="pt-1.5 text-ec-dim">Painel ativo desde {res.start ? fmtDate(res.start) : '—'}</div>
+          {res.accounts.filter((a: any) => a.failed || a.error).map((a: any) => (
+            <div key={a.slot} className="text-red-300 break-all">
+              {a.name || `slot #${a.slot}`}: {a.failed || a.error}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ToPay({ data, reload }: { data: any; reload: () => void }) {
   const users: any[] = data.users
   const withBalance = users.filter(u => u.balance !== 0 || u.missingPercent > 0)
@@ -238,6 +297,8 @@ function ToPay({ data, reload }: { data: any; reload: () => void }) {
           {withBalance.filter(u => u.balance > 0).length} {withBalance.filter(u => u.balance > 0).length === 1 ? 'usuário' : 'usuários'} com saldo
         </div>
       </div>
+
+      <DayCheck reload={reload} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {withBalance.map(u => <UserCard key={u.username} user={u} payouts={data.payouts} onChanged={reload} />)}
