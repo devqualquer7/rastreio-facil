@@ -190,7 +190,18 @@ async function runSync() {
       await db.setSetting(errKey, `${new Date().toISOString()} ${e?.message || e}`).catch(() => {})
     }
   }))
+
+  // Segunda rede: busca pela data de aprovação das últimas 48h e grava o que a busca acima
+  // deixou passar. Foi assim que as vendas de 03/11 entraram, então roda sozinha a cada 5 min.
+  if (Date.now() - lastRepair > 5 * 60_000) {
+    lastRepair = Date.now()
+    const since = new Date(Math.max(Date.parse(startISO), Date.now() - 48 * 3600_000)).toISOString()
+    const res = await checkApproved(since)
+    if (res.groups.repaired.count) console.warn(`[ledger] ${res.groups.repaired.count} vendas gravadas pela conferência`)
+  }
 }
+
+let lastRepair = 0
 
 export interface DayCheck {
   start: string | null
@@ -205,10 +216,13 @@ export interface DayCheck {
  * com dono ficou de fora, grava agora. Mostra também por que as outras não contam.
  */
 export async function checkToday(): Promise<DayCheck> {
+  const today = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)
+  return checkApproved(`${today}T00:00:00.000-03:00`)
+}
+
+async function checkApproved(since: string): Promise<DayCheck> {
   await db.claimSetting('ledger:start', new Date().toISOString())
   const startISO = (await db.getSetting('ledger:start'))!
-  const today = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10)
-  const since = `${today}T00:00:00.000-03:00`
   const until = new Date().toISOString()
 
   const empty = () => ({ count: 0, gross: 0 })

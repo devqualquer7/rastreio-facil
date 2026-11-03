@@ -270,9 +270,9 @@ function DayCheck({ reload }: { reload: () => void }) {
             <div className="pt-1.5 text-ec-dim">Por usuário: {res.byUser.map((u: any) => `${u.username} ${fmtBRL(u.gross)}`).join(' · ')}</div>
           )}
           <div className="pt-1.5 text-ec-dim">Painel ativo desde {res.start ? fmtDate(res.start) : '—'}</div>
-          {res.accounts.filter((a: any) => a.failed || a.error).map((a: any) => (
-            <div key={a.slot} className="text-red-300 break-all">
-              {a.name || `slot #${a.slot}`}: {a.failed || a.error}
+          {res.accounts.map((a: any) => (
+            <div key={a.slot} className={cn('break-all', a.failed || a.error ? 'text-red-300' : 'text-ec-dim')}>
+              {a.name || `slot #${a.slot}`}: {a.failed || a.error || `sincronizado ${a.lastSync ? fmtDate(a.lastSync) : 'nunca'}`}
             </div>
           ))}
         </div>
