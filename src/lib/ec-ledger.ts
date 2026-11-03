@@ -201,13 +201,18 @@ async function runSync() {
   const res = await checkToday()
   if (res.groups.repaired.count) console.warn(`[ledger] ${res.groups.repaired.count} vendas gravadas pela conferência`)
   lastCheck = { ...res, checkedAt: new Date().toISOString() }
+  // Guardada no banco para o painel continuar mostrando a hora certa depois de um reinício.
+  await db.setSetting('ledger:lastcheck', JSON.stringify(lastCheck)).catch(() => {})
 }
 
 let lastWide = 0
 let lastCheck: (DayCheck & { checkedAt: string }) | null = null
 
-/** Resultado da última conferência do dia (some se o servidor reiniciar, até o próximo sync). */
-export function lastDayCheck() { return lastCheck }
+/** Resultado da última conferência do dia. */
+export async function lastDayCheck() {
+  if (lastCheck) return lastCheck
+  try { return JSON.parse((await db.getSetting('ledger:lastcheck')) || 'null') } catch { return null }
+}
 
 export interface DayCheck {
   start: string | null
@@ -238,15 +243,15 @@ async function checkApproved(since: string): Promise<DayCheck> {
 
   const creds = (await db.listCreds()).filter((c: any) => c.access_token)
   const meta = await settingsMap(creds.flatMap((c: any) => [`ledger:sync:slot:${c.slot}`, `ledger:error:slot:${c.slot}`]))
-  const accounts: DayCheck['accounts'] = []
+  const accounts: DayCheck['accounts'] = creds.map((cred: any) => ({
+    slot: cred.slot, name: cred.name ?? null,
+    lastSync: meta.get(`ledger:sync:slot:${cred.slot}`) || null,
+    error: meta.get(`ledger:error:slot:${cred.slot}`) || null,
+  }))
 
-  for (const cred of creds) {
-    const acc: DayCheck['accounts'][number] = {
-      slot: cred.slot, name: cred.name ?? null,
-      lastSync: meta.get(`ledger:sync:slot:${cred.slot}`) || null,
-      error: meta.get(`ledger:error:slot:${cred.slot}`) || null,
-    }
-    accounts.push(acc)
+  // Contas em paralelo: uma conta lenta não segura as outras.
+  await Promise.all(creds.map(async (cred: any, i: number) => {
+    const acc = accounts[i]
     try {
       const api = new MPAPI(await decrypt(cred.access_token))
       const payments: any[] = []
@@ -256,7 +261,7 @@ async function checkApproved(since: string): Promise<DayCheck> {
         payments.push(...results.filter(p => p.date_approved))
         if (results.length < 100) break
       }
-      if (!payments.length) continue
+      if (!payments.length) return
 
       const refs = [...new Set(payments.map(p => String(p.external_reference || '')).filter(Boolean))]
       const owners = refs.length ? await settingsMap(refs.map(r => `sale:by:${r}`)) : new Map<string, string>()
@@ -285,7 +290,7 @@ async function checkApproved(since: string): Promise<DayCheck> {
     } catch (e: any) {
       acc.failed = e?.message || String(e)
     }
-  }
+  }))
 
   return {
     start: startISO,
@@ -297,13 +302,15 @@ async function checkApproved(since: string): Promise<DayCheck> {
 
 /** Busca no Mercado Pago o que mudou desde a última vez: vendas novas e estornos. */
 export function syncLedger(minGapMs = 60_000): Promise<void> {
-  if (running) return running
+  // Um sync preso (MP ou banco sem responder) não pode travar todos os próximos.
+  if (running && Date.now() - lastRun < 3 * 60_000) return running
   if (Date.now() - lastRun < minGapMs) return Promise.resolve()
   lastRun = Date.now()
-  running = ledgerReady()
+  const mine: Promise<void> = ledgerReady()
     .then(ready => (ready ? runSync() : undefined))
     .catch(e => { console.error('[ledger sync]', e) })
-    .finally(() => { running = null })
+    .finally(() => { if (running === mine) running = null })
+  running = mine
   return running
 }
 

@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
       summary: summarize(entries, range),
       groupBy: range.groupBy,
       payouts: payoutsRes.data ?? [],
-      check: lastDayCheck(),
+      check: await lastDayCheck(),
     })
   } catch (e: any) {
     if (e.message === 'UNAUTHORIZED') return NextResponse.json({ ok: false, error: 'Não autenticado' }, { status: 401 })

@@ -292,7 +292,10 @@ function DayCheck({ res }: { res: any }) {
                   <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-60" />
                   <span className="relative w-2 h-2 rounded-full bg-emerald-400" />
                 </span>
-                {res ? `Atualiza sozinho com o Mercado Pago · ${time}` : 'Atualiza sozinho com o Mercado Pago'}
+                {!res ? 'Conferindo o Mercado Pago…'
+                  : Date.now() - Date.parse(res.checkedAt) > 3 * 60_000
+                    ? <span className="text-amber-300">Última conferência às {time} · atrasada, tentando de novo</span>
+                    : `Atualiza sozinho com o Mercado Pago · ${time}`}
               </>}
         </span>
         {res && (
@@ -511,7 +514,7 @@ export function Repasses() {
     try {
       const params = new URLSearchParams({ period })
       if (period === 'custom' && from && to) { params.set('from', from); params.set('to', to) }
-      const r = await fetch(`/api/ec/repasses?${params}`)
+      const r = await fetch(`/api/ec/repasses?${params}`, { cache: 'no-store' })
       const d = await r.json()
       if (d.ok) setData(d)
       else toast('error', d.error || 'Falha ao carregar')
@@ -521,8 +524,16 @@ export function Repasses() {
 
   useEffect(() => {
     load()
-    const t = setInterval(load, 15_000)
-    return () => clearInterval(t)
+    const t = setInterval(() => { if (!document.hidden) load() }, 15_000)
+    // Celular congela a aba em segundo plano: ao voltar para ela, atualiza na hora.
+    const onShow = () => { if (!document.hidden) load() }
+    document.addEventListener('visibilitychange', onShow)
+    window.addEventListener('focus', onShow)
+    return () => {
+      clearInterval(t)
+      document.removeEventListener('visibilitychange', onShow)
+      window.removeEventListener('focus', onShow)
+    }
   }, [load])
 
   return (

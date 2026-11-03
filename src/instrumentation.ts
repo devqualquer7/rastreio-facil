@@ -23,5 +23,12 @@ export async function register() {
       runCron()
       setInterval(runCron, INTERVAL_MS)
     }, 10_000)
+
+    // Repasses: busca vendas no Mercado Pago sozinho, mesmo sem ninguém com o painel aberto
+    const { syncLedger } = await import('./lib/ec-ledger')
+    setTimeout(() => {
+      void syncLedger(0)
+      setInterval(() => { void syncLedger(25_000) }, 30_000)
+    }, 15_000)
   }
 }
