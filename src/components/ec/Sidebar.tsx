@@ -19,12 +19,18 @@ function LogoMark({ size = 56 }: { size?: number }) {
   )
 }
 
-/** Marca desenhada para o atalho da UTMify (não é o logotipo oficial deles) */
+/** Logo da UTMify: as duas peças brancas do "U" com o canto azul */
 function UtmifyMark({ size = 16 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M6 4v8a6 6 0 0 0 12 0V9" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
-      <path d="M14.5 7.5 18 4l3.5 3.5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <defs>
+        <linearGradient id="utmify-corner" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#3aa0ff" /><stop offset="1" stopColor="#0b5fe0" />
+        </linearGradient>
+      </defs>
+      <path d="M4 4h5a1 1 0 0 1 1 1v7h3v4H7a3 3 0 0 1-3-3z" fill="#f2f2f7" />
+      <path d="M14 4h6v14a4 4 0 0 1-4 4h-5v-4h3z" fill="#f2f2f7" />
+      <path d="M16.6 4H20v3.4z" fill="url(#utmify-corner)" />
     </svg>
   )
 }
@@ -54,8 +60,8 @@ export function Sidebar() {
     <aside className="hidden md:flex w-[240px] flex-shrink-0 flex-col relative z-10"
       style={{ borderRight: '1px solid #1c1c33', background: 'rgba(11,11,22,.3)', fontFamily: MONO }}>
       {/* Logo */}
-      <div className="px-5 pt-6 pb-4 flex flex-col items-center">
-        <LogoMark size={84} />
+      <div className="px-5 pt-5 pb-4 flex flex-col items-center">
+        <LogoMark size={68} />
         <div className="mt-3 text-center">
           <div className="font-bold text-[14px] leading-none" style={{ letterSpacing: '0.14em' }}>
             <span style={{ color: '#e4e4f4' }}>ENCRYPTED</span><span style={{ color: '#ff2b4a' }}>SOFTWARE</span>
@@ -67,45 +73,35 @@ export function Sidebar() {
       <div className="h-px mx-5" style={{ background: '#1c1c33' }} />
 
       {/* Ações rápidas */}
-      <div className="p-3">
-        <div className="ec-label px-2 pt-1 pb-2">Ações Rápidas</div>
-
-        {/* Ação principal — a mais usada do painel, por isso é a única com cor cheia e brilho */}
+      <div className="px-3 pt-3 pb-3.5">
+        {/* Ação principal — a mais usada do painel, por isso é a única com cor cheia */}
         <button onClick={() => openModal('generate')}
-          className="ec-shine ec-cta-live group w-full flex items-center gap-3 px-3 py-3.5 rounded-xl text-left text-black transition-transform duration-150 hover:-translate-y-0.5 active:scale-[0.98]"
-          style={{ background: 'linear-gradient(135deg,#00f5a3 0%,#00e396 45%,#00a06b 100%)' }}>
-          <span className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(0,0,0,.22)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.25)' }}>
-            <Zap size={19} fill="currentColor" />
+          className="ec-shine ec-cta-live group w-full h-[52px] flex items-center gap-3 pl-3 pr-3.5 rounded-xl text-left text-black transition-transform duration-150 hover:-translate-y-0.5 active:scale-[0.98]"
+          style={{ background: 'linear-gradient(135deg,#00f5a3 0%,#00e396 50%,#00b578 100%)' }}>
+          <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(0,0,0,.16)' }}>
+            <Zap size={16} fill="currentColor" />
           </span>
           <span className="flex-1 min-w-0">
-            <span className="block font-black text-[15px] leading-tight" style={{ letterSpacing: '0.06em' }}>GERAR LINK</span>
-            <span className="block text-[11px] font-semibold leading-tight mt-0.5" style={{ color: 'rgba(0,0,0,.62)' }}>Link ou Pix</span>
+            <span className="block font-extrabold text-[14px] leading-none" style={{ letterSpacing: '0.04em' }}>Gerar link</span>
+            <span className="block text-[11px] font-semibold leading-none mt-1" style={{ color: 'rgba(0,0,0,.55)' }}>Link ou Pix</span>
           </span>
-          <ArrowRight size={16} className="flex-shrink-0 transition-transform duration-150 group-hover:translate-x-1" />
+          <ArrowRight size={15} className="flex-shrink-0 opacity-70 transition-transform duration-150 group-hover:translate-x-0.5" />
         </button>
 
-        {/* Ações secundárias — mesmo cartão neutro, só o ícone muda de cor */}
-        <div className="mt-2.5 space-y-1.5">
+        {/* Ações secundárias — três atalhos lado a lado, só o ícone tem cor */}
+        <div className="mt-2 grid grid-cols-3 gap-1.5">
           {([
-            { id: 'saque',    label: 'Gerador de PIX', hint: 'Pix por gateway', color: '#ff2b4a',
-              icon: <QrCode size={15} /> },
-            { id: 'pushover', label: 'Notificações',   hint: 'Avisos no celular',     color: '#ffc83d',
-              icon: <Bell size={15} /> },
-            { id: 'utmify',   label: 'UTMify',         hint: 'Rastreio de vendas',    color: '#8b5cf6',
-              icon: <UtmifyMark size={16} /> },
+            { id: 'saque',    label: 'Pix',    hint: 'Gerador de Pix por gateway', color: '#ff2b4a', icon: <QrCode size={16} /> },
+            { id: 'pushover', label: 'Avisos', hint: 'Notificações no celular',    color: '#ffc83d', icon: <Bell size={16} /> },
+            { id: 'utmify',   label: 'UTMify', hint: 'Rastreio de vendas',         color: '#3b82f6', icon: <UtmifyMark size={18} /> },
           ] as const).map(a => (
-            <button key={a.id} onClick={() => openModal(a.id)}
-              className="group w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-left border border-ec-line bg-ec-card2/50 hover:bg-ec-hover hover:border-ec-line-glow transition-all duration-150">
-              <span className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
-                style={{ background: `${a.color}1f`, border: `1px solid ${a.color}55`, color: a.color }}>
+            <button key={a.id} onClick={() => openModal(a.id)} title={a.hint}
+              className="group h-[62px] flex flex-col items-center justify-center gap-1.5 rounded-xl border border-ec-line bg-ec-card2/40 hover:bg-ec-hover hover:border-ec-line-glow active:scale-[0.97] transition-all duration-150">
+              <span className="w-7 h-7 rounded-lg flex items-center justify-center transition-transform duration-150 group-hover:-translate-y-0.5"
+                style={{ background: `${a.color}1a`, color: a.color }}>
                 {a.icon}
               </span>
-              <span className="flex-1 min-w-0">
-                <span className="block text-[13px] font-bold leading-tight text-ec-text truncate">{a.label}</span>
-                <span className="block text-[11px] leading-tight mt-0.5 text-ec-muted truncate">{a.hint}</span>
-              </span>
-              <ChevronRight size={14} className="flex-shrink-0 text-ec-muted opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150" />
+              <span className="text-[11px] font-bold leading-none text-ec-dim group-hover:text-ec-text transition-colors">{a.label}</span>
             </button>
           ))}
         </div>
@@ -269,7 +265,7 @@ export function MobileBottomNav() {
               {([
                 { id: 'saque',    label: 'Gerador de PIX', hint: 'Pix por gateway',    color: '#ff2b4a', icon: <QrCode size={16} /> },
                 { id: 'pushover', label: 'Notificações',   hint: 'Avisos no celular',  color: '#ffc83d', icon: <Bell size={16} /> },
-                { id: 'utmify',   label: 'UTMify',         hint: 'Rastreio de vendas', color: '#8b5cf6', icon: <UtmifyMark size={17} /> },
+                { id: 'utmify',   label: 'UTMify',         hint: 'Rastreio de vendas', color: '#3b82f6', icon: <UtmifyMark size={19} /> },
               ] as const).map(a => (
                 <button key={a.id} onClick={() => { setMore(false); openModal(a.id) }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left border border-ec-line bg-ec-card2 active:scale-[0.99]">
